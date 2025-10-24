@@ -62,7 +62,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         token['user_id'] = user.id
         token['role'] = user.role
-        token['academic_year'] = user.academic_year
+        token['academic_year'] = user.current_academic_year
         token['username'] = user.username
         token['email'] = user.email
         
@@ -80,11 +80,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'username', 'email', 'password', 'password_confirm',
-            'first_name', 'last_name', 'role', 'academic_year'
+            'first_name', 'last_name', 'role', 'current_academic_year'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
-            'academic_year': {'required': True}
+            'current_academic_year': {'required': True}
         }
 
     def validate(self, attrs):
@@ -124,10 +124,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'full_name', 'role', 'role_display', 'academic_year',
+            'full_name', 'role', 'role_display', 'current_academic_year',
             'is_ai_assistant_enabled', 'last_login', 'date_joined'
         ]
-        read_only_fields = ['id', 'username', 'role', 'academic_year', 'last_login', 'date_joined']
+        read_only_fields = ['id', 'username', 'role', 'current_academic_year', 'last_login', 'date_joined']
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip() or obj.username
