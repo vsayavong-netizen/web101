@@ -47,6 +47,18 @@ class User(AbstractUser):
         """Return the first_name plus the last_name, with a space in between."""
         full_name = f"{self.first_name} {self.last_name}".strip()
         return full_name if full_name else self.username
+        
+    def is_admin(self):
+        """Check if user is an admin."""
+        return self.role == 'Admin' or self.is_superuser
+        
+    def is_advisor(self):
+        """Check if user is an advisor."""
+        return self.role == 'Advisor'
+        
+    def is_department_admin(self):
+        """Check if user is a department admin."""
+        return self.role == 'DepartmentAdmin'
 
 
 class UserSession(models.Model):
