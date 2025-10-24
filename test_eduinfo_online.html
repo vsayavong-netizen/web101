@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ EduInfo.Online Production</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .status.pending {
+            background: #ffa500;
+            color: white;
+        }
+        
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .test-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-url {
+            color: #667eea;
+            font-weight: bold;
+            word-break: break-all;
+        }
+        
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .result-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .result-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .summary h3 {
+            margin-bottom: 15px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .console-log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .console-log div {
+            margin-bottom: 5px;
+        }
+        
+        .log-info { color: #00ff00; }
+        .log-error { color: #ff6b6b; }
+        .log-warning { color: #ffa500; }
+        .log-success { color: #00ff00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ทดสอบ EduInfo.Online Production</h1>
+        
+        <div class="summary" id="summary">
+            <h3>📊 สถิติการทดสอบ</h3>
+            <div class="summary-stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="total-tests">0</div>
+                    <div class="stat-label">ทดสอบทั้งหมด</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="passed-tests">0</div>
+                    <div class="stat-label">ผ่าน</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="failed-tests">0</div>
+                    <div class="stat-label">ไม่ผ่าน</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="pending-tests">0</div>
+                    <div class="stat-label">รอทดสอบ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Frontend Tests -->
+        <div class="test-section">
+            <h2>🎨 ทดสอบ Frontend</h2>
+            <div class="test-item" id="frontend-test">
+                <div class="test-url">https://eduinfo.online</div>
+                <span class="status pending" id="frontend-status">รอทดสอบ</span>
+                <div class="button-group">
+                    <button onclick="testFrontend()">ทดสอบ Frontend</button>
+                    <button onclick="window.open('https://eduinfo.online', '_blank')">เปิดเว็บไซต์</button>
+                </div>
+                <div class="test-result" id="frontend-result"></div>
+            </div>
+        </div>
+
+        <!-- Backend API Tests -->
+        <div class="test-section">
+            <h2>⚙️ ทดสอบ Backend API</h2>
+            
+            <div class="test-item" id="api-root-test">
+                <div class="test-url">GET https://eduinfo.online/api/</div>
+                <span class="status pending" id="api-root-status">รอทดสอบ</span>
+                <button onclick="testAPI('/api/')">ทดสอบ</button>
+                <div class="test-result" id="api-root-result"></div>
+            </div>
+
+            <div class="test-item" id="health-test">
+                <div class="test-url">GET https://eduinfo.online/api/health/</div>
+                <span class="status pending" id="health-status">รอทดสอบ</span>
+                <button onclick="testAPI('/api/health/')">ทดสอบ</button>
+                <div class="test-result" id="health-result"></div>
+            </div>
+
+            <div class="test-item" id="auth-test">
+                <div class="test-url">GET https://eduinfo.online/api/auth/</div>
+                <span class="status pending" id="auth-status">รอทดสอบ</span>
+                <button onclick="testAPI('/api/auth/')">ทดสอบ</button>
+                <div class="test-result" id="auth-result"></div>
+            </div>
+
+            <div class="test-item" id="projects-test">
+                <div class="test-url">GET https://eduinfo.online/api/projects/</div>
+                <span class="status pending" id="projects-status">รอทดสอบ</span>
+                <button onclick="testAPI('/api/projects/')">ทดสอบ</button>
+                <div class="test-result" id="projects-result"></div>
+            </div>
+
+            <div class="test-item" id="students-test">
+                <div class="test-url">GET https://eduinfo.online/api/students/</div>
+                <span class="status pending" id="students-status">รอทดสอบ</span>
+                <button onclick="testAPI('/api/students/')">ทดสอบ</button>
+                <div class="test-result" id="students-result"></div>
+            </div>
+        </div>
+
+        <!-- Admin Panel Test -->
+        <div class="test-section">
+            <h2>👨‍💼 ทดสอบ Admin Panel</h2>
+            <div class="test-item" id="admin-test">
+                <div class="test-url">https://eduinfo.online/admin/</div>
+                <span class="status pending" id="admin-status">รอทดสอบ</span>
+                <div class="button-group">
+                    <button onclick="testAdmin()">ทดสอบ Admin</button>
+                    <button onclick="window.open('https://eduinfo.online/admin/', '_blank')">เปิด Admin Panel</button>
+                </div>
+                <div class="test-result" id="admin-result"></div>
+            </div>
+        </div>
+
+        <!-- Static Files Test -->
+        <div class="test-section">
+            <h2>📁 ทดสอบ Static Files</h2>
+            <div class="test-item" id="static-test">
+                <div class="test-url">https://eduinfo.online/static/</div>
+                <span class="status pending" id="static-status">รอทดสอบ</span>
+                <button onclick="testStatic()">ทดสอบ</button>
+                <div class="test-result" id="static-result"></div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="test-section">
+            <h2>⚡ ทดสอบด่วน</h2>
+            <div class="button-group">
+                <button onclick="testAll()">ทดสอบทั้งหมด</button>
+                <button onclick="clearResults()">ล้างผลลัพธ์</button>
+                <button onclick="exportResults()">Export ผลลัพธ์</button>
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="test-section">
+            <h2>📝 Console Log</h2>
+            <div class="console-log" id="console"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://eduinfo.online';
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            pending: 0
+        };
+
+        function log(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString('th-TH');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(logEntry);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function updateStats() {
+            document.getElementById('total-tests').textContent = testResults.total;
+            document.getElementById('passed-tests').textContent = testResults.passed;
+            document.getElementById('failed-tests').textContent = testResults.failed;
+            document.getElementById('pending-tests').textContent = testResults.pending;
+        }
+
+        function updateStatus(id, status, result = '') {
+            const statusElement = document.getElementById(`${id}-status`);
+            const resultElement = document.getElementById(`${id}-result`);
+            
+            statusElement.className = `status ${status}`;
+            if (status === 'success') {
+                statusElement.textContent = '✅ ผ่าน';
+                testResults.passed++;
+            } else if (status === 'error') {
+                statusElement.textContent = '❌ ไม่ผ่าน';
+                testResults.failed++;
+            } else {
+                statusElement.textContent = '⏳ กำลังทดสอบ...';
+            }
+            
+            if (result && resultElement) {
+                resultElement.className = `test-result result-${status}`;
+                resultElement.textContent = result;
+                resultElement.style.display = 'block';
+            }
+            
+            updateStats();
+        }
+
+        async function testFrontend() {
+            log('🎨 เริ่มทดสอบ Frontend...', 'info');
+            testResults.total++;
+            updateStatus('frontend', 'pending');
+            
+            try {
+                const response = await fetch(BASE_URL, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    if (html.includes('<!DOCTYPE html>') || html.includes('<html')) {
+                        updateStatus('frontend', 'success', `✅ Frontend โหลดสำเร็จ (${response.status})`);
+                        log('✅ Frontend ทำงานปกติ', 'success');
+                    } else {
+                        updateStatus('frontend', 'error', `❌ ไม่พบ HTML content`);
+                        log('❌ Frontend response ไม่ถูกต้อง', 'error');
+                    }
+                } else {
+                    updateStatus('frontend', 'error', `❌ HTTP ${response.status}: ${response.statusText}`);
+                    log(`❌ Frontend error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('frontend', 'error', `❌ Error: ${error.message}`);
+                log(`❌ Frontend error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPI(endpoint) {
+            const testId = endpoint.replace(/\//g, '-').replace(/^-/, '').replace(/-$/, '');
+            log(`⚙️ เริ่มทดสอบ ${endpoint}...`, 'info');
+            testResults.total++;
+            updateStatus(testId, 'pending');
+            
+            try {
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus(testId, 'success', 
+                        `✅ สำเร็จ (${response.status})\n${JSON.stringify(data, null, 2)}`);
+                    log(`✅ ${endpoint} ทำงานปกติ`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    updateStatus(testId, 'error', 
+                        `❌ HTTP ${response.status}: ${response.statusText}\n${errorText.substring(0, 200)}`);
+                    log(`❌ ${endpoint} error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(testId, 'error', `❌ Error: ${error.message}`);
+                log(`❌ ${endpoint} error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAdmin() {
+            log('👨‍💼 เริ่มทดสอบ Admin Panel...', 'info');
+            testResults.total++;
+            updateStatus('admin', 'pending');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/admin/`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok || response.status === 302) {
+                    updateStatus('admin', 'success', `✅ Admin Panel พร้อมใช้งาน (${response.status})`);
+                    log('✅ Admin Panel ทำงานปกติ', 'success');
+                } else {
+                    updateStatus('admin', 'error', `❌ HTTP ${response.status}: ${response.statusText}`);
+                    log(`❌ Admin Panel error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('admin', 'error', `❌ Error: ${error.message}`);
+                log(`❌ Admin Panel error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStatic() {
+            log('📁 เริ่มทดสอบ Static Files...', 'info');
+            testResults.total++;
+            updateStatus('static', 'pending');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/static/admin/css/base.css`, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    updateStatus('static', 'success', `✅ Static files โหลดได้ (${response.status})`);
+                    log('✅ Static files ทำงานปกติ', 'success');
+                } else {
+                    updateStatus('static', 'error', `❌ HTTP ${response.status}: ${response.statusText}`);
+                    log(`❌ Static files error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('static', 'error', `❌ Error: ${error.message}`);
+                log(`❌ Static files error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAll() {
+            log('🚀 เริ่มทดสอบทั้งหมด...', 'info');
+            clearResults();
+            
+            await testFrontend();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAPI('/api/');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAPI('/api/health/');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAPI('/api/auth/');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAPI('/api/projects/');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAPI('/api/students/');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAdmin();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testStatic();
+            
+            log('🎉 การทดสอบทั้งหมดเสร็จสิ้น!', 'success');
+            
+            const passRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+            log(`📊 ผลสรุป: ${testResults.passed}/${testResults.total} ผ่าน (${passRate}%)`, 'info');
+        }
+
+        function clearResults() {
+            testResults = { total: 0, passed: 0, failed: 0, pending: 0 };
+            updateStats();
+            document.getElementById('console').innerHTML = '';
+            log('🔄 ล้างผลลัพธ์เรียบร้อย', 'info');
+        }
+
+        function exportResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                url: BASE_URL,
+                stats: testResults,
+                logs: document.getElementById('console').innerText
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `eduinfo-test-results-${Date.now()}.json`;
+            a.click();
+            
+            log('💾 Export ผลลัพธ์เรียบร้อย', 'success');
+        }
+
+        // Initialize
+        log('🎯 พร้อมทดสอบ EduInfo.Online Production', 'info');
+        log(`🌐 URL: ${BASE_URL}`, 'info');
+        testResults.pending = 8;
+        updateStats();
+    </script>
+</body>
+</html>
+

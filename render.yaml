@@ -3,7 +3,7 @@ services:
     name: bm23-web
     env: python
     buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 3 final_project_management.wsgi:application
+    startCommand: chmod +x start.sh && ./start.sh
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: final_project_management.settings
