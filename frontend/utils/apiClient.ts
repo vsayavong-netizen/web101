@@ -238,13 +238,50 @@ class ApiClient {
 
   // Authentication APIs
   async login(username: string, password: string) {
-    const res = await this.post('/api/auth/login/', { username, password });
-    const access = (res.data as any)?.access || (res.data as any)?.token;
-    const refresh = (res.data as any)?.refresh || null;
-    if (access) {
-      this.setTokens(access, refresh);
+    try {
+      const res = await this.post('/api/auth/login/', { 
+        username: username.trim(),
+        password: password.trim()
+      });
+      
+      // Handle both token formats
+      const access = res.data?.access || res.data?.token;
+      const refresh = res.data?.refresh;
+      const user = res.data?.user;
+
+      if (access) {
+        this.setTokens(access, refresh);
+        return {
+          data: {
+            user,
+            access,
+            refresh
+          },
+          status: res.status,
+          message: 'Login successful'
+        };
+      } else {
+        throw new Error('No access token received');
+      }
+    } catch (error: any) {
+      // Enhanced error handling
+      const apiError = error as ApiError;
+      let errorMessage = 'Login failed';
+      
+      if (apiError.status === 401) {
+        errorMessage = 'Invalid username or password';
+      } else if (apiError.status === 400) {
+        errorMessage = 'Please enter both username and password';
+      } else if (apiError.status === 500) {
+        errorMessage = 'Server error, please try again later';
+      }
+      
+      throw {
+        message: errorMessage,
+        status: apiError.status || 500,
+        details: apiError
+      };
     }
-    return res;
   }
 
   async register(userData: any) {

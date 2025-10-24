@@ -49,18 +49,41 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, advisors, students, addS
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
     try {
       const username = (mode === 'staff' ? staffName : studentId).trim();
-      if (!username || !password) {
-        setError(t('invalidStudentCredentials'));
+      const trimmedPassword = password.trim();
+      
+      // Validate input
+      if (!username || !trimmedPassword) {
+        setError(t('pleaseEnterBothFields'));
         return;
       }
-      const result: any = await login(username, password);
-      if (result && result.user) {
-        onLogin(result.user);
+      
+      // Attempt login
+      const result = await login(username, trimmedPassword);
+      
+      if (result?.data?.user) {
+        onLogin(result.data.user);
+      } else {
+        setError(t('loginFailed'));
       }
-    } catch (err) {
-      setError(t('invalidStaffCredentials'));
+    } catch (err: any) {
+      // Handle specific error messages
+      let errorMessage = t('loginFailed');
+      
+      if (err.status === 401) {
+        errorMessage = t('invalidCredentials');
+      } else if (err.status === 400) {
+        errorMessage = t('invalidInput');
+      } else if (err.status === 500) {
+        errorMessage = t('serverError');
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      console.error('Login error:', err);
     }
   };
 
