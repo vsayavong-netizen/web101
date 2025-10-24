@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'channels',
     'drf_spectacular',
-    'csp',
+    'csp.django_csp',
     
     # Local apps
     'core',  # Core security middleware
@@ -241,18 +241,19 @@ MIDDLEWARE = [
 ]
 
 # Content Security Policy
-from django.core.management.utils import get_random_secret_key
+CSP_REPORT_ONLY = False  # Enforce CSP
+CSP_REPORT_URI = None  # No reporting for now
 
-CSP_INCLUDE_NONCE = True
-CSP_DEFAULT_SRC = ["'self'"]
-CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
-CSP_FONT_SRC = ["'self'", "https://fonts.gstatic.com"]
-CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
-CSP_IMG_SRC = ["'self'", "data:", "https:"]
-CSP_CONNECT_SRC = ["'self'", "https://eduinfo.online", "ws://127.0.0.1:8000", "wss://eduinfo.online"]
-
-# Generate a random nonce for CSP
-CSP_NONCE = get_random_secret_key()
+# CSP Directives
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_CONNECT_SRC = ("'self'", "https://eduinfo.online", "ws://127.0.0.1:8000", "wss://eduinfo.online")
+CSP_FRAME_SRC = ("'self'",)
+CSP_OBJECT_SRC = ("'none'",)
+CSP_BASE_URI = ("'self'",)
 
 ROOT_URLCONF = 'final_project_management.urls'
 
