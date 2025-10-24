@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 ทดสอบ API Endpoints - EduInfo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+        .endpoint-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .endpoint-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+        }
+        .endpoint-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .endpoint-card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 ทดสอบ API Endpoints - EduInfo</h1>
+        
+        <div class="test-section">
+            <h3>📋 ขั้นตอนการทดสอบ</h3>
+            <ol>
+                <li><strong>ทดสอบ Health Check</strong> - ตรวจสอบสถานะระบบ</li>
+                <li><strong>ทดสอบ Authentication</strong> - ทดสอบการ login</li>
+                <li><strong>ทดสอบ API Endpoints</strong> - ตรวจสอบ endpoints ต่างๆ</li>
+                <li><strong>ทดสอบ CORS</strong> - ตรวจสอบการตั้งค่า CORS</li>
+                <li><strong>ทดสอบ Frontend Integration</strong> - เชื่อมต่อกับ frontend</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 API Endpoints ที่มีอยู่</h3>
+            <div class="endpoint-grid">
+                <div class="endpoint-card">
+                    <h4>🏠 Root & Health</h4>
+                    <p><strong>GET /</strong> - ข้อมูล API หลัก</p>
+                    <p><strong>GET /health/</strong> - ตรวจสอบสถานะระบบ</p>
+                </div>
+                <div class="endpoint-card">
+                    <h4>🔐 Authentication</h4>
+                    <p><strong>POST /api/auth/login/</strong> - เข้าสู่ระบบ</p>
+                    <p><strong>POST /api/auth/logout/</strong> - ออกจากระบบ</p>
+                    <p><strong>POST /api/auth/refresh/</strong> - รีเฟรช token</p>
+                </div>
+                <div class="endpoint-card">
+                    <h4>👨‍🎓 Students</h4>
+                    <p><strong>GET /api/students/</strong> - รายชื่อนักศึกษา</p>
+                    <p><strong>POST /api/students/</strong> - เพิ่มนักศึกษา</p>
+                </div>
+                <div class="endpoint-card">
+                    <h4>📚 Projects</h4>
+                    <p><strong>GET /api/projects/</strong> - รายชื่อโปรเจค</p>
+                    <p><strong>POST /api/projects/</strong> - เพิ่มโปรเจค</p>
+                </div>
+                <div class="endpoint-card">
+                    <h4>👨‍🏫 Advisors</h4>
+                    <p><strong>GET /api/advisors/</strong> - รายชื่ออาจารย์ที่ปรึกษา</p>
+                    <p><strong>POST /api/advisors/</strong> - เพิ่มอาจารย์ที่ปรึกษา</p>
+                </div>
+                <div class="endpoint-card">
+                    <h4>📊 Analytics</h4>
+                    <p><strong>GET /api/analytics/</strong> - ข้อมูลสถิติ</p>
+                    <p><strong>GET /api/analytics/dashboard/</strong> - แดชบอร์ด</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 การทดสอบ</h3>
+            <button onclick="testHealthCheck()">❤️ ทดสอบ Health Check</button>
+            <button onclick="testAuthentication()">🔐 ทดสอบ Authentication</button>
+            <button onclick="testAllEndpoints()">🌐 ทดสอบ Endpoints ทั้งหมด</button>
+            <button onclick="testCORS()">🌐 ทดสอบ CORS</button>
+            <button onclick="testFrontendIntegration()">🎨 ทดสอบ Frontend Integration</button>
+            <button onclick="clearResults()">🗑️ ล้างผลลัพธ์</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>⏳ กำลังทดสอบ...</p>
+        </div>
+
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://eduinfo.online';
+        let testResults = [];
+
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function addResult(test, status, details) {
+            testResults.push({ test, status, details, timestamp: new Date().toLocaleTimeString() });
+            displayResults();
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+
+            testResults.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.status}`;
+                
+                const statusIcon = result.status === 'PASS' ? '✅' : 
+                                 result.status === 'FAIL' ? '❌' : 
+                                 result.status === 'ERROR' ? '🚨' : 'ℹ️';
+                
+                div.innerHTML = `
+                    <strong>${statusIcon} ${result.test}</strong> (${result.timestamp})<br>
+                    <small>${result.details}</small>
+                `;
+                resultsDiv.appendChild(div);
+            });
+        }
+
+        async function testHealthCheck() {
+            showLoading(true);
+            addResult('Health Check', 'INFO', 'กำลังทดสอบ Health Check...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/health/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    }
+                });
+
+                const data = await response.text();
+                console.log(`Health check response: ${response.status} - ${data}`);
+
+                if (response.status === 200) {
+                    try {
+                        const jsonData = JSON.parse(data);
+                        addResult('Health Check', 'PASS', `ระบบทำงานได้: ${jsonData.status || 'OK'}`);
+                        if (jsonData.service) {
+                            addResult('Service Info', 'PASS', `Service: ${jsonData.service}, Version: ${jsonData.version || 'Unknown'}`);
+                        }
+                    } catch (e) {
+                        addResult('Health Check', 'PASS', `Health check ทำงานได้: ${data}`);
+                    }
+                } else {
+                    addResult('Health Check', 'FAIL', `Health check ไม่ทำงาน (status: ${response.status})`);
+                }
+            } catch (error) {
+                addResult('Health Check', 'ERROR', `ข้อผิดพลาด: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function testAuthentication() {
+            showLoading(true);
+            addResult('Authentication', 'INFO', 'กำลังทดสอบ Authentication...');
+            
+            try {
+                // Test login endpoint
+                const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify({
+                        username: 'test',
+                        password: 'test'
+                    })
+                });
+
+                const data = await response.text();
+                console.log(`Login response: ${response.status} - ${data.substring(0, 200)}`);
+
+                if (response.status === 400 || response.status === 401) {
+                    addResult('Login Endpoint', 'PASS', 'Login endpoint ทำงานได้ (expected auth failure)');
+                } else if (response.status === 200) {
+                    addResult('Login Endpoint', 'PASS', 'Login สำเร็จ');
+                    try {
+                        const loginData = JSON.parse(data);
+                        if (loginData.access) {
+                            localStorage.setItem('auth_token', loginData.access);
+                            localStorage.setItem('refresh_token', loginData.refresh);
+                            addResult('Token Storage', 'PASS', 'Token ถูกบันทึกใน localStorage');
+                        }
+                    } catch (e) {
+                        addResult('Token Storage', 'ERROR', 'ไม่สามารถ parse response ได้');
+                    }
+                } else {
+                    addResult('Login Endpoint', 'FAIL', `Login endpoint ไม่ทำงาน (status: ${response.status})`);
+                }
+            } catch (error) {
+                addResult('Authentication', 'ERROR', `ข้อผิดพลาด: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function testAllEndpoints() {
+            showLoading(true);
+            addResult('API Endpoints', 'INFO', 'กำลังทดสอบ API Endpoints...');
+            
+            const endpoints = [
+                { path: '/api/students/', name: 'Students API' },
+                { path: '/api/projects/', name: 'Projects API' },
+                { path: '/api/advisors/', name: 'Advisors API' },
+                { path: '/api/notifications/', name: 'Notifications API' },
+                { path: '/api/analytics/', name: 'Analytics API' },
+                { path: '/api/docs/', name: 'API Documentation' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}${endpoint.path}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Origin': window.location.origin
+                        }
+                    });
+                    
+                    console.log(`Testing ${endpoint.name}: ${response.status}`);
+                    
+                    if (response.status === 200) {
+                        addResult(endpoint.name, 'PASS', `ทำงานได้ (status: ${response.status})`);
+                    } else if (response.status === 401 || response.status === 403) {
+                        addResult(endpoint.name, 'PASS', `ต้องการ Authentication (status: ${response.status})`);
+                    } else if (response.status === 404) {
+                        addResult(endpoint.name, 'FAIL', `ไม่พบ endpoint (status: ${response.status})`);
+                    } else {
+                        addResult(endpoint.name, 'PASS', `ตอบสนอง (status: ${response.status})`);
+                    }
+                } catch (error) {
+                    addResult(endpoint.name, 'ERROR', `ข้อผิดพลาด: ${error.message}`);
+                }
+            }
+            
+            showLoading(false);
+        }
+
+        async function testCORS() {
+            showLoading(true);
+            addResult('CORS Test', 'INFO', 'กำลังทดสอบ CORS...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/students/`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'authorization,content-type'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+                
+                console.log('CORS Headers:', corsHeaders);
+                
+                if (corsHeaders['Access-Control-Allow-Origin']) {
+                    addResult('CORS Test', 'PASS', `CORS ตั้งค่าได้: ${JSON.stringify(corsHeaders)}`);
+                } else {
+                    addResult('CORS Test', 'FAIL', 'CORS ไม่ได้ตั้งค่า');
+                }
+            } catch (error) {
+                addResult('CORS Test', 'ERROR', `ข้อผิดพลาด: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function testFrontendIntegration() {
+            showLoading(true);
+            addResult('Frontend Integration', 'INFO', 'กำลังทดสอบ Frontend Integration...');
+            
+            try {
+                // Test if frontend can connect to backend
+                const response = await fetch(`${API_BASE_URL}/api/students/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    }
+                });
+                
+                if (response.status === 200 || response.status === 401) {
+                    addResult('Frontend Integration', 'PASS', 'Frontend สามารถเชื่อมต่อกับ Backend ได้');
+                    
+                    // Test token storage
+                    const authToken = localStorage.getItem('auth_token');
+                    if (authToken) {
+                        addResult('Token Integration', 'PASS', 'Token ถูกเก็บใน localStorage');
+                    } else {
+                        addResult('Token Integration', 'INFO', 'ยังไม่มี Token ใน localStorage');
+                    }
+                } else {
+                    addResult('Frontend Integration', 'FAIL', `ไม่สามารถเชื่อมต่อได้ (status: ${response.status})`);
+                }
+            } catch (error) {
+                addResult('Frontend Integration', 'ERROR', `ข้อผิดพลาด: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('test-results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

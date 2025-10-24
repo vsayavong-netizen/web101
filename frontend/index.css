@@ -1,0 +1,60 @@
+/* Custom styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+  line-height: 1.6;
+}
+
+/* Lao language font for all elements */
+:lang(lo) body,
+:lang(lo) input,
+:lang(lo) select,
+:lang(lo) textarea,
+:lang(lo) button,
+:lang(lo) *,
+:lang(lo) .MuiTypography-root,
+:lang(lo) .MuiButton-root,
+:lang(lo) .MuiTextField-root,
+:lang(lo) .MuiInputBase-root {
+  font-family: 'Saysettha OT', 'Phetsarath OT', system-ui, sans-serif !important;
+}
+
+/* Dark mode styles */
+.dark {
+  color-scheme: dark;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}

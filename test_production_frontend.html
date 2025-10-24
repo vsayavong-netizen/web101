@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ Frontend จริง - Production Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        #console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 ทดสอบ Frontend จริง - Production Test</h1>
+        
+        <div class="test-section">
+            <h3>1. ทดสอบ Production Website</h3>
+            <p>ทดสอบเว็บไซต์จริงที่ <strong>https://eduinfo.online</strong></p>
+            <button class="test-button" onclick="openProductionSite()">เปิดเว็บไซต์จริง</button>
+            <button class="test-button" onclick="testProductionAPI()">ทดสอบ Production API</button>
+            <div id="production-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. ทดสอบ Console Errors</h3>
+            <p>ตรวจสอบ console errors ในเว็บไซต์จริง</p>
+            <button class="test-button" onclick="checkConsoleErrors()">ตรวจสอบ Console Errors</button>
+            <div id="console-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. ทดสอบ Login Functionality</h3>
+            <p>ทดสอบการ login ในเว็บไซต์จริง</p>
+            <button class="test-button" onclick="testProductionLogin()">ทดสอบ Login</button>
+            <div id="login-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. ทดสอบ API Endpoints</h3>
+            <p>ทดสอบ API endpoints ใน production</p>
+            <button class="test-button" onclick="testProductionEndpoints()">ทดสอบ API Endpoints</button>
+            <div id="api-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. Console Output</h3>
+            <div id="console-output"></div>
+            <button class="test-button" onclick="clearConsole()">ล้าง Console</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>6. Production Website Preview</h3>
+            <div class="iframe-container">
+                <iframe src="https://eduinfo.online" title="Production Website"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PRODUCTION_URL = 'https://eduinfo.online';
+        let consoleOutput = document.getElementById('console-output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            consoleOutput.innerHTML += logMessage + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            console.log(logMessage);
+        }
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+        
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        function openProductionSite() {
+            log('Opening production website...');
+            window.open(PRODUCTION_URL, '_blank');
+            showResult('production-results', '✅ Production website opened in new tab', 'success');
+        }
+        
+        async function testProductionAPI() {
+            log('Testing production API...');
+            try {
+                const response = await fetch(`${PRODUCTION_URL}/health/`);
+                log(`Health check status: ${response.status}`);
+                
+                if (response.status === 200) {
+                    showResult('production-results', '✅ Production API is working', 'success');
+                    log('✅ Production API is working', 'success');
+                } else {
+                    showResult('production-results', `⚠️ Production API returned ${response.status}`, 'warning');
+                    log(`⚠️ Production API returned ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                showResult('production-results', `❌ Production API error: ${error.message}`, 'error');
+                log(`❌ Production API error: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkConsoleErrors() {
+            log('Checking for console errors...');
+            
+            // Monitor for errors
+            const originalConsoleError = console.error;
+            let errorCount = 0;
+            
+            console.error = function(...args) {
+                errorCount++;
+                const message = args.join(' ');
+                log(`Console Error #${errorCount}: ${message}`, 'error');
+                return originalConsoleError.apply(this, args);
+            };
+            
+            // Check for common error patterns
+            setTimeout(() => {
+                if (errorCount === 0) {
+                    showResult('console-results', '✅ No console errors detected', 'success');
+                    log('✅ No console errors detected', 'success');
+                } else {
+                    showResult('console-results', `⚠️ ${errorCount} console errors detected`, 'warning');
+                    log(`⚠️ ${errorCount} console errors detected`, 'warning');
+                }
+            }, 5000);
+        }
+        
+        async function testProductionLogin() {
+            log('Testing production login...');
+            try {
+                const response = await fetch(`${PRODUCTION_URL}/api/auth/login/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                log(`Login response status: ${response.status}`);
+                
+                if (response.status === 200) {
+                    const data = await response.json();
+                    if (data.access || data.token) {
+                        showResult('login-results', '✅ Production login successful', 'success');
+                        log('✅ Production login successful', 'success');
+                    } else {
+                        showResult('login-results', '⚠️ Login successful but no token', 'warning');
+                        log('⚠️ Login successful but no token', 'warning');
+                    }
+                } else {
+                    const data = await response.json();
+                    showResult('login-results', `❌ Login failed: ${data.detail || data.message || 'Unknown error'}`, 'error');
+                    log(`❌ Login failed: ${data.detail || data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResult('login-results', `❌ Login error: ${error.message}`, 'error');
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testProductionEndpoints() {
+            log('Testing production endpoints...');
+            const endpoints = [
+                '/api/students/',
+                '/api/auth/login/',
+                '/api/projects/',
+                '/api/advisors/'
+            ];
+            
+            let results = [];
+            let successCount = 0;
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${PRODUCTION_URL}${endpoint}`);
+                    log(`Testing ${endpoint}: ${response.status}`);
+                    
+                    if (response.status === 200) {
+                        results.push(`✅ ${endpoint} - OK`);
+                        successCount++;
+                    } else {
+                        results.push(`⚠️ ${endpoint} - ${response.status}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${endpoint} - Error: ${error.message}`);
+                }
+            }
+            
+            const percentage = Math.round((successCount / endpoints.length) * 100);
+            showResult('api-results', results.join('<br>'), successCount === endpoints.length ? 'success' : 'warning');
+            log(`API endpoints test: ${successCount}/${endpoints.length} (${percentage}%)`, 'info');
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            log('Page loaded, starting production tests...');
+            testProductionAPI();
+            checkConsoleErrors();
+        });
+        
+        // Monitor for errors
+        window.addEventListener('error', function(e) {
+            log(`JavaScript Error: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            log(`Unhandled Promise Rejection: ${e.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

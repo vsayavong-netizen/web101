@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Frontend-Backend Connection Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+
+        async function testConnection() {
+            addResult('Starting connection tests...', 'info');
+            
+            // Test 1: Backend API
+            try {
+                const response = await fetch('http://localhost:8000/api/data/2024/');
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Backend API working! Received data with ${Object.keys(data).length} keys`, 'success');
+                } else {
+                    addResult(`❌ Backend API error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Backend API connection failed: ${error.message}`, 'error');
+            }
+
+            // Test 2: Frontend Dev Server
+            try {
+                const response = await fetch('http://localhost:5173/');
+                if (response.ok) {
+                    addResult('✅ Frontend dev server working!', 'success');
+                } else {
+                    addResult(`❌ Frontend dev server error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Frontend dev server connection failed: ${error.message}`, 'error');
+            }
+
+            // Test 3: CORS
+            try {
+                const response = await fetch('http://localhost:8000/api/data/2024/', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:5173',
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                if (response.ok) {
+                    addResult('✅ CORS preflight working!', 'success');
+                } else {
+                    addResult(`❌ CORS preflight error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ CORS test failed: ${error.message}`, 'error');
+            }
+
+            addResult('Connection tests completed!', 'info');
+        }
+
+        // Run tests when page loads
+        testConnection();
+    </script>
+</body>
+</html>

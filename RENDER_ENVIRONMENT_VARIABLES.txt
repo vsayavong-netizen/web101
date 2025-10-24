@@ -1,0 +1,247 @@
+================================================================
+  RENDER ENVIRONMENT VARIABLES สำหรับ eduinfo.online
+  คัดลอกค่าเหล่านี้ไปใส่ใน Render Dashboard
+================================================================
+
+📍 ที่: https://dashboard.render.com → Your Service → Environment
+
+⚠️ สำคัญ: คัดลอกทีละบรรทัด (Key และ Value แยกกัน)
+
+----------------------------------------------------------------
+🔴 ค่าที่ต้องแก้ไขเร่งด่วน (แก้ DisallowedHost Error)
+----------------------------------------------------------------
+
+ALLOWED_HOSTS
+eduinfo.online,www.eduinfo.online,localhost,127.0.0.1,0.0.0.0
+
+DEBUG
+False
+
+CORS_ALLOWED_ORIGINS
+https://eduinfo.online,https://www.eduinfo.online,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173
+
+CSRF_TRUSTED_ORIGINS
+https://eduinfo.online,https://www.eduinfo.online
+
+----------------------------------------------------------------
+🔧 Django Settings
+----------------------------------------------------------------
+
+SECRET_KEY
+lpe!3ed8vq(oq295xa#rt@6v$+je7cpsf0h$)%%#5bsruhkyp%
+
+----------------------------------------------------------------
+💾 Database Settings
+----------------------------------------------------------------
+
+DATABASE_URL
+postgresql://web100data_user:4881Q4Dc5XxYmSmEXuGz10q29x7GMsbL@dpg-d3rs9qp5pdvs73fve9j0-a.singapore-postgres.render.com/web100data
+
+DB_ENGINE
+django.db.backends.postgresql
+
+DB_NAME
+web100data
+
+DB_USER
+web100data_user
+
+DB_PASSWORD
+4881Q4Dc5XxYmSmEXuGz10q29x7GMsbL
+
+DB_HOST
+dpg-d3rs9qp5pdvs73fve9j0-a.singapore-postgres.render.com
+
+DB_PORT
+5432
+
+----------------------------------------------------------------
+📧 Email Settings
+----------------------------------------------------------------
+
+EMAIL_BACKEND
+django.core.mail.backends.smtp.EmailBackend
+
+EMAIL_HOST
+smtp.gmail.com
+
+EMAIL_PORT
+587
+
+EMAIL_USE_TLS
+True
+
+EMAIL_HOST_USER
+your-email@gmail.com
+
+EMAIL_HOST_PASSWORD
+your-app-password
+
+DEFAULT_FROM_EMAIL
+noreply@eduinfo.online
+
+----------------------------------------------------------------
+🔴 Redis Settings
+----------------------------------------------------------------
+
+REDIS_URL
+redis://localhost:6379/0
+
+CELERY_BROKER_URL
+redis://localhost:6379/0
+
+CELERY_RESULT_BACKEND
+redis://localhost:6379/0
+
+CACHE_URL
+redis://localhost:6379/1
+
+----------------------------------------------------------------
+🤖 AI Services
+----------------------------------------------------------------
+
+GEMINI_API_KEY
+AIzaSyCWl_ff6vpk41x2B5YrWpYMeICqvfZrtlo
+
+----------------------------------------------------------------
+⚙️ Production Settings
+----------------------------------------------------------------
+
+ALLOW_DEV_TOKENS
+False
+
+LOG_LEVEL
+WARNING
+
+----------------------------------------------------------------
+🔒 Security Settings
+----------------------------------------------------------------
+
+SECURE_SSL_REDIRECT
+True
+
+SECURE_BROWSER_XSS_FILTER
+True
+
+SECURE_CONTENT_TYPE_NOSNIFF
+True
+
+X_FRAME_OPTIONS
+DENY
+
+SECURE_HSTS_SECONDS
+31536000
+
+SECURE_HSTS_INCLUDE_SUBDOMAINS
+True
+
+SECURE_HSTS_PRELOAD
+True
+
+----------------------------------------------------------------
+🍪 Session Settings
+----------------------------------------------------------------
+
+SESSION_COOKIE_SECURE
+True
+
+SESSION_COOKIE_HTTPONLY
+True
+
+SESSION_COOKIE_SAMESITE
+Strict
+
+SESSION_COOKIE_AGE
+86400
+
+----------------------------------------------------------------
+🛡️ CSRF Settings
+----------------------------------------------------------------
+
+CSRF_COOKIE_SECURE
+True
+
+CSRF_COOKIE_HTTPONLY
+True
+
+CSRF_COOKIE_SAMESITE
+Strict
+
+----------------------------------------------------------------
+📁 File Upload Settings
+----------------------------------------------------------------
+
+FILE_UPLOAD_MAX_MEMORY_SIZE
+5242880
+
+DATA_UPLOAD_MAX_MEMORY_SIZE
+5242880
+
+MAX_UPLOAD_SIZE
+10485760
+
+----------------------------------------------------------------
+📂 Static and Media Files
+----------------------------------------------------------------
+
+STATIC_URL
+/static/
+
+STATIC_ROOT
+staticfiles
+
+MEDIA_URL
+/media/
+
+MEDIA_ROOT
+media
+
+----------------------------------------------------------------
+👤 Superuser Settings
+----------------------------------------------------------------
+
+SUPERUSER_USERNAME
+myname
+
+SUPERUSER_EMAIL
+myname@eduinfo.online
+
+SUPERUSER_PASSWORD
+Sa@55659855
+
+SUPERUSER_FIRST_NAME
+Myname
+
+SUPERUSER_LAST_NAME
+Kasi
+
+================================================================
+  วิธีใช้งาน
+================================================================
+
+1. เข้า https://dashboard.render.com
+2. เลือก Web Service ของคุณ
+3. คลิกแท็บ "Environment"
+4. สำหรับแต่ละ Key:
+   - ถ้ามีอยู่แล้ว: คลิก ✏️ แก้ไข
+   - ถ้ายังไม่มี: คลิก "Add Environment Variable"
+5. คัดลอก Key และ Value จากไฟล์นี้
+6. คลิก "Save Changes"
+7. Render จะ redeploy อัตโนมัติ (รอ 5-10 นาที)
+
+================================================================
+  Priority: ต้องแก้เร่งด่วน!
+================================================================
+
+✅ ALLOWED_HOSTS (เพิ่ม eduinfo.online)
+✅ DEBUG (เป็น False)
+✅ CORS_ALLOWED_ORIGINS (เพิ่ม https://eduinfo.online)
+✅ CSRF_TRUSTED_ORIGINS (เพิ่มใหม่)
+
+หลังจากแก้ 4 ค่านี้แล้ว DisallowedHost error จะหายไป!
+
+================================================================
+สร้างเมื่อ: 22 ตุลาคม 2025
+สถานะ: ✅ พร้อมใช้งาน
+================================================================
+

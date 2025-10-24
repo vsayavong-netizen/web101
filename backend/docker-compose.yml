@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: final_project_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: final_project_postgres
+    environment:
+      POSTGRES_DB: final_project_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  django:
+    build: .
+    container_name: final_project_django
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/final_project_management
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py shell -c \"
+             from django.contrib.auth import get_user_model
+             User = get_user_model()
+             if not User.objects.filter(username='admin').exists():
+                 User.objects.create_superuser('admin', 'admin@bm23.com', 'admin123')
+                 print('Superuser created: admin/admin123')
+             else:
+                 print('Superuser already exists')
+             \" &&
+             python manage.py loaddata fixtures/initial_data.json || echo 'No initial data file found' &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  redis_data:
+  postgres_data:
+  static_volume:
+  media_volume:

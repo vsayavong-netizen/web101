@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitoring Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .healthy { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .critical { background-color: #f8d7da; color: #721c24; }
+        .metric { display: inline-block; margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .refresh { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>System Monitoring Dashboard</h1>
+    
+    <div class="refresh">
+        <button onclick="location.reload()">Refresh</button>
+        <span>Last updated: <span id="timestamp"></span></span>
+    </div>
+    
+    <div id="status">
+        <h2>System Status</h2>
+        <div id="health-status">Loading...</div>
+    </div>
+    
+    <div id="metrics">
+        <h2>Performance Metrics</h2>
+        <div id="performance-metrics">Loading...</div>
+    </div>
+    
+    <div id="alerts">
+        <h2>Recent Alerts</h2>
+        <div id="alert-list">Loading...</div>
+    </div>
+    
+    <script>
+        // Update timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+        
+        // Load system status
+        fetch('/api/health/')
+            .then(response => response.json())
+            .then(data => {
+                const statusDiv = document.getElementById('health-status');
+                const statusClass = data.status === 'healthy' ? 'healthy' : 'critical';
+                statusDiv.innerHTML = `<div class="status ${statusClass}">Status: ${data.status.toUpperCase()}</div>`;
+            })
+            .catch(error => {
+                document.getElementById('health-status').innerHTML = 
+                    '<div class="status critical">Error loading status</div>';
+            });
+    </script>
+</body>
+</html>

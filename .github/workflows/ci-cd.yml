@@ -1,0 +1,143 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run Backend Tests
+      run: |
+        cd backend
+        python manage.py test
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/0
+    
+    - name: Run Frontend Tests
+      run: |
+        cd frontend
+        npm run test:ci
+    
+    - name: Run Integration Tests
+      run: |
+        cd backend
+        python test_full_integration.py
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Security Scan
+      run: |
+        cd backend
+        pip install bandit safety
+        bandit -r . -f json -o security-report.json
+        safety check --json --output safety-report.json
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          backend/security-report.json
+          backend/safety-report.json
+          frontend/coverage/
+
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment commands here
+    
+    - name: Run Health Check
+      run: |
+        echo "Running health check on staging..."
+        # Add health check commands here
+
+  deploy-production:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Production
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment commands here
+    
+    - name: Run Production Health Check
+      run: |
+        echo "Running production health check..."
+        # Add production health check commands here
+    
+    - name: Notify Deployment
+      run: |
+        echo "Production deployment completed successfully!"
+        # Add notification commands here

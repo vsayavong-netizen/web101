@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-10-21T23:40:32.583212",
+  "django_version": "5.0.7",
+  "database_engine": "django.db.backends.sqlite3",
+  "debug_mode": true,
+  "allowed_hosts": [
+    "localhost",
+    "127.0.0.1",
+    "testserver",
+    "0.0.0.0"
+  ],
+  "backup_type": "full",
+  "components": [
+    "database",
+    "media_files",
+    "static_files",
+    "logs",
+    "fixtures"
+  ]
+}

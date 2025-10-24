@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Project Management System</title>
+    <meta name="description" content="BM23 Final Project Management System - University Project Management Platform">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/assets/index-CmzFPlXl.css">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/static/assets/vendor-Dvwkxfce.js" as="script">
+    <link rel="preload" href="/static/assets/index-DvwsR5qq.js" as="script">
+    
+    <!-- Fallback CSS -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-container {
+            text-align: center;
+            color: white;
+            padding: 2rem;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .retry-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
+        .retry-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h2>Loading Final Project Management System...</h2>
+        <p>Please wait while we load the application.</p>
+        
+        <div class="error-message" id="errorMessage">
+            <h3>Unable to load the application</h3>
+            <p>There was an error loading the application. Please try refreshing the page.</p>
+            <button class="retry-button" onclick="window.location.reload()">Retry</button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/static/assets/vendor-Dvwkxfce.js"></script>
+    <script src="/static/assets/index-DvwsR5qq.js"></script>
+    
+    <!-- Fallback script -->
+    <script>
+        // Check if the main application loaded
+        setTimeout(function() {
+            if (typeof window.React === 'undefined') {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.querySelector('.loading-spinner').style.display = 'none';
+            }
+        }, 10000); // Show error after 10 seconds
+        
+        // Handle static file loading errors
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+                console.error('Failed to load resource:', e.target.src || e.target.href);
+                // Try to load from alternative path
+                if (e.target.tagName === 'SCRIPT' && e.target.src.includes('/static/')) {
+                    const script = document.createElement('script');
+                    script.src = e.target.src.replace('/static/', '/assets/');
+                    script.onerror = function() {
+                        document.getElementById('errorMessage').style.display = 'block';
+                        document.querySelector('.loading-spinner').style.display = 'none';
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

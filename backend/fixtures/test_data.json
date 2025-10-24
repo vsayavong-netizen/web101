@@ -1,0 +1,219 @@
+[
+  {
+    "model": "accounts.user",
+    "pk": 1,
+    "fields": {
+      "username": "testadmin",
+      "email": "admin@test.com",
+      "first_name": "Test",
+      "last_name": "Admin",
+      "role": "Admin",
+      "is_staff": true,
+      "is_superuser": true,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 2,
+    "fields": {
+      "username": "teststudent",
+      "email": "student@test.com",
+      "first_name": "Test",
+      "last_name": "Student",
+      "role": "Student",
+      "is_staff": false,
+      "is_superuser": false,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 3,
+    "fields": {
+      "username": "testadvisor",
+      "email": "advisor@test.com",
+      "first_name": "Test",
+      "last_name": "Advisor",
+      "role": "Advisor",
+      "is_staff": false,
+      "is_superuser": false,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "majors.major",
+    "pk": 1,
+    "fields": {
+      "name": "Computer Science",
+      "abbreviation": "CS",
+      "description": "Computer Science Program",
+      "degree_level": "Bachelor",
+      "duration_years": 4,
+      "total_credits": 120,
+      "department": "Computer Science Department",
+      "faculty": "Faculty of Engineering",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "students.student",
+    "pk": 1,
+    "fields": {
+      "user": 2,
+      "student_id": "STU001",
+      "major": 1,
+      "enrollment_year": 2024,
+      "expected_graduation_year": 2028,
+      "gpa": 3.5,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "advisors.advisor",
+    "pk": 1,
+    "fields": {
+      "user": 3,
+      "employee_id": "ADV001",
+      "department": "Computer Science",
+      "specialization": "Software Engineering",
+      "max_students": 10,
+      "is_available": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "projects.projectgroup",
+    "pk": 1,
+    "fields": {
+      "project_id": "PROJ001",
+      "title": "E-commerce Website",
+      "description": "A comprehensive e-commerce platform",
+      "advisor": 1,
+      "academic_year": "2024-2025",
+      "start_date": "2024-01-01",
+      "end_date": "2024-05-01",
+      "status": "active",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "projects.projectstudent",
+    "pk": 1,
+    "fields": {
+      "project_group": 1,
+      "student": 1,
+      "role": "Developer",
+      "joined_date": "2024-01-01",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "milestones.milestone",
+    "pk": 1,
+    "fields": {
+      "project_group": 1,
+      "name": "Project Proposal",
+      "description": "Submit initial project proposal",
+      "due_date": "2024-02-01",
+      "status": "pending",
+      "progress_percentage": 0,
+      "assigned_to": "teststudent",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "scoring.scoringrubric",
+    "pk": 1,
+    "fields": {
+      "name": "Final Project Evaluation",
+      "description": "Comprehensive rubric for evaluating final projects",
+      "rubric_type": "final_project",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "scoring.scoringrubricitem",
+    "pk": 1,
+    "fields": {
+      "rubric": 1,
+      "category": "Technical Implementation",
+      "description": "Quality of technical implementation",
+      "max_score": 30,
+      "order": 1,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "scoring.scoringrubricitem",
+    "pk": 2,
+    "fields": {
+      "rubric": 1,
+      "category": "Documentation",
+      "description": "Quality and completeness of documentation",
+      "max_score": 20,
+      "order": 2,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "scoring.scoringrubricitem",
+    "pk": 3,
+    "fields": {
+      "rubric": 1,
+      "category": "Presentation",
+      "description": "Quality of final presentation",
+      "max_score": 15,
+      "order": 3,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notification",
+    "pk": 1,
+    "fields": {
+      "recipient": 2,
+      "message": "Your milestone is due soon",
+      "notification_type": "milestone_reminder",
+      "is_read": false,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "settings.systemsettings",
+    "pk": 1,
+    "fields": {
+      "key": "site_name",
+      "value": "Final Project Management System",
+      "description": "Name of the system",
+      "is_public": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "settings.systemsettings",
+    "pk": 2,
+    "fields": {
+      "key": "max_students_per_group",
+      "value": "4",
+      "description": "Maximum students per project group",
+      "is_public": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "settings.academicyear",
+    "pk": 1,
+    "fields": {
+      "year": "2024-2025",
+      "start_date": "2024-08-01",
+      "end_date": "2025-07-31",
+      "is_current": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

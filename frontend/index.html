@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Final Project Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Phetsarath&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      :lang(lo) body,
+      :lang(lo) input,
+      :lang(lo) select,
+      :lang(lo) textarea,
+      :lang(lo) button {
+        font-family: 'Phetsarath', system-ui, sans-serif;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.3.1",
+    "react-dom/": "https://esm.sh/react-dom@^18.3.1/",
+    "react/": "https://esm.sh/react@^18.3.1/",
+    "uuid": "https://esm.sh/uuid@9.0.1",
+    "@google/genai": "https://esm.sh/@google/genai",
+    "xlsx": "https://esm.sh/xlsx",
+    "jszip": "https://esm.sh/jszip"
+  }
+}
+</script>
+<script>
+    // Prevents FOUC (Flash of Unstyled Content) for dark mode
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+    } else {
+        document.documentElement.classList.remove('dark')
+    }
+    // Set language on initial load to prevent FOUC for fonts
+    const lang = localStorage.getItem('language') || 'en';
+    document.documentElement.lang = lang;
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 dark:bg-slate-900">
+    <div id="root"></div>
+    <!-- Console Errors Fix -->
+    <script src="/fix-console-errors.js"></script>
+    <script type="module" src="index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

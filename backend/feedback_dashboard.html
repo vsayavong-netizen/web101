@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; color: #333; }
+        .metric { font-size: 2em; font-weight: bold; color: #3498db; }
+        .chart { height: 200px; background: #ecf0f1; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        .refresh { margin: 20px 0; }
+        .status { padding: 5px 10px; border-radius: 4px; color: white; }
+        .status.good { background: #27ae60; }
+        .status.warning { background: #f39c12; }
+        .status.critical { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1>Feedback Dashboard</h1>
+    
+    <div class="refresh">
+        <button onclick="location.reload()">Refresh</button>
+        <span>Last updated: <span id="timestamp"></span></span>
+    </div>
+    
+    <div class="dashboard">
+        <div class="card">
+            <h3>Total Feedback</h3>
+            <div class="metric" id="total-feedback">Loading...</div>
+            <p>Total feedback responses received</p>
+        </div>
+        
+        <div class="card">
+            <h3>Average Rating</h3>
+            <div class="metric" id="average-rating">Loading...</div>
+            <p>Overall user satisfaction rating</p>
+        </div>
+        
+        <div class="card">
+            <h3>Bug Reports</h3>
+            <div class="metric" id="bug-reports">Loading...</div>
+            <p>System issues and errors reported</p>
+        </div>
+        
+        <div class="card">
+            <h3>Feature Requests</h3>
+            <div class="metric" id="feature-requests">Loading...</div>
+            <p>New feature suggestions</p>
+        </div>
+        
+        <div class="card">
+            <h3>Feedback Trends</h3>
+            <div class="chart">Chart Placeholder</div>
+            <p>Feedback volume over time</p>
+        </div>
+        
+        <div class="card">
+            <h3>User Roles</h3>
+            <div class="chart">Chart Placeholder</div>
+            <p>Feedback by user role</p>
+        </div>
+    </div>
+    
+    <script>
+        // Update timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+        
+        // Load feedback data
+        fetch('/api/feedback/stats/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('total-feedback').textContent = data.total_feedback || '0';
+                document.getElementById('average-rating').textContent = data.average_rating || '0.0';
+                document.getElementById('bug-reports').textContent = data.bug_reports || '0';
+                document.getElementById('feature-requests').textContent = data.feature_requests || '0';
+            })
+            .catch(error => {
+                console.error('Error loading feedback data:', error);
+            });
+    </script>
+</body>
+</html>
