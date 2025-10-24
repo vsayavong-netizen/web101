@@ -241,17 +241,18 @@ MIDDLEWARE = [
 ]
 
 # Content Security Policy
-CONTENT_SECURITY_POLICY = {
-    'DIRECTIVES': {
-        'default-src': ["'self'"],
-        'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        'font-src': ["'self'", "https://fonts.gstatic.com"],
-        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        'img-src': ["'self'", "data:", "https:"],
-        'connect-src': ["'self'", "https://eduinfo.online", "ws://127.0.0.1:8000", "wss://eduinfo.online"],
-    },
-    'NONCE_DIRECTIVES': ['script-src']
-}
+from django.core.management.utils import get_random_secret_key
+
+CSP_INCLUDE_NONCE = True
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
+CSP_FONT_SRC = ["'self'", "https://fonts.gstatic.com"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+CSP_IMG_SRC = ["'self'", "data:", "https:"]
+CSP_CONNECT_SRC = ["'self'", "https://eduinfo.online", "ws://127.0.0.1:8000", "wss://eduinfo.online"]
+
+# Generate a random nonce for CSP
+CSP_NONCE = get_random_secret_key()
 
 ROOT_URLCONF = 'final_project_management.urls'
 
