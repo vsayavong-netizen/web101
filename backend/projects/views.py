@@ -16,7 +16,7 @@ from students.models import Student
 from advisors.models import Advisor
 from milestones.models import Milestone, MilestoneTemplate
 from projects.models import LogEntry
-from permissions import (
+from core.permissions import (
     CanManageProject, CanViewProject, IsProjectParticipant,
     AcademicYearPermission, IsAdvisorOrAdmin
 )

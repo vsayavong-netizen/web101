@@ -1,6 +1,6 @@
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
-from permissions import RolePermission, RoleRequiredMixin, require_roles, IsAdminOrDepartmentAdmin
+from core.permissions import RolePermission, RoleRequiredMixin, require_roles, IsAdminOrDepartmentAdmin
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Max

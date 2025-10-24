@@ -23,7 +23,7 @@ from .serializers import (
 )
 from projects.models import ProjectGroup
 from accounts.models import User
-from permissions import RolePermission, RoleRequiredMixin, require_roles
+from core.permissions import RolePermission, RoleRequiredMixin, require_roles
 
 """
 Roles & Access (Defense Management):

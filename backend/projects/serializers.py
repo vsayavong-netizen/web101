@@ -9,7 +9,7 @@ from students.models import Student
 from advisors.models import Advisor
 from milestones.models import Milestone, MilestoneTemplate
 from projects.models import LogEntry
-from utils.helpers import generate_project_id
+from core.utils import generate_project_id
 
 
 class ProjectSerializer(serializers.ModelSerializer):

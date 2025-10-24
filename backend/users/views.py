@@ -16,7 +16,7 @@ from students.models import Student
 from advisors.models import Advisor
 from majors.models import Major
 from classrooms.models import Classroom
-from permissions import (
+from core.permissions import (
     IsAdminOrReadOnly, CanManageStudents, CanManageAdvisors,
     IsDepartmentAdminOrAdmin, AcademicYearPermission
 )

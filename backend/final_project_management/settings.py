@@ -223,13 +223,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
     # Security middleware (enhanced)
-    'core.middleware.environment_protection.EnvironmentProtectionMiddleware',
-    'core.middleware.environment_protection.SecureFileAccessMiddleware',
+    'core.middleware.EnvironmentProtectionMiddleware',
+    'core.middleware.SecureFileAccessMiddleware',
     'core.middleware.SecurityMiddleware',
     'core.middleware.RateLimitMiddleware',
     'core.middleware.AuditLogMiddleware',
     'core.middleware.SecurityHeadersMiddleware',
-    'core.middleware.block_suspicious.BlockSuspiciousRequestsMiddleware',
+    'core.middleware.BlockSuspiciousRequestsMiddleware',
     
     # Custom middleware (simplified)
     'final_project_management.middleware.StaticFileMimeTypeMiddleware',

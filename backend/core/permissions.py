@@ -4,6 +4,70 @@ Custom permissions for the Final Project Management System
 
 from rest_framework import permissions
 from django.core.exceptions import PermissionDenied
+from functools import wraps
+from rest_framework.response import Response
+from rest_framework import status
+
+
+def require_roles(*roles):
+    """Function-based view decorator to enforce role-based access.
+    Example:
+        @require_roles('Admin','DepartmentAdmin')
+        def view(request): ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            user = getattr(request, 'user', None)
+            if not user or not user.is_authenticated:
+                return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+            if roles and getattr(user, 'role', None) not in roles:
+                return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
+
+
+class RolePermission(permissions.BasePermission):
+    """Flexible role-based permission.
+    Usage:
+        permission_classes = [RolePermission]
+        allowed_roles = ('Admin', 'Advisor')
+    """
+
+    message = 'You do not have permission to perform this action.'
+
+    def has_permission(self, request, view):
+        allowed_roles = getattr(view, 'allowed_roles', None)
+        if not allowed_roles:
+            return bool(request.user and request.user.is_authenticated)
+        role = getattr(request.user, 'role', None)
+        return bool(request.user and request.user.is_authenticated and role in allowed_roles)
+
+
+class RoleRequiredMixin:
+    """Class-based view mixin to enforce role-based access.
+    Usage:
+        class MyView(RoleRequiredMixin, APIView):
+            allowed_roles = ('Admin', 'DepartmentAdmin')
+    """
+
+    allowed_roles = None  # type: ignore
+
+    def get_allowed_roles(self):
+        return getattr(self, 'allowed_roles', None)
+
+    def get_permissions(self):
+        base_permissions = super().get_permissions()  # type: ignore
+        return base_permissions + [RolePermission()]
+
+
+class IsAdminOrDepartmentAdmin(permissions.BasePermission):
+    message = 'Admin or DepartmentAdmin role required.'
+
+    def has_permission(self, request, view):
+        role = getattr(request.user, 'role', None)
+        return bool(request.user and request.user.is_authenticated and role in ('Admin', 'DepartmentAdmin'))
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):

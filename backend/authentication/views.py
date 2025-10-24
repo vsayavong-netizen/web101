@@ -26,7 +26,7 @@ from .serializers import (
     TokenRefreshSerializer,
     LogoutSerializer
 )
-from utils.helpers import get_client_ip
+from core.utils import get_client_ip
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from permissions import require_roles
+from core.permissions import require_roles
 
 
 @api_view(['GET'])
