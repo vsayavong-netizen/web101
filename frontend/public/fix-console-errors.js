@@ -15,11 +15,9 @@
         window.fetch = function(url, options) {
             if (typeof url === 'string') {
                 const originalUrl = url;
-                // Fix double slashes but preserve protocol
-                url = url.replace(/\/\/+/g, '/');
-                if (url.startsWith('https:/') && !url.startsWith('https://')) {
-                    url = url.replace('https:/', 'https://');
-                }
+                // Fix ONLY double slashes that are NOT part of protocol (http:// or https://)
+                // Replace multiple slashes but preserve the protocol slashes
+                url = url.replace(/([^:]\/)\/+/g, '$1');
                 if (originalUrl !== url) {
                     console.log(`🔧 Fixed double slash: ${originalUrl} -> ${url}`);
                 }
@@ -32,10 +30,8 @@
         XMLHttpRequest.prototype.open = function(method, url, ...args) {
             if (typeof url === 'string') {
                 const originalUrl = url;
-                url = url.replace(/\/\/+/g, '/');
-                if (url.startsWith('https:/') && !url.startsWith('https://')) {
-                    url = url.replace('https:/', 'https://');
-                }
+                // Fix ONLY double slashes that are NOT part of protocol
+                url = url.replace(/([^:]\/)\/+/g, '$1');
                 if (originalUrl !== url) {
                     console.log(`🔧 Fixed XHR double slash: ${originalUrl} -> ${url}`);
                 }
