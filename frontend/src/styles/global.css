@@ -1,0 +1,134 @@
+/* Font definitions */
+@import url('/fonts/saysettha-ot.css');
+
+/* Global styles */
+:root {
+  --font-lao: 'Saysettha OT', 'Phetsarath', system-ui, sans-serif;
+  --font-english: 'Times New Roman', Times, serif;
+}
+
+/* Default font for English text */
+body {
+  font-family: var(--font-english);
+}
+
+/* Lao text class */
+.lao-text {
+  font-family: var(--font-lao);
+}
+
+/* Language-specific text */
+[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+[lang="en"] {
+  font-family: var(--font-english);
+}
+
+/* Typography scale */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-english);
+}
+
+h1[lang="lo"], h2[lang="lo"], h3[lang="lo"], 
+h4[lang="lo"], h5[lang="lo"], h6[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+/* Common text elements */
+p, span, div {
+  font-family: var(--font-english);
+}
+
+p[lang="lo"], span[lang="lo"], div[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+/* Form elements */
+input, textarea, select, button {
+  font-family: var(--font-english);
+}
+
+input[lang="lo"], textarea[lang="lo"], 
+select[lang="lo"], button[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+/* Navigation and menus */
+nav, .menu-item {
+  font-family: var(--font-english);
+}
+
+nav[lang="lo"], .menu-item[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+/* Tables */
+table, th, td {
+  font-family: var(--font-english);
+}
+
+table[lang="lo"], th[lang="lo"], td[lang="lo"] {
+  font-family: var(--font-lao);
+}
+
+/* Font sizes */
+html {
+  font-size: 16px;
+}
+
+body {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
+
+/* Font weights */
+.font-normal {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+/* Helper classes */
+.text-lao {
+  font-family: var(--font-lao) !important;
+}
+
+.text-english {
+  font-family: var(--font-english) !important;
+}

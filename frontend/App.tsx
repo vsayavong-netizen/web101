@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, CircularProgress } from '@mui/material';
+import './styles/global.css';
 import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import WelcomePage from './components/WelcomePage';

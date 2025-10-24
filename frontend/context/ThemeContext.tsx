@@ -42,8 +42,21 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           mode: theme,
         },
         typography: {
-          fontFamily: "'Times New Roman', Times, serif",
-          // For Lao language, CSS will handle it via :lang(lo) selector
+          fontFamily: "var(--font-english)",
+          h1: { fontFamily: "var(--font-english)" },
+          h2: { fontFamily: "var(--font-english)" },
+          h3: { fontFamily: "var(--font-english)" },
+          h4: { fontFamily: "var(--font-english)" },
+          h5: { fontFamily: "var(--font-english)" },
+          h6: { fontFamily: "var(--font-english)" },
+          body1: { fontFamily: "var(--font-english)" },
+          body2: { fontFamily: "var(--font-english)" },
+          button: { fontFamily: "var(--font-english)" },
+          caption: { fontFamily: "var(--font-english)" },
+          overline: { fontFamily: "var(--font-english)" },
+          subtitle1: { fontFamily: "var(--font-english)" },
+          subtitle2: { fontFamily: "var(--font-english)" },
+          // Lao text will be handled via CSS :lang(lo) selector
         },
       }),
     [theme]
