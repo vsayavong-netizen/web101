@@ -211,9 +211,8 @@ LOGGING = {
 }
 
 MIDDLEWARE = [
-    # CORS and CSP middleware should be first
+    # CORS middleware should be first
     'corsheaders.middleware.CorsMiddleware',
-    'csp.middleware.CSPMiddleware',
     
     # Django built-in middleware
     'django.middleware.security.SecurityMiddleware',
