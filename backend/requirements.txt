@@ -42,6 +42,9 @@ factory-boy==3.3.0
 psutil==5.9.6
 websocket-client==1.6.4
 
+# Security and validation
+bleach==6.2.0  # HTML sanitization
+
 # Additional packages for better compatibility
 asgiref==3.10.0
 sqlparse==0.5.3
