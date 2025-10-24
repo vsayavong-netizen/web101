@@ -44,6 +44,7 @@ websocket-client==1.6.4
 
 # Security and validation
 bleach==6.2.0  # HTML sanitization
+django-csp==4.0  # Content Security Policy
 
 # Additional packages for better compatibility
 asgiref==3.10.0

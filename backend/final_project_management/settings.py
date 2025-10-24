@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'channels',
     'drf_spectacular',
+    'csp',
     
     # Local apps
     'core',  # Core security middleware
@@ -211,8 +212,9 @@ LOGGING = {
 }
 
 MIDDLEWARE = [
-    # CORS middleware should be first
+    # CORS and CSP middleware should be first
     'corsheaders.middleware.CorsMiddleware',
+    'csp.middleware.CSPMiddleware',
     
     # Django built-in middleware
     'django.middleware.security.SecurityMiddleware',
@@ -237,6 +239,15 @@ MIDDLEWARE = [
     'final_project_management.middleware.StaticFileMimeTypeMiddleware',
     'final_project_management.middleware.FrontendAssetMiddleware',
 ]
+
+# Content Security Policy
+CSP_DEFAULT_SRC = ["'self'"]
+CSP_STYLE_SRC = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
+CSP_FONT_SRC = ["'self'", "https://fonts.gstatic.com"]
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+CSP_IMG_SRC = ["'self'", "data:", "https:"]
+CSP_CONNECT_SRC = ["'self'", "https://eduinfo.online", "ws://127.0.0.1:8000", "wss://eduinfo.online"]
+CSP_INCLUDE_NONCE_IN = ['script-src']
 
 ROOT_URLCONF = 'final_project_management.urls'
 
