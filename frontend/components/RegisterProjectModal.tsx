@@ -58,18 +58,32 @@ export const RegisterProjectModal: React.FC<RegisterProjectModalProps> = (props)
   const student1 = useMemo(() => student1Id ? allStudents.find(s => s.studentId === student1Id) : null, [student1Id, allStudents]);
   
   const availableAdvisors = useMemo(() => {
-    if (!student1) return [];
-    const studentMajorId = majors.find(m => m.name === student1.major)?.id;
-    if (!studentMajorId) return advisors;
+    if (!student1 || !student1.major) return advisors || [];
+    if (!majors || majors.length === 0) return advisors || [];
+    const studentMajorId = majors.find(m => m && m.name === student1.major)?.id;
+    if (!studentMajorId) return advisors || [];
     
-    return advisors.filter(adv => 
-        Array.isArray(adv.specializedMajorIds) && adv.specializedMajorIds.includes(studentMajorId)
+    return (advisors || []).filter(adv => 
+        adv && Array.isArray(adv.specializedMajorIds) && adv.specializedMajorIds.includes(studentMajorId)
     );
   }, [student1, advisors, majors]);
 
   useEffect(() => {
     if (isStudentMode) {
-      setStudent1Id(user.id);
+      // Find student by user ID or username
+      const currentStudent = allStudents.find(s => {
+        if (!s || !s.studentId) return false;
+        if (s.id === user.id || s.studentId === user.id || s.studentId === user.username) return true;
+        if (user.username && s.studentId) {
+          const normalizedStudentId = s.studentId.toLowerCase().replace(/[\/_]/g, '');
+          const normalizedUsername = user.username.toLowerCase().replace(/[\/_]/g, '');
+          return normalizedStudentId === normalizedUsername;
+        }
+        return false;
+      });
+      if (currentStudent && currentStudent.studentId) {
+        setStudent1Id(currentStudent.studentId);
+      }
     }
     if (isEditMode && projectToEdit) {
       setTopicLao(projectToEdit.project.topicLao);
@@ -258,7 +272,12 @@ export const RegisterProjectModal: React.FC<RegisterProjectModalProps> = (props)
             <label htmlFor="advisor" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('selectAdvisor')}</label>
             <select id="advisor" value={advisorName} onChange={e => setAdvisorName(e.target.value)} className={`input-style mt-1 ${errors.advisorName ? 'border-red-500' : ''}`} disabled={!student1}>
               <option value="" disabled>{availableAdvisors.length > 0 ? t('selectAnAdvisor') : t('noAvailableAdvisors')}</option>
-              {availableAdvisors.map(adv => { const count = advisorProjectCounts[adv.name] || 0; const isFull = count >= adv.quota; return <option key={adv.id} value={adv.name} disabled={isFull}>{adv.name} ({count}/{adv.quota}) {isFull && `- ${t('full')}`}</option> })}
+              {availableAdvisors.map(adv => { 
+                if (!adv || !adv.name) return null;
+                const count = advisorProjectCounts[adv.name] || 0; 
+                const isFull = count >= (adv.quota || 0); 
+                return <option key={adv.id || adv.name} value={adv.name} disabled={isFull}>{adv.name} ({count}/{adv.quota || 0}) {isFull && `- ${t('full')}`}</option> 
+              })}
             </select>
              {errors.advisorName && <p className="text-red-500 text-xs mt-1">{errors.advisorName}</p>}
           </div>

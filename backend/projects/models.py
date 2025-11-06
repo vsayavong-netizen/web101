@@ -77,6 +77,112 @@ class Project(models.Model):
 
     def __str__(self):
         return self.project_id
+    
+    # Helper methods for serializer compatibility
+    def get_student_names(self):
+        """Get student names for this project."""
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            from projects.models import ProjectStudent
+            project_students = ProjectStudent.objects.filter(project_group=project_group)
+            return [ps.student.get_full_name() for ps in project_students]
+        except ProjectGroup.DoesNotExist:
+            return []
+        except Exception as e:
+            return []
+    
+    def get_committee_members(self):
+        """Get committee members."""
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            members = {}
+            if project_group.main_committee_id:
+                try:
+                    advisor = Advisor.objects.get(advisor_id=project_group.main_committee_id)
+                    members['main'] = advisor
+                except:
+                    pass
+            if project_group.second_committee_id:
+                try:
+                    advisor = Advisor.objects.get(advisor_id=project_group.second_committee_id)
+                    members['second'] = advisor
+                except:
+                    pass
+            if project_group.third_committee_id:
+                try:
+                    advisor = Advisor.objects.get(advisor_id=project_group.third_committee_id)
+                    members['third'] = advisor
+                except:
+                    pass
+            return members
+        except:
+            return {}
+    
+    def get_milestones(self):
+        """Get milestones for this project."""
+        from milestones.models import Milestone
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            return Milestone.objects.filter(project_group=project_group)
+        except:
+            return Milestone.objects.none()
+    
+    def get_pending_milestones(self):
+        """Get pending milestones."""
+        return self.get_milestones().filter(status='Pending')
+    
+    def is_scheduled(self):
+        """Check if defense is scheduled."""
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            return bool(project_group.defense_date and project_group.defense_time)
+        except:
+            return False
+    
+    def get_final_score(self):
+        """Get final score."""
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            return project_group.final_grade
+        except:
+            return None
+    
+    def get_recent_activity(self, days=7):
+        """Get recent activity logs."""
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            from django.utils import timezone
+            from datetime import timedelta
+            cutoff = timezone.now() - timedelta(days=days)
+            return project_group.log_entries.filter(created_at__gte=cutoff)
+        except ProjectGroup.DoesNotExist:
+            from projects.models import LogEntry
+            return LogEntry.objects.none()
+        except Exception as e:
+            from projects.models import LogEntry
+            return LogEntry.objects.none()
+    
+    def can_be_viewed_by(self, user):
+        """Check if user can view this project."""
+        if user.is_admin():
+            return True
+        try:
+            project_group = ProjectGroup.objects.get(project_id=self.project_id)
+            if user.is_student():
+                return project_group.students.filter(user=user).exists()
+            elif user.is_advisor() and self.advisor:
+                return self.advisor.user == user
+        except:
+            pass
+        return False
+    
+    def can_be_edited_by(self, user):
+        """Check if user can edit this project."""
+        if user.is_admin():
+            return True
+        if user.is_advisor() and self.advisor:
+            return self.advisor.user == user
+        return False
 
 
 class StatusHistory(models.Model):

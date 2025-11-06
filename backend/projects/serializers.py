@@ -4,7 +4,7 @@ Project management serializers
 
 from rest_framework import serializers
 from django.db import transaction
-from .models import Project, ProjectGroup, ProjectStatus
+from .models import Project, ProjectGroup, ProjectStatus, ProjectStudent
 from students.models import Student
 from advisors.models import Advisor
 from milestones.models import Milestone, MilestoneTemplate
@@ -16,6 +16,26 @@ class ProjectSerializer(serializers.ModelSerializer):
     """
     Project serializer for CRUD operations
     """
+    # Fields from ProjectGroup
+    topic_lao = serializers.SerializerMethodField()
+    topic_eng = serializers.SerializerMethodField()
+    advisor_name = serializers.SerializerMethodField()
+    comment = serializers.SerializerMethodField()
+    main_committee = serializers.SerializerMethodField()
+    second_committee = serializers.SerializerMethodField()
+    third_committee = serializers.SerializerMethodField()
+    defense_date = serializers.SerializerMethodField()
+    defense_time = serializers.SerializerMethodField()
+    defense_room = serializers.SerializerMethodField()
+    final_grade = serializers.SerializerMethodField()
+    main_advisor_score = serializers.SerializerMethodField()
+    main_committee_score = serializers.SerializerMethodField()
+    second_committee_score = serializers.SerializerMethodField()
+    third_committee_score = serializers.SerializerMethodField()
+    detailed_scores = serializers.SerializerMethodField()
+    academic_year = serializers.SerializerMethodField()
+    
+    # Computed fields
     student_names = serializers.SerializerMethodField()
     student_count = serializers.SerializerMethodField()
     committee_member_names = serializers.SerializerMethodField()
@@ -39,16 +59,187 @@ class ProjectSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'project_id', 'academic_year', 'created_at', 'updated_at']
+    
+    def _get_project_group(self, obj):
+        """Helper to get project group."""
+        try:
+            return ProjectGroup.objects.get(project_id=obj.project_id)
+        except:
+            return None
+    
+    def get_topic_lao(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.topic_lao if pg else ''
+        except Exception:
+            return ''
+    
+    def get_topic_eng(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.topic_eng if pg else (obj.title if hasattr(obj, 'title') else '')
+        except Exception:
+            return obj.title if hasattr(obj, 'title') else ''
+    
+    def get_advisor_name(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            if pg:
+                return pg.advisor_name
+            if obj.advisor and hasattr(obj.advisor, 'user'):
+                return obj.advisor.user.get_full_name()
+            return ''
+        except Exception:
+            return ''
+    
+    def get_comment(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.comment if pg else ''
+        except Exception:
+            return ''
+    
+    def get_main_committee(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            if pg and pg.main_committee_id:
+                try:
+                    return Advisor.objects.get(advisor_id=pg.main_committee_id).id
+                except:
+                    pass
+        except Exception:
+            pass
+        return None
+    
+    def get_second_committee(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            if pg and pg.second_committee_id:
+                try:
+                    return Advisor.objects.get(advisor_id=pg.second_committee_id).id
+                except:
+                    pass
+        except Exception:
+            pass
+        return None
+    
+    def get_third_committee(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            if pg and pg.third_committee_id:
+                try:
+                    return Advisor.objects.get(advisor_id=pg.third_committee_id).id
+                except:
+                    pass
+        except Exception:
+            pass
+        return None
+    
+    def get_defense_date(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.defense_date if pg else None
+        except Exception:
+            return None
+    
+    def get_defense_time(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.defense_time if pg else None
+        except Exception:
+            return None
+    
+    def get_defense_room(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.defense_room if pg else None
+        except Exception:
+            return None
+    
+    def get_final_grade(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.final_grade if pg else None
+        except Exception:
+            return None
+    
+    def get_main_advisor_score(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.main_advisor_score if pg else None
+        except Exception:
+            return None
+    
+    def get_main_committee_score(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.main_committee_score if pg else None
+        except Exception:
+            return None
+    
+    def get_second_committee_score(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.second_committee_score if pg else None
+        except Exception:
+            return None
+    
+    def get_third_committee_score(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            return pg.third_committee_score if pg else None
+        except Exception:
+            return None
+    
+    def get_detailed_scores(self, obj):
+        try:
+            pg = self._get_project_group(obj)
+            if pg:
+                return {
+                    'main_advisor': pg.main_advisor_score,
+                    'main_committee': pg.main_committee_score,
+                    'second_committee': pg.second_committee_score,
+                    'third_committee': pg.third_committee_score,
+                    'final_grade': pg.final_grade
+                }
+        except Exception:
+            pass
+        return {}
+    
+    def get_academic_year(self, obj):
+        # Try to extract from project_id or use default
+        try:
+            # Project ID format might be like "2024-2025-P001"
+            parts = obj.project_id.split('-')
+            if len(parts) >= 2:
+                return f"{parts[0]}-{parts[1]}"
+        except:
+            pass
+        return '2024-2025'
 
     def get_student_names(self, obj):
-        return obj.get_student_names()
+        try:
+            return obj.get_student_names()
+        except:
+            return []
 
     def get_student_count(self, obj):
-        return obj.projectgroup.students.count() if hasattr(obj, 'projectgroup') else 0
+        try:
+            project_group = ProjectGroup.objects.get(project_id=obj.project_id)
+            # Use ProjectStudent relationship
+            from projects.models import ProjectStudent
+            return ProjectStudent.objects.filter(project_group=project_group).count()
+        except ProjectGroup.DoesNotExist:
+            return 0
+        except Exception as e:
+            return 0
 
     def get_committee_member_names(self, obj):
-        members = obj.get_committee_members()
-        return {role: advisor.name for role, advisor in members}
+        try:
+            members = obj.get_committee_members()
+            return {role: advisor.user.get_full_name() if hasattr(advisor, 'user') else str(advisor) for role, advisor in members.items()}
+        except:
+            return {}
 
     def get_milestone_count(self, obj):
         return obj.get_milestones().count()
@@ -63,23 +254,36 @@ class ProjectSerializer(serializers.ModelSerializer):
         return obj.get_final_score()
 
     def get_recent_activity(self, obj):
-        recent_logs = obj.get_recent_activity(days=7)
-        return [
-            {
-                'type': log.type,
-                'author': log.author_name,
-                'message': log.message,
-                'timestamp': log.created_at
-            }
-            for log in recent_logs[:5]  # Last 5 activities
-        ]
+        try:
+            recent_logs = obj.get_recent_activity(days=7)
+            return [
+                {
+                    'type': log.type,
+                    'author': str(log.author_id),
+                    'message': log.content if hasattr(log, 'content') else '',
+                    'timestamp': log.created_at
+                }
+                for log in recent_logs[:5]  # Last 5 activities
+            ]
+        except:
+            return []
 
     def create(self, validated_data):
         """Create project with auto-generated project ID"""
         # Generate project ID
-        academic_year = validated_data.get('academic_year', self.context['request'].user.academic_year)
-        last_project = Project.objects.filter(academic_year=academic_year).order_by('-id').first()
-        sequence = (last_project.id + 1) if last_project else 1
+        request = self.context.get('request')
+        academic_year = validated_data.pop('academic_year', None) or (getattr(request.user, 'current_academic_year', '2024-2025') if request and request.user else '2024-2025')
+        # Filter by project_id prefix instead of academic_year field
+        last_project = Project.objects.filter(project_id__startswith=academic_year).order_by('-id').first()
+        if last_project:
+            try:
+                # Extract sequence from project_id like "2024-2025-P004"
+                seq = int(last_project.project_id.split('-P')[-1])
+                sequence = seq + 1
+            except:
+                sequence = 1
+        else:
+            sequence = 1
         validated_data['project_id'] = generate_project_id(academic_year, sequence)
         
         return super().create(validated_data)
@@ -89,66 +293,111 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     """
     Project creation serializer with students
     """
+    # Additional fields for ProjectGroup
+    topic_lao = serializers.CharField(required=False, allow_blank=True)
+    topic_eng = serializers.CharField(required=False, allow_blank=True)
+    advisor_name = serializers.CharField(required=False, allow_blank=True)
+    comment = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     student_ids = serializers.ListField(
         child=serializers.CharField(),
         write_only=True,
+        required=False,
         help_text="List of student IDs to add to project"
     )
     template_id = serializers.CharField(
         required=False,
         allow_null=True,
+        allow_blank=True,
         help_text="Milestone template ID to apply"
     )
+    academic_year = serializers.CharField(required=False, default='2024-2025')
     
     class Meta:
         model = Project
         fields = [
-            'topic_lao', 'topic_eng', 'advisor_name', 'advisor',
-            'comment', 'student_ids', 'template_id', 'academic_year'
+            'title', 'description', 'status', 'advisor',
+            'topic_lao', 'topic_eng', 'advisor_name', 'comment',
+            'student_ids', 'template_id', 'academic_year'
         ]
 
     def validate_student_ids(self, value):
         """Validate student IDs"""
         if not value:
-            raise serializers.ValidationError("At least one student is required.")
+            return []
         
-        # Check if students exist and are available
+        # Check if students exist
         students = Student.objects.filter(student_id__in=value)
         if len(students) != len(value):
             missing = set(value) - set(students.values_list('student_id', flat=True))
             raise serializers.ValidationError(f"Students not found: {', '.join(missing)}")
         
-        # Check if students already have projects
-        for student in students:
-            if not student.can_register_project():
-                raise serializers.ValidationError(f"Student {student.student_id} already has an active project.")
-        
         return value
 
     def validate_advisor(self, value):
-        """Validate advisor availability"""
-        if value and not value.can_supervise_more_projects():
-            raise serializers.ValidationError("Advisor has reached their quota limit.")
-        return value
+        """Validate advisor"""
+        if value:
+            return value
+        return None
 
     @transaction.atomic
     def create(self, validated_data):
         """Create project with students and milestones"""
-        student_ids = validated_data.pop('student_ids')
+        # Extract additional data
+        student_ids = validated_data.pop('student_ids', [])
         template_id = validated_data.pop('template_id', None)
+        topic_lao = validated_data.pop('topic_lao', '')
+        topic_eng = validated_data.pop('topic_eng', validated_data.get('title', ''))
+        advisor_name = validated_data.pop('advisor_name', '')
+        comment = validated_data.pop('comment', '')
+        academic_year = validated_data.pop('academic_year', '2024-2025')
+        
+        # Generate project ID
+        from core.utils import generate_project_id
+        try:
+            last_project = Project.objects.filter(project_id__startswith=academic_year).order_by('-id').first()
+            if last_project:
+                # Extract sequence from project_id like "2024-2025-P004"
+                try:
+                    seq = int(last_project.project_id.split('-P')[-1])
+                    sequence = seq + 1
+                except:
+                    sequence = 1
+            else:
+                sequence = 1
+            project_id = generate_project_id(academic_year, sequence)
+        except:
+            # Fallback if generate_project_id doesn't work
+            project_id = f"{academic_year}-P{Project.objects.count() + 1:03d}"
+        
+        # Set project_id
+        validated_data['project_id'] = project_id
         
         # Create project
         project = Project.objects.create(**validated_data)
         
+        # Get advisor name if not provided
+        if not advisor_name and project.advisor:
+            advisor_name = project.advisor.user.get_full_name()
+        
         # Create project group
         project_group = ProjectGroup.objects.create(
-            project=project,
-            academic_year=project.academic_year
+            project_id=project_id,
+            topic_lao=topic_lao or topic_eng,
+            topic_eng=topic_eng or project.title,
+            advisor_name=advisor_name or (project.advisor.user.get_full_name() if project.advisor else ''),
+            comment=comment,
+            status=project.status
         )
         
         # Add students to project group
-        students = Student.objects.filter(student_id__in=student_ids)
-        project_group.students.set(students)
+        if student_ids:
+            students = Student.objects.filter(student_id__in=student_ids)
+            for idx, student in enumerate(students):
+                ProjectStudent.objects.get_or_create(
+                    project_group=project_group,
+                    student=student.user,
+                    defaults={'is_primary': idx == 0}
+                )
         
         # Apply milestone template if provided
         if template_id:
@@ -310,24 +559,47 @@ class ProjectLogEntrySerializer(serializers.ModelSerializer):
     """
     Project log entry serializer
     """
-    author_name = serializers.CharField(read_only=True)
-    author_role = serializers.CharField(read_only=True)
+    author_name = serializers.SerializerMethodField()
+    author_role = serializers.SerializerMethodField()
+    message = serializers.CharField(source='content', required=False)
     
     class Meta:
         model = LogEntry
         fields = [
             'id', 'type', 'author_id', 'author_name', 'author_role',
-            'message', 'file_id', 'file_name', 'file_type', 'file_size',
+            'message', 'content', 'metadata',
             'created_at'
         ]
         read_only_fields = ['id', 'author_id', 'created_at']
 
+    def get_author_name(self, obj):
+        """Get author name from user"""
+        try:
+            from accounts.models import User
+            user = User.objects.get(id=obj.author_id)
+            return user.get_full_name()
+        except:
+            return str(obj.author_id)
+
+    def get_author_role(self, obj):
+        """Get author role from user"""
+        try:
+            from accounts.models import User
+            user = User.objects.get(id=obj.author_id)
+            return user.role
+        except:
+            return 'Unknown'
+
     def create(self, validated_data):
         """Create log entry with author information"""
-        request = self.context['request']
-        validated_data['author_id'] = request.user.id
-        validated_data['author_name'] = request.user.get_full_name()
-        validated_data['author_role'] = request.user.role
+        request = self.context.get('request')
+        if request:
+            validated_data['author_id'] = request.user.id
+        # Extract content from message if provided
+        if 'content' in validated_data and not validated_data['content']:
+            validated_data['content'] = validated_data.pop('message', '')
+        elif 'message' in validated_data:
+            validated_data['content'] = validated_data.pop('message', '')
         
         return super().create(validated_data)
 

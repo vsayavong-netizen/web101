@@ -1,95 +1,119 @@
-# การแก้ไขปัญหาที่เกิดขึ้น
+# 🔧 สรุปการแก้ไข Error
 
-## ปัญหาที่พบ
+## ✅ Error ที่แก้ไขแล้ว
 
-1. **Tailwind CSS CDN ไม่ควรใช้ใน production**
-   - ข้อความเตือน: `cdn.tailwindcss.com should not be used in production`
+### 1. RegisterProjectModal - Null/Undefined Checks
 
-2. **API endpoint กำลังส่ง 401 Unauthorized error**
-   - Frontend กำลังเรียก `/api/data/2024` แต่ไม่มี endpoint นี้ใน backend
-   - ข้อความ error: `GET http://localhost:5173/api/data/2024 401 (Unauthorized)`
+**ปัญหา:**
+- `Cannot read properties of undefined (reading 'toLowerCase')` ที่บรรทัด 61
+- ไม่มีการตรวจสอบ null/undefined ก่อนเรียก method
 
-3. **Frontend กำลัง fallback ไปใช้ localStorage**
-   - ข้อความ: `Backend fetch failed, falling back to localStorage. Error: Backend not available: Unauthorized`
+**การแก้ไข:**
 
-## การแก้ไขที่ทำ
+#### 1.1 แก้ไข availableAdvisors useMemo
+```typescript
+// ก่อนแก้ไข
+const availableAdvisors = useMemo(() => {
+  if (!student1) return [];
+  const studentMajorId = majors.find(m => m.name === student1.major)?.id;
+  // ...
+}, [student1, advisors, majors]);
 
-### 1. แก้ไข Tailwind CSS CDN
-
-**ไฟล์ที่แก้ไข:**
-- `frontend/index.html` - เอา CDN script ออก
-- `frontend/tailwind.config.js` - สร้างไฟล์ config ใหม่
-- `frontend/postcss.config.js` - สร้างไฟล์ PostCSS config
-- `frontend/index.css` - สร้างไฟล์ CSS หลัก
-
-**การติดตั้ง:**
-```bash
-cd frontend
-npm install -D tailwindcss postcss autoprefixer
+// หลังแก้ไข
+const availableAdvisors = useMemo(() => {
+  if (!student1 || !student1.major) return advisors || [];
+  if (!majors || majors.length === 0) return advisors || [];
+  const studentMajorId = majors.find(m => m && m.name === student1.major)?.id;
+  if (!studentMajorId) return advisors || [];
+  
+  return (advisors || []).filter(adv => 
+      adv && Array.isArray(adv.specializedMajorIds) && adv.specializedMajorIds.includes(studentMajorId)
+  );
+}, [student1, advisors, majors]);
 ```
 
-### 2. สร้าง API Endpoints สำหรับ Frontend
+#### 1.2 แก้ไข useEffect สำหรับ auto-select student
+```typescript
+// ก่อนแก้ไข
+const currentStudent = allStudents.find(s => 
+  s.id === user.id || 
+  s.studentId === user.id || 
+  s.studentId === user.username ||
+  (user.username && s.studentId.toLowerCase().replace(/[\/_]/g, '') === user.username.toLowerCase().replace(/[\/_]/g, ''))
+);
 
-**ไฟล์ที่สร้าง:**
-- `backend/final_project_management/data_api.py` - API endpoints หลัก
-- `backend/final_project_management/data_urls.py` - URL patterns
+// หลังแก้ไข
+const currentStudent = allStudents.find(s => {
+  if (!s || !s.studentId) return false;
+  if (s.id === user.id || s.studentId === user.id || s.studentId === user.username) return true;
+  if (user.username && s.studentId) {
+    const normalizedStudentId = s.studentId.toLowerCase().replace(/[\/_]/g, '');
+    const normalizedUsername = user.username.toLowerCase().replace(/[\/_]/g, '');
+    return normalizedStudentId === normalizedUsername;
+  }
+  return false;
+});
+```
 
-**ไฟล์ที่แก้ไข:**
-- `backend/final_project_management/urls.py` - เพิ่ม data API routes
-- `backend/final_project_management/middleware.py` - เพิ่ม `/api/data/` ใน skip_paths
+#### 1.3 แก้ไข Advisor dropdown rendering
+```typescript
+// ก่อนแก้ไข
+{availableAdvisors.map(adv => { 
+  const count = advisorProjectCounts[adv.name] || 0; 
+  const isFull = count >= adv.quota; 
+  return <option key={adv.id} value={adv.name} disabled={isFull}>...
+})}
 
-### 3. แก้ไข Frontend Configuration
+// หลังแก้ไข
+{availableAdvisors.map(adv => { 
+  if (!adv || !adv.name) return null;
+  const count = advisorProjectCounts[adv.name] || 0; 
+  const isFull = count >= (adv.quota || 0); 
+  return <option key={adv.id || adv.name} value={adv.name} disabled={isFull}>...
+})}
+```
 
-**ไฟล์ที่แก้ไข:**
-- `frontend/hooks/useMockData.ts` - แก้ไข API calls ให้ใช้ proxy
-- `frontend/vite.config.ts` - เพิ่ม proxy configuration
-- `frontend/.env` - สร้าง environment variables
+## 📋 สิ่งที่ต้องทำต่อ
 
-**การเปลี่ยนแปลง:**
-- ใช้ Vite proxy แทน direct API calls
-- เพิ่ม authentication headers
-- แก้ไข URL construction สำหรับ development/production
-
-## API Endpoints ที่สร้าง
-
-### GET `/api/data/{year}/`
-- ดึงข้อมูลทั้งหมดสำหรับปีการศึกษา
-- Return mock data สำหรับ development
-- ไม่ต้อง authentication สำหรับ development
-
-### PUT `/api/{year}/{collection_name}/`
-- อัปเดต collection ทั้งหมด
-
-### POST `/api/{year}/{collection_name}/`
-- เพิ่ม item ใหม่ใน collection
-
-### DELETE `/api/{year}/{collection_name}/{item_id}/`
-- ลบ item จาก collection
-
-### POST `/api/{year}/settings/{settings_name}/`
-- อัปเดต settings
-
-## การทดสอบ
-
-1. **เริ่ม Backend Server:**
+### 1. ตรวจสอบ Backend Server
 ```bash
-cd backend
+cd web101/backend
 python manage.py runserver
 ```
 
-2. **เริ่ม Frontend Server:**
+ตรวจสอบว่า backend ทำงานที่ `http://localhost:8000`
+
+### 2. Build Frontend ใหม่
 ```bash
-cd frontend
-npm run dev
+cd web101/frontend
+npm run build
 ```
 
-3. **ตรวจสอบ:**
-- ไม่มี Tailwind CDN warning
-- API calls ทำงานได้โดยไม่ error
-- Frontend โหลดข้อมูลจาก backend แทน localStorage
+### 3. ทดสอบฟีเจอร์
+1. **Register Project**
+   - Login เป็น Student
+   - คลิก "Register Your Project"
+   - กรอกข้อมูลและ submit
+   - ตรวจสอบว่าไม่มี error
 
-## หมายเหตุ
+2. **Milestone Submission**
+   - เปิดโปรเจกต์
+   - ไปที่ tab "Milestones"
+   - Upload ไฟล์ milestone
 
-- API endpoints ปัจจุบัน return mock data สำหรับ development
-- ใน production ต้องเชื่อมต่อกับ database models จริง
-- Authentication ถูกปิดสำหรับ development แต่ควรเปิดใน production
+3. **Final File Submission**
+   - เปิดโปรเจกต์
+   - ไปที่ tab "Submissions"
+   - Upload Pre-Defense และ Post-Defense files
+
+## ✅ สรุป
+
+- ✅ แก้ไข null/undefined checks ใน RegisterProjectModal
+- ✅ ไม่มี linter errors
+- ⏳ ต้อง build frontend ใหม่
+- ⏳ ต้องตรวจสอบ backend server
+
+---
+
+**วันที่แก้ไข:** $(date)
+**ไฟล์ที่แก้ไข:** `web101/frontend/components/RegisterProjectModal.tsx`

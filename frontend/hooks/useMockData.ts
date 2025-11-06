@@ -71,7 +71,7 @@ export const initialAnnouncements: Announcement[] = [ { id: 'ANN01', title: 'Wel
 // --- HYBRID API LAYER (Backend with localStorage Fallback) ---
 // This object attempts to use a backend first, but falls back to localStorage if the backend is unavailable.
 // Use proxy in development, direct URL in production
-const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'https://eduinfo.online';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:8000';
 // Ensure no trailing slash to prevent double slashes
 const cleanAPIBaseURL = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
 
@@ -242,31 +242,162 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
     const [scoringSettings, setScoringSettings] = useState<ScoringSettings>({ mainAdvisorWeight: 60, committeeWeight: 40, gradeBoundaries: [], advisorRubrics: [], committeeRubrics: [] });
     const t = useTranslations();
 
+    // Watch for token changes to reload data after login
+    const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
+    
+    useEffect(() => {
+        // Listen for storage changes (when token is set after login)
+        const handleStorageChange = () => {
+            const newToken = localStorage.getItem('auth_token');
+            if (newToken !== authToken) {
+                setAuthToken(newToken);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        // Also check periodically (for same-tab updates)
+        const interval = setInterval(() => {
+            const currentToken = localStorage.getItem('auth_token');
+            if (currentToken !== authToken) {
+                setAuthToken(currentToken);
+            }
+        }, 1000);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, [authToken]);
+    
     useEffect(() => {
         const loadData = async () => {
             if (!currentAcademicYear) return;
             setLoading(true);
             try {
-                const data = await api.getAllDataForYear(currentAcademicYear);
-                setProjectGroups(data.projectGroups || []);
-                setStudents(data.students || []);
-                setAdvisors(data.advisors || []);
-                setMajors(data.majors || []);
-                setClassrooms(data.classrooms || []);
-                setMilestoneTemplates(data.milestoneTemplates || initialMilestoneTemplates);
-                setAnnouncements(data.announcements || []);
-                setDefenseSettings(data.defenseSettings || { startDefenseDate: '', timeSlots: '09:00-10:00,10:15-11:15,13:00-14:00,14:15-15:15', rooms: [], stationaryAdvisors: {}, timezone: 'Asia/Bangkok' });
-                setScoringSettings(data.scoringSettings || { mainAdvisorWeight: 60, committeeWeight: 40, gradeBoundaries: [], advisorRubrics: [], committeeRubrics: [] });
+                const token = localStorage.getItem('auth_token');
+                const headers: HeadersInit = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // Load data from real backend API
+                const [projectsRes, studentsRes, advisorsRes, majorsRes, classroomsRes] = await Promise.allSettled([
+                    fetch(`${cleanAPIBaseURL}/api/projects/projects/`, { headers }),
+                    fetch(`${cleanAPIBaseURL}/api/students/`, { headers }),
+                    fetch(`${cleanAPIBaseURL}/api/advisors/`, { headers }),
+                    fetch(`${cleanAPIBaseURL}/api/majors/`, { headers }),
+                    fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers }),
+                ]);
+
+                // Process projects
+                if (projectsRes.status === 'fulfilled' && projectsRes.value.ok) {
+                    const projectsData = await projectsRes.value.json();
+                    // Transform backend project format to frontend ProjectGroup format
+                    const transformedProjects = Array.isArray(projectsData) ? projectsData : (projectsData.results || projectsData.data || []);
+                    setProjectGroups(transformedProjects.map((p: any) => ({
+                        project: p,
+                        students: p.students || []
+                    })) || []);
+                } else {
+                    console.warn('Failed to load projects from backend, using empty array');
+                    setProjectGroups([]);
+                }
+
+                // Process students
+                if (studentsRes.status === 'fulfilled' && studentsRes.value.ok) {
+                    const studentsData = await studentsRes.value.json();
+                    const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                    // Transform backend format to frontend format
+                    const transformedStudents = rawStudents.map((s: any) => ({
+                        studentId: s.student_id || s.studentId || s.id?.toString() || '',
+                        name: s.user?.first_name || s.name || s.first_name || '',
+                        surname: s.user?.last_name || s.surname || s.last_name || '',
+                        major: s.major || '',
+                        classroom: s.classroom || '',
+                        gender: s.gender || 'Male',
+                        tel: s.tel || s.phone || s.user?.phone || '',
+                        email: s.user?.email || s.email || '',
+                        status: s.status || 'Pending',
+                        isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
+                    })).filter((s: any) => s.studentId); // Filter out invalid students
+                    setStudents(transformedStudents);
+                } else {
+                    console.warn('Failed to load students from backend, using empty array');
+                    setStudents([]);
+                }
+
+                // Process advisors
+                if (advisorsRes.status === 'fulfilled' && advisorsRes.value.ok) {
+                    const advisorsData = await advisorsRes.value.json();
+                    const rawAdvisors = Array.isArray(advisorsData) ? advisorsData : (advisorsData.results || advisorsData.data || []);
+                    // Transform backend format to frontend format
+                    const transformedAdvisors = rawAdvisors.map((a: any) => ({
+                        id: a.id?.toString() || a.advisor_id || '',
+                        name: a.user?.full_name || (a.user?.first_name && a.user?.last_name ? `${a.user.first_name} ${a.user.last_name}` : '') || a.name || '',
+                        quota: a.quota || 10,
+                        mainCommitteeQuota: a.main_committee_quota || a.mainCommitteeQuota || 5,
+                        secondCommitteeQuota: a.second_committee_quota || a.secondCommitteeQuota || 5,
+                        thirdCommitteeQuota: a.third_committee_quota || a.thirdCommitteeQuota || 5,
+                        specializedMajorIds: a.specializedMajorIds || (a.specializations?.map((s: any) => {
+                            // Try to get major ID from specializations
+                            if (s.major && typeof s.major === 'object') return s.major.id || s.major;
+                            if (typeof s.major === 'string') {
+                                // Find major by name
+                                const major = initialMajors.find(m => m.name === s.major);
+                                return major?.id;
+                            }
+                            return s.id;
+                        }).filter((id: any) => id) || []),
+                        isDepartmentAdmin: a.is_department_admin || a.isDepartmentAdmin || false,
+                        password: a.password || 'password123',
+                        isAiAssistantEnabled: a.isAiAssistantEnabled !== undefined ? a.isAiAssistantEnabled : true,
+                    })).filter((a: any) => a.id && a.name); // Filter out invalid advisors
+                    setAdvisors(transformedAdvisors);
+                } else {
+                    console.warn('Failed to load advisors from backend, using empty array');
+                    setAdvisors([]);
+                }
+
+                // Process majors
+                if (majorsRes.status === 'fulfilled' && majorsRes.value.ok) {
+                    const majorsData = await majorsRes.value.json();
+                    setMajors(Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || initialMajors));
+                } else {
+                    console.warn('Failed to load majors from backend, using initial majors');
+                    setMajors(initialMajors);
+                }
+
+                // Process classrooms
+                if (classroomsRes.status === 'fulfilled' && classroomsRes.value.ok) {
+                    const classroomsData = await classroomsRes.value.json();
+                    setClassrooms(Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || initialClassrooms));
+                } else {
+                    console.warn('Failed to load classrooms from backend, using initial classrooms');
+                    setClassrooms(initialClassrooms);
+                }
+
+                // Set defaults for other data
+                setMilestoneTemplates(initialMilestoneTemplates);
+                setAnnouncements([]);
+                setDefenseSettings({ startDefenseDate: '', timeSlots: '09:00-10:00,10:15-11:15,13:00-14:00,14:15-15:15', rooms: [], stationaryAdvisors: {}, timezone: 'Asia/Bangkok' });
+                setScoringSettings({ mainAdvisorWeight: 60, committeeWeight: 40, gradeBoundaries: [], advisorRubrics: [], committeeRubrics: [] });
             } catch (error) {
-                // This catch is for localStorage errors, which are less likely but possible.
-                console.error("Failed to load data from storage:", error);
-                addToast({ type: 'error', message: 'Could not load local data. Please try clearing your browser cache.' });
+                console.error("Failed to load data from backend:", error);
+                addToast({ type: 'error', message: 'Could not load data from server. Please check your connection.' });
+                // Set empty arrays as fallback
+                setProjectGroups([]);
+                setStudents([]);
+                setAdvisors([]);
+                setMajors(initialMajors);
+                setClassrooms(initialClassrooms);
             } finally {
                 setLoading(false);
             }
         };
         loadData();
-    }, [currentAcademicYear, addToast]);
+    }, [currentAcademicYear, addToast, authToken]);
 
     const advisorProjectCounts = useMemo(() => {
         return projectGroups.reduce((acc, group) => {
@@ -342,17 +473,65 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
         const newGroup = { project: newProject, students: studentsInGroup };
 
         try {
-            const updatedProjectGroups = await api.addCollectionItem(currentAcademicYear, 'projectGroups', newGroup);
-            setProjectGroups(updatedProjectGroups);
-            addProjectLogEntry(project.projectId, { type: 'event', authorId: actor.id, authorName: actor.name, authorRole: actor.role, message: 'Project registered.' });
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Transform frontend format to backend format
             const advisor = advisors.find(a => a.name === project.advisorName);
-            if (advisor) {
-                addNotification({ title: t('newProjectSubmissionTitle'), message: t('newProjectSubmissionMessage').replace('${topic}', project.topicEng), userIds: [advisor.id], projectId: project.projectId, type: 'Submission' });
+            const studentIds = studentsInGroup.map(s => s.studentId);
+            
+            const backendPayload = {
+                topic_lao: project.topicLao,
+                topic_eng: project.topicEng,
+                advisor: advisor?.id || null,
+                student_ids: studentIds,
+                academic_year: currentAcademicYear,
+                comment: project.comment || 'Initial submission',
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/projects/projects/`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(backendPayload),
+            });
+
+            if (response.ok) {
+                const createdProject = await response.json();
+                // Transform backend response to frontend format and add to local state
+                const transformedGroup: ProjectGroup = {
+                    project: newProject,
+                    students: studentsInGroup,
+                };
+                setProjectGroups(prev => [...prev, transformedGroup]);
+                addProjectLogEntry(project.projectId, { type: 'event', authorId: actor.id, authorName: actor.name, authorRole: actor.role, message: 'Project registered.' });
+                if (advisor) {
+                    addNotification({ title: t('newProjectSubmissionTitle'), message: t('newProjectSubmissionMessage').replace('${topic}', project.topicEng), userIds: [advisor.id], projectId: project.projectId, type: 'Submission' });
+                }
+            } else {
+                throw new Error(`Backend API returned ${response.status}`);
             }
         } catch (error) {
-            addToast({ type: 'error', message: 'Failed to add project.' });
+            // Fallback to localStorage
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            try {
+                const updatedProjectGroups = await api.addCollectionItem(currentAcademicYear, 'projectGroups', newGroup);
+                setProjectGroups(updatedProjectGroups);
+                addProjectLogEntry(project.projectId, { type: 'event', authorId: actor.id, authorName: actor.name, authorRole: actor.role, message: 'Project registered.' });
+                const advisor = advisors.find(a => a.name === project.advisorName);
+                if (advisor) {
+                    addNotification({ title: t('newProjectSubmissionTitle'), message: t('newProjectSubmissionMessage').replace('${topic}', project.topicEng), userIds: [advisor.id], projectId: project.projectId, type: 'Submission' });
+                }
+            } catch (fallbackError) {
+                addToast({ type: 'error', message: 'Failed to add project.' });
+            }
         }
-    }, [advisors, addNotification, addProjectLogEntry, t, currentAcademicYear, addToast]);
+    }, [advisors, addNotification, addProjectLogEntry, t, currentAcademicYear, addToast, cleanAPIBaseURL]);
 
     const updateProject = useCallback(async (group: ProjectGroup, actor: User) => {
         const originalGroup = projectGroups.find(p => p.project.projectId === group.project.projectId);

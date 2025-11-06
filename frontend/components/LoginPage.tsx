@@ -63,8 +63,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, advisors, students, addS
       // Attempt login
       const result = await login(username, trimmedPassword);
       
-      if (result?.data?.user) {
-        onLogin(result.data.user);
+      // Handle response structure: result.data contains { user, access, refresh }
+      const userData = result?.data?.user || result?.user;
+      
+      if (userData) {
+        // Ensure user has a role, default to 'Student' if missing
+        const userWithRole = {
+          ...userData,
+          role: userData.role || 'Student'
+        };
+        onLogin(userWithRole);
       } else {
         setError(t('loginFailed'));
       }

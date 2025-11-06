@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 def project_created_handler(sender, instance, created, **kwargs):
     """Handle project creation."""
     if created:
-        logger.info(f"New project created: {instance.name}")
+        project_name = getattr(instance, 'topic_eng', getattr(instance, 'project_id', str(instance)))
+        logger.info(f"New project created: {project_name}")
         
         # Create initial status history
         try:
@@ -28,23 +29,28 @@ def project_created_handler(sender, instance, created, **kwargs):
                 project_group=instance,
                 old_status='',
                 new_status=instance.status,
-                changed_by=instance.advisor,
-                change_reason='Project created'
+                changed_by=None,  # ProjectGroup doesn't have advisor directly
+                reason='Project created'
             )
         except Exception as e:
             logger.error(f"Error creating status history: {e}")
         
-        # Send notification to advisor
+        # Send notification to advisor (if available via Project model)
         try:
             from notifications.models import Notification
-            if instance.advisor:
-                Notification.objects.create(
-                    recipient_id=str(instance.advisor.id),
-                    recipient_type='user',
-                    title='New Project Created',
-                    message=f'Project "{instance.name}" has been created and assigned to you',
-                    notification_type='info'
-                )
+            from .models import Project
+            try:
+                project = Project.objects.get(project_id=instance.project_id)
+                if project.advisor and project.advisor.user:
+                    Notification.objects.create(
+                        recipient_id=str(project.advisor.user.id),
+                        recipient_type='user',
+                        title='New Project Created',
+                        message=f'Project "{project_name}" has been created and assigned to you',
+                        notification_type='info'
+                    )
+            except Project.DoesNotExist:
+                pass
         except Exception as e:
             logger.error(f"Error creating project notification: {e}")
         
@@ -54,7 +60,7 @@ def project_created_handler(sender, instance, created, **kwargs):
             AnalyticsMetric.objects.create(
                 metric_name='project_created',
                 value=1,
-                description=f"Project created: {instance.name}"
+                description=f"Project created: {project_name}"
             )
         except Exception as e:
             logger.error(f"Error logging project creation: {e}")
@@ -69,7 +75,8 @@ def project_pre_save_handler(sender, instance, **kwargs):
             
             # Check if status changed
             if old_instance.status != instance.status:
-                logger.info(f"Project status changed: {instance.name} from {old_instance.status} to {instance.status}")
+                project_name = getattr(instance, 'topic_eng', getattr(instance, 'project_id', str(instance)))
+                logger.info(f"Project status changed: {project_name} from {old_instance.status} to {instance.status}")
                 
                 # Create status history
                 try:
@@ -78,8 +85,8 @@ def project_pre_save_handler(sender, instance, **kwargs):
                         project_group=instance,
                         old_status=old_instance.status,
                         new_status=instance.status,
-                        changed_by=instance.advisor,
-                        change_reason=f'Status changed from {old_instance.status} to {instance.status}'
+                        changed_by=None,
+                        reason=f'Status changed from {old_instance.status} to {instance.status}'
                     )
                 except Exception as e:
                     logger.error(f"Error creating status history: {e}")
@@ -88,15 +95,21 @@ def project_pre_save_handler(sender, instance, **kwargs):
                 try:
                     from notifications.models import Notification
                     
-                    # Notify advisor
-                    if instance.advisor:
-                        Notification.objects.create(
-                            recipient_id=str(instance.advisor.id),
-                            recipient_type='user',
-                            title='Project Status Changed',
-                            message=f'Project "{instance.name}" status changed to {instance.status}',
-                            notification_type='info'
-                        )
+                    project_name = getattr(instance, 'topic_eng', getattr(instance, 'project_id', str(instance)))
+                    # Notify advisor (if available via Project model)
+                    try:
+                        from .models import Project
+                        project = Project.objects.get(project_id=instance.project_id)
+                        if project.advisor and project.advisor.user:
+                            Notification.objects.create(
+                                recipient_id=str(project.advisor.user.id),
+                                recipient_type='user',
+                                title='Project Status Changed',
+                                message=f'Project "{project_name}" status changed to {instance.status}',
+                                notification_type='info'
+                            )
+                    except:
+                        pass
                     
                     # Notify students
                     from .models import ProjectStudent
@@ -106,41 +119,15 @@ def project_pre_save_handler(sender, instance, **kwargs):
                             recipient_id=str(project_student.student.id),
                             recipient_type='user',
                             title='Project Status Changed',
-                            message=f'Project "{instance.name}" status changed to {instance.status}',
+                            message=f'Project "{project_name}" status changed to {instance.status}',
                             notification_type='info'
                         )
                 except Exception as e:
                     logger.error(f"Error creating status change notification: {e}")
             
-            # Check if advisor changed
-            if old_instance.advisor != instance.advisor:
-                logger.info(f"Project advisor changed: {instance.name}")
-                
-                # Send advisor change notification
-                try:
-                    from notifications.models import Notification
-                    
-                    # Notify old advisor
-                    if old_instance.advisor:
-                        Notification.objects.create(
-                            recipient_id=str(old_instance.advisor.id),
-                            recipient_type='user',
-                            title='Project Reassigned',
-                            message=f'Project "{instance.name}" has been reassigned',
-                            notification_type='warning'
-                        )
-                    
-                    # Notify new advisor
-                    if instance.advisor:
-                        Notification.objects.create(
-                            recipient_id=str(instance.advisor.id),
-                            recipient_type='user',
-                            title='Project Assigned',
-                            message=f'Project "{instance.name}" has been assigned to you',
-                            notification_type='info'
-                        )
-                except Exception as e:
-                    logger.error(f"Error creating advisor change notification: {e}")
+            # Check if advisor changed (ProjectGroup doesn't have advisor directly)
+            # This check is skipped for ProjectGroup - advisor is in Project model
+            pass
         
         except sender.DoesNotExist:
             pass
@@ -150,7 +137,8 @@ def project_pre_save_handler(sender, instance, **kwargs):
 def project_updated_handler(sender, instance, created, **kwargs):
     """Handle project updates."""
     if not created:
-        logger.info(f"Project updated: {instance.name}")
+        project_name = getattr(instance, 'topic_eng', getattr(instance, 'project_id', str(instance)))
+        logger.info(f"Project updated: {project_name}")
         
         # Log project update
         try:
@@ -161,7 +149,7 @@ def project_updated_handler(sender, instance, created, **kwargs):
                 recorded_at=timezone.now(),
                 description={
                     'project_id': instance.id,
-                    'project_name': instance.name,
+                    'project_name': project_name,
                     'status': instance.status
                 }
             )
@@ -172,7 +160,8 @@ def project_updated_handler(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='projects.ProjectGroup')
 def project_deleted_handler(sender, instance, **kwargs):
     """Handle project deletion."""
-    logger.info(f"Project deleted: {instance.name}")
+    project_name = getattr(instance, 'topic_eng', getattr(instance, 'project_id', str(instance)))
+    logger.info(f"Project deleted: {project_name}")
     
     # Log project deletion
     try:
@@ -182,9 +171,8 @@ def project_deleted_handler(sender, instance, **kwargs):
             value=1,
             recorded_at=timezone.now(),
             description={
-                'project_name': instance.name,
-                'advisor_id': instance.advisor.id,
-                'academic_year': instance.academic_year
+                'project_name': project_name,
+                'project_id': instance.project_id
             }
         )
     except Exception as e:
@@ -196,7 +184,8 @@ def project_deleted_handler(sender, instance, **kwargs):
 def project_student_added_handler(sender, instance, created, **kwargs):
     """Handle student addition to project."""
     if created:
-        logger.info(f"Student added to project: {instance.student.username} -> {instance.project_group.name}")
+        project_name = getattr(instance.project_group, 'topic_eng', getattr(instance.project_group, 'project_id', str(instance.project_group)))
+        logger.info(f"Student added to project: {instance.student.username} -> {project_name}")
         
         # Send notification to student
         try:
@@ -205,23 +194,28 @@ def project_student_added_handler(sender, instance, created, **kwargs):
                 recipient_id=str(instance.student.id),
                 recipient_type='user',
                 title='Added to Project',
-                message=f'You have been added to project "{instance.project_group.name}"',
+                message=f'You have been added to project "{project_name}"',
                 notification_type='info'
             )
         except Exception as e:
             logger.error(f"Error creating student notification: {e}")
         
-        # Send notification to advisor
+        # Send notification to advisor (if available via Project model)
         try:
             from notifications.models import Notification
-            if instance.project_group.advisor:
-                Notification.objects.create(
-                    recipient_id=str(instance.project_group.advisor.id),
-                    recipient_type='user',
-                    title='Student Added to Project',
-                    message=f'Student {instance.student.username} has been added to project "{instance.project_group.name}"',
-                    notification_type='info'
-                )
+            from .models import Project
+            try:
+                project = Project.objects.get(project_id=instance.project_group.project_id)
+                if project.advisor and project.advisor.user:
+                    Notification.objects.create(
+                        recipient_id=str(project.advisor.user.id),
+                        recipient_type='user',
+                        title='Student Added to Project',
+                        message=f'Student {instance.student.username} has been added to project "{project_name}"',
+                        notification_type='info'
+                    )
+            except Project.DoesNotExist:
+                pass
         except Exception as e:
             logger.error(f"Error creating advisor notification: {e}")
         

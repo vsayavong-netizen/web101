@@ -99,7 +99,9 @@ const AppContent: React.FC = () => {
 
   const handleLogin = useCallback((loggedInUser: User & Partial<Student & Advisor>) => {
     setUser(loggedInUser);
-    setEffectiveRole(loggedInUser.role);
+    // Ensure role is set, default to 'Student' if missing
+    const userRole = loggedInUser.role || 'Student';
+    setEffectiveRole(userRole);
     setShowWelcome(false);
     if (loggedInUser.mustChangePassword) {
         addToast({ type: 'info', message: t('updatePasswordPrompt') });

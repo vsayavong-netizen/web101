@@ -13,6 +13,7 @@ class AdvisorSerializer(serializers.ModelSerializer):
     
     user = serializers.SerializerMethodField()
     specializations = serializers.SerializerMethodField()
+    specializedMajorIds = serializers.SerializerMethodField()  # For frontend compatibility
     current_workload = serializers.SerializerMethodField()
     performance_summary = serializers.SerializerMethodField()
     recent_notes = serializers.SerializerMethodField()
@@ -25,8 +26,8 @@ class AdvisorSerializer(serializers.ModelSerializer):
             'department', 'office_location', 'office_hours', 'phone_extension',
             'office_phone', 'research_interests', 'qualifications',
             'experience_years', 'is_active', 'is_department_admin',
-            'created_at', 'updated_at', 'specializations', 'current_workload',
-            'performance_summary', 'recent_notes'
+            'created_at', 'updated_at', 'specializations', 'specializedMajorIds',
+            'current_workload', 'performance_summary', 'recent_notes'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -55,6 +56,24 @@ class AdvisorSerializer(serializers.ModelSerializer):
             }
             for spec in specializations
         ]
+    
+    def get_specializedMajorIds(self, obj):
+        """Get specialized major IDs for frontend compatibility."""
+        from majors.models import Major
+        specializations = obj.specializations.all()
+        major_ids = []
+        for spec in specializations:
+            try:
+                # Try to find major by name
+                major = Major.objects.filter(name__icontains=spec.major).first()
+                if major:
+                    major_ids.append(major.id)
+            except:
+                pass
+        # If no specializations, return all major IDs (allow advisor to supervise all majors)
+        if not major_ids:
+            major_ids = list(Major.objects.values_list('id', flat=True))
+        return major_ids
     
     def get_current_workload(self, obj):
         """Get current workload information."""

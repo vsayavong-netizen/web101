@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ Register Project, Milestone Submission และ Final File Submission</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        
+        .test-section h3 {
+            color: #555;
+            margin: 15px 0 10px 0;
+            font-size: 18px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .status.pending {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .test-steps {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .test-steps ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .test-steps li {
+            margin-bottom: 8px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .result-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .result-box pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .info-box strong {
+            color: #0c5460;
+        }
+        
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .checklist li:before {
+            content: "☐ ";
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        .checklist li.checked:before {
+            content: "☑ ";
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 ทดสอบฟีเจอร์: Register Project, Milestone Submission และ Final File Submission</h1>
+        <p class="subtitle">Frontend build สำเร็จแล้ว - พร้อมทดสอบฟีเจอร์ทั้งหมด</p>
+        
+        <!-- Test Section 1: Register Project -->
+        <div class="test-section">
+            <h2>1. ทดสอบ Register Project <span class="status pending" id="status-register">รอทดสอบ</span></h2>
+            
+            <div class="info-box">
+                <strong>📋 ข้อมูลที่ต้องเตรียม:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Student ID และ Password สำหรับ login</li>
+                    <li>Topic ภาษาไทย (Lao)</li>
+                    <li>Topic ภาษาอังกฤษ (English)</li>
+                    <li>Advisor ที่ต้องการเลือก</li>
+                </ul>
+            </div>
+            
+            <h3>ขั้นตอนการทดสอบ:</h3>
+            <div class="test-steps">
+                <ol>
+                    <li>เปิดแอปพลิเคชัน frontend (http://localhost:5173 หรือ URL ที่ deploy)</li>
+                    <li>Login เป็น Student (ใช้ Student ID และ Password)</li>
+                    <li>คลิกปุ่ม "Register Your Project" หรือ "ลงทะเบียนโปรเจกต์"</li>
+                    <li>กรอกข้อมูลในฟอร์ม:
+                        <ul style="margin-top: 5px; margin-left: 20px;">
+                            <li>Topic (Lao): ตัวอย่าง "ການພັດທະນາລະບົບຈັດການຂໍ້ມູນ"</li>
+                            <li>Topic (English): ตัวอย่าง "Information Management System"</li>
+                            <li>เลือก Advisor จาก dropdown</li>
+                        </ul>
+                    </li>
+                    <li>ตรวจสอบว่า Student ถูกเลือกอัตโนมัติ (ใน Student mode)</li>
+                    <li>คลิก "Submit" หรือ "บันทึก"</li>
+                    <li>ตรวจสอบว่าเห็น success message</li>
+                    <li>ตรวจสอบว่าโปรเจกต์ใหม่ปรากฏในรายการโปรเจกต์</li>
+                </ol>
+            </div>
+            
+            <h3>สิ่งที่ต้องตรวจสอบ:</h3>
+            <ul class="checklist" id="checklist-register">
+                <li>สามารถเปิด Register Project Modal ได้</li>
+                <li>Student ถูกเลือกอัตโนมัติ (ใน Student mode)</li>
+                <li>Advisor dropdown มีรายการ advisors</li>
+                <li>สามารถกรอก Topic (Lao) และ (English) ได้</li>
+                <li>Validation ทำงานถูกต้อง (ถ้าไม่กรอกข้อมูลจะแสดง error)</li>
+                <li>สามารถ Submit ได้สำเร็จ</li>
+                <li>เห็น success toast message</li>
+                <li>โปรเจกต์ใหม่ปรากฏในรายการโปรเจกต์</li>
+                <li>Project ID ถูกสร้างอัตโนมัติ (เช่น P24001)</li>
+            </ul>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="openFrontend()">เปิด Frontend</button>
+                <button class="btn-info" onclick="checkRegisterAPI()">ตรวจสอบ API</button>
+                <button class="btn-success" onclick="markRegisterComplete()">ทำเครื่องหมายว่าทดสอบแล้ว</button>
+            </div>
+            
+            <div class="result-box" id="result-register" style="display: none;">
+                <pre id="result-register-content"></pre>
+            </div>
+        </div>
+        
+        <!-- Test Section 2: Milestone Submission -->
+        <div class="test-section">
+            <h2>2. ทดสอบ Milestone Submission <span class="status pending" id="status-milestone">รอทดสอบ</span></h2>
+            
+            <div class="info-box">
+                <strong>📋 ข้อมูลที่ต้องเตรียม:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>โปรเจกต์ที่มี Milestone (ต้องมี Advisor approve project ก่อน)</li>
+                    <li>ไฟล์สำหรับ upload (PDF, DOC, DOCX - ขนาดไม่เกิน 2MB)</li>
+                </ul>
+            </div>
+            
+            <h3>ขั้นตอนการทดสอบ:</h3>
+            <div class="test-steps">
+                <ol>
+                    <li>Login เป็น Student ที่เป็นเจ้าของโปรเจกต์</li>
+                    <li>เปิดโปรเจกต์ที่ต้องการ submit milestone</li>
+                    <li>ไปที่ tab "Milestones"</li>
+                    <li>เลือก Milestone ที่ต้องการ submit (สถานะต้องเป็น Pending หรือ Requires Revision)</li>
+                    <li>คลิกปุ่ม "Upload Submission File" หรือ "อัปโหลดไฟล์"</li>
+                    <li>เลือกไฟล์จากเครื่อง (PDF, DOC, DOCX)</li>
+                    <li>รอให้ upload เสร็จ</li>
+                    <li>ตรวจสอบว่า status เปลี่ยนเป็น "Submitted"</li>
+                    <li>ตรวจสอบว่าเห็นไฟล์ที่ upload แล้ว</li>
+                    <li>ทดสอบ download ไฟล์</li>
+                </ol>
+            </div>
+            
+            <h3>สิ่งที่ต้องตรวจสอบ:</h3>
+            <ul class="checklist" id="checklist-milestone">
+                <li>เห็น Milestones tab ใน Project Detail View</li>
+                <li>เห็นรายการ Milestones ทั้งหมด</li>
+                <li>สามารถคลิกปุ่ม upload ได้ (สำหรับ Milestone ที่ status เป็น Pending หรือ Requires Revision)</li>
+                <li>สามารถเลือกไฟล์ได้</li>
+                <li>ไฟล์ที่ upload มีขนาดไม่เกิน 2MB</li>
+                <li>Status เปลี่ยนเป็น "Submitted" หลัง upload</li>
+                <li>เห็นชื่อไฟล์และขนาดไฟล์</li>
+                <li>สามารถ download ไฟล์ได้</li>
+                <li>สามารถ replace ไฟล์ได้ (ถ้าต้องการอัปโหลดใหม่)</li>
+                <li>Advisor สามารถเห็นไฟล์ที่ submit แล้ว</li>
+                <li>Advisor สามารถ Approve หรือ Request Revision ได้</li>
+            </ul>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="openFrontend()">เปิด Frontend</button>
+                <button class="btn-info" onclick="checkMilestoneAPI()">ตรวจสอบ API</button>
+                <button class="btn-success" onclick="markMilestoneComplete()">ทำเครื่องหมายว่าทดสอบแล้ว</button>
+            </div>
+            
+            <div class="result-box" id="result-milestone" style="display: none;">
+                <pre id="result-milestone-content"></pre>
+            </div>
+        </div>
+        
+        <!-- Test Section 3: Final File Submission -->
+        <div class="test-section">
+            <h2>3. ทดสอบ Final File Submission <span class="status pending" id="status-final">รอทดสอบ</span></h2>
+            
+            <div class="info-box">
+                <strong>📋 ข้อมูลที่ต้องเตรียม:</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>โปรเจกต์ที่พร้อม submit final files</li>
+                    <li>Pre-Defense File (ไฟล์ก่อนการ defense)</li>
+                    <li>Post-Defense File (ไฟล์หลังการ defense)</li>
+                </ul>
+            </div>
+            
+            <h3>ขั้นตอนการทดสอบ Pre-Defense File:</h3>
+            <div class="test-steps">
+                <ol>
+                    <li>Login เป็น Student ที่เป็นเจ้าของโปรเจกต์</li>
+                    <li>เปิดโปรเจกต์ที่ต้องการ submit final file</li>
+                    <li>ไปที่ tab "Submissions" หรือ "Final Submissions"</li>
+                    <li>หา section "Pre-Defense Files"</li>
+                    <li>คลิกปุ่ม "Upload File" หรือ "อัปโหลดไฟล์"</li>
+                    <li>เลือกไฟล์ Pre-Defense (PDF, DOC, DOCX)</li>
+                    <li>รอให้ upload เสร็จ</li>
+                    <li>ตรวจสอบว่าเห็นไฟล์และ status เป็น "Submitted"</li>
+                </ol>
+            </div>
+            
+            <h3>ขั้นตอนการทดสอบ Post-Defense File:</h3>
+            <div class="test-steps">
+                <ol>
+                    <li>ใน tab "Submissions" เดียวกัน</li>
+                    <li>หา section "Post-Defense Files"</li>
+                    <li>คลิกปุ่ม "Upload File"</li>
+                    <li>เลือกไฟล์ Post-Defense</li>
+                    <li>รอให้ upload เสร็จ</li>
+                    <li>ตรวจสอบว่าเห็นไฟล์และ status เป็น "Submitted"</li>
+                </ol>
+            </div>
+            
+            <h3>สิ่งที่ต้องตรวจสอบ:</h3>
+            <ul class="checklist" id="checklist-final">
+                <li>เห็น Submissions tab ใน Project Detail View</li>
+                <li>เห็น section "Pre-Defense Files" และ "Post-Defense Files"</li>
+                <li>สามารถ upload Pre-Defense File ได้</li>
+                <li>สามารถ upload Post-Defense File ได้</li>
+                <li>เห็นชื่อไฟล์และขนาดไฟล์หลัง upload</li>
+                <li>เห็น status ของไฟล์ (Submitted, Approved, Requires Revision)</li>
+                <li>สามารถ download ไฟล์ได้</li>
+                <li>สามารถ replace ไฟล์ได้ (ถ้า status เป็น Requires Revision)</li>
+                <li>Advisor สามารถ Review ไฟล์ได้</li>
+                <li>Advisor สามารถ Approve หรือ Request Revision ได้</li>
+                <li>เห็น feedback จาก Advisor (ถ้ามี)</li>
+            </ul>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="openFrontend()">เปิด Frontend</button>
+                <button class="btn-info" onclick="checkFinalSubmissionAPI()">ตรวจสอบ API</button>
+                <button class="btn-success" onclick="markFinalComplete()">ทำเครื่องหมายว่าทดสอบแล้ว</button>
+            </div>
+            
+            <div class="result-box" id="result-final" style="display: none;">
+                <pre id="result-final-content"></pre>
+            </div>
+        </div>
+        
+        <!-- Summary Section -->
+        <div class="test-section" style="background: #e7f3ff; border-left-color: #2196F3;">
+            <h2>📊 สรุปผลการทดสอบ</h2>
+            <div id="summary">
+                <p>ยังไม่ได้เริ่มทดสอบ</p>
+            </div>
+            <button class="btn-primary" onclick="generateReport()" style="margin-top: 15px;">สร้างรายงานการทดสอบ</button>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api';
+        
+        function openFrontend() {
+            const frontendUrl = 'http://localhost:5173';
+            window.open(frontendUrl, '_blank');
+        }
+        
+        async function checkRegisterAPI() {
+            const resultBox = document.getElementById('result-register');
+            const resultContent = document.getElementById('result-register-content');
+            resultBox.style.display = 'block';
+            resultContent.textContent = 'กำลังตรวจสอบ API...';
+            
+            try {
+                // Check if API is accessible
+                const response = await fetch(`${API_BASE_URL}/projects/projects/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                resultContent.textContent = `API Status: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultContent.textContent = `Error: ${error.message}\n\nตรวจสอบว่า backend server กำลังทำงานอยู่ที่ http://localhost:8000`;
+            }
+        }
+        
+        async function checkMilestoneAPI() {
+            const resultBox = document.getElementById('result-milestone');
+            const resultContent = document.getElementById('result-milestone-content');
+            resultBox.style.display = 'block';
+            resultContent.textContent = 'กำลังตรวจสอบ API...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/projects/projects/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                resultContent.textContent = `API Status: ${response.status}\n\nProjects found: ${data.length || 0}\n\nตรวจสอบว่าโปรเจกต์มี milestones หรือไม่`;
+            } catch (error) {
+                resultContent.textContent = `Error: ${error.message}\n\nตรวจสอบว่า backend server กำลังทำงานอยู่`;
+            }
+        }
+        
+        async function checkFinalSubmissionAPI() {
+            const resultBox = document.getElementById('result-final');
+            const resultContent = document.getElementById('result-final-content');
+            resultBox.style.display = 'block';
+            resultContent.textContent = 'กำลังตรวจสอบ API...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/projects/projects/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                resultContent.textContent = `API Status: ${response.status}\n\nProjects found: ${data.length || 0}\n\nตรวจสอบว่าโปรเจกต์มี finalSubmissions หรือไม่`;
+            } catch (error) {
+                resultContent.textContent = `Error: ${error.message}\n\nตรวจสอบว่า backend server กำลังทำงานอยู่`;
+            }
+        }
+        
+        function markRegisterComplete() {
+            document.getElementById('status-register').textContent = 'ทดสอบแล้ว';
+            document.getElementById('status-register').className = 'status success';
+            const checklist = document.getElementById('checklist-register');
+            checklist.querySelectorAll('li').forEach(li => {
+                li.classList.add('checked');
+            });
+            updateSummary();
+        }
+        
+        function markMilestoneComplete() {
+            document.getElementById('status-milestone').textContent = 'ทดสอบแล้ว';
+            document.getElementById('status-milestone').className = 'status success';
+            const checklist = document.getElementById('checklist-milestone');
+            checklist.querySelectorAll('li').forEach(li => {
+                li.classList.add('checked');
+            });
+            updateSummary();
+        }
+        
+        function markFinalComplete() {
+            document.getElementById('status-final').textContent = 'ทดสอบแล้ว';
+            document.getElementById('status-final').className = 'status success';
+            const checklist = document.getElementById('checklist-final');
+            checklist.querySelectorAll('li').forEach(li => {
+                li.classList.add('checked');
+            });
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            const registerStatus = document.getElementById('status-register').textContent;
+            const milestoneStatus = document.getElementById('status-milestone').textContent;
+            const finalStatus = document.getElementById('status-final').textContent;
+            
+            const summary = document.getElementById('summary');
+            summary.innerHTML = `
+                <p><strong>Register Project:</strong> ${registerStatus}</p>
+                <p><strong>Milestone Submission:</strong> ${milestoneStatus}</p>
+                <p><strong>Final File Submission:</strong> ${finalStatus}</p>
+            `;
+        }
+        
+        function generateReport() {
+            const registerStatus = document.getElementById('status-register').textContent;
+            const milestoneStatus = document.getElementById('status-milestone').textContent;
+            const finalStatus = document.getElementById('status-final').textContent;
+            
+            const report = `
+=== รายงานการทดสอบฟีเจอร์ ===
+วันที่: ${new Date().toLocaleString('th-TH')}
+
+1. Register Project: ${registerStatus}
+2. Milestone Submission: ${milestoneStatus}
+3. Final File Submission: ${finalStatus}
+
+Frontend Build: สำเร็จ
+Backend API: ตรวจสอบที่ http://localhost:8000/api
+Frontend URL: http://localhost:5173
+            `;
+            
+            alert(report);
+            console.log(report);
+        }
+    </script>
+</body>
+</html>
+

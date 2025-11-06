@@ -59,6 +59,18 @@ class User(AbstractUser):
     def is_department_admin(self):
         """Check if user is a department admin."""
         return self.role == 'DepartmentAdmin'
+    
+    def is_student(self):
+        """Check if user is a student."""
+        return self.role == 'Student'
+    
+    def can_access_academic_year(self, academic_year):
+        """Check if user can access data for specific academic year."""
+        # Admins can access all years
+        if self.is_admin():
+            return True
+        # For now, allow access to current academic year
+        return academic_year == self.current_academic_year or not academic_year
 
 
 class UserSession(models.Model):

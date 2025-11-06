@@ -21,7 +21,7 @@ class ApiClient {
   private token: string | null = null;
   private refreshToken: string | null = null;
 
-  constructor(baseURL: string = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || (typeof window !== 'undefined' && (window as any).__API_BASE_URL) || 'https://eduinfo.online') {
+  constructor(baseURL: string = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || (typeof window !== 'undefined' && (window as any).__API_BASE_URL) || 'http://localhost:8000') {
     // Ensure baseURL doesn't end with slash to prevent double slashes
     this.baseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
     this.token = localStorage.getItem('auth_token');
