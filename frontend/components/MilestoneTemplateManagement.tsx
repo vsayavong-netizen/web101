@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Stack, InputAdornment
+} from '@mui/material';
+import { 
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Search as SearchIcon, Assignment as AssignmentIcon
+} from '@mui/icons-material';
 import { MilestoneTemplate } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, ClipboardDocumentCheckIcon, MagnifyingGlassIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import MilestoneTemplateModal from './MilestoneTemplateModal';
@@ -100,75 +108,122 @@ const MilestoneTemplateManagement: React.FC<MilestoneTemplateManagementProps> = 
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <ClipboardDocumentCheckIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageMilestoneTemplates')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manageMilestoneTemplatesDescription')}</p>
-                   </div>
-                </div>
-                <button
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageMilestoneTemplates')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('manageMilestoneTemplatesDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
                     onClick={handleAddClick}
-                    className="mt-4 sm:mt-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    sx={{ fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
                 >
-                    <PlusIcon className="w-5 h-5 mr-2" />
                     {t('addTemplate')}
-                </button>
-            </div>
+                </Button>
+            </Box>
 
-            <div className="mb-4">
-                 <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400"
-                        placeholder={t('searchByTemplate')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
+            <Box sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchByTemplate')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Box>
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                        <tr>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow>
                             <SortableHeader sortKey="id" title="ID" sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="name" title={t('templateName')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3">{t('description')}</th>
+                            <TableCell>{t('description')}</TableCell>
                             <SortableHeader sortKey="taskCount" title={t('tasks')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3 text-right">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                            <TableCell align="right">{t('actions')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {sortedAndFilteredTemplates.map(template => (
-                            <tr key={template.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{template.id}</td>
-                                <td className="px-6 py-4">{template.name}</td>
-                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300 max-w-sm truncate">{template.description}</td>
-                                <td className="px-6 py-4">{template.tasks.length}</td>
-                                <td className="px-6 py-4 text-right space-x-2">
-                                    <button onClick={() => handleEditClick(template)} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                        <PencilIcon className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={() => handleDeleteRequest(template)} className="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                        <TrashIcon className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
+                            <TableRow 
+                                key={template.id}
+                                sx={{
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <TableCell component="th" scope="row" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                    {template.id}
+                                </TableCell>
+                                <TableCell>{template.name}</TableCell>
+                                <TableCell>
+                                    <Typography 
+                                        variant="body2" 
+                                        color="text.secondary"
+                                        sx={{ 
+                                            maxWidth: 300, 
+                                            overflow: 'hidden', 
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        title={template.description}
+                                    >
+                                        {template.description}
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>{template.tasks.length}</TableCell>
+                                <TableCell align="right">
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleEditClick(template)}
+                                            color="primary"
+                                        >
+                                            <EditIcon />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleDeleteRequest(template)}
+                                            color="error"
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
-                 {sortedAndFilteredTemplates.length === 0 && (
-                    <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                        {searchQuery ? `No templates found for "${searchQuery}".` : `No templates found. Click "${t('addTemplate')}" to begin.`}
-                    </div>
+                    </TableBody>
+                </Table>
+                {sortedAndFilteredTemplates.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery ? `No templates found for "${searchQuery}".` : `No templates found. Click "${t('addTemplate')}" to begin.`}
+                        </Typography>
+                    </Box>
                 )}
-            </div>
+            </TableContainer>
             
             {isModalOpen && (
                 <MilestoneTemplateModal 
@@ -188,7 +243,7 @@ const MilestoneTemplateManagement: React.FC<MilestoneTemplateManagementProps> = 
                     message={t('deleteTemplateMessage').replace('${templateName}', templateToDelete.name)}
                 />
             )}
-        </div>
+        </Paper>
     );
 };
 

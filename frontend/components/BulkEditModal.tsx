@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Select, MenuItem, FormControl,
+  InputLabel, IconButton, Box, Typography, Divider
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Major, Classroom } from '../types';
-import { XMarkIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface BulkEditModalProps {
@@ -34,35 +39,59 @@ const BulkEditModal: React.FC<BulkEditModalProps> = ({ isOpen, onClose, onSave, 
     if (!isOpen) return null;
 
     return (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md">
-                <div className="flex justify-between items-center pb-4 border-b dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('bulkEditTitle').replace('{count}', String(selectedCount))}</h2>
-                    <button onClick={onClose}><XMarkIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="mt-4 space-y-4">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('bulkEditDescription')}</p>
-                    <div>
-                        <label htmlFor="bulk-major" className="block text-sm font-medium">{t('major')}</label>
-                        <select id="bulk-major" value={majorName} onChange={e => { setMajorName(e.target.value); setClassroomName(''); }} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600">
-                            <option value="">-- {t('dontChange')} --</option>
-                            {majors.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="bulk-classroom" className="block text-sm font-medium">{t('classroom')}</label>
-                        <select id="bulk-classroom" value={classroomName} onChange={e => setClassroomName(e.target.value)} disabled={!majorName} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-slate-200 dark:bg-slate-700 dark:border-slate-600">
-                            <option value="">-- {t('dontChange')} --</option>
-                            {filteredClassrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                        </select>
-                    </div>
-                </div>
-                 <div className="flex justify-end space-x-2 pt-4 mt-4 border-t dark:border-slate-700">
-                    <button onClick={onClose} className="bg-slate-200 hover:bg-slate-300 py-2 px-4 rounded-lg">{t('cancel')}</button>
-                    <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">{t('saveChanges')}</button>
-                </div>
-            </div>
-        </div>
+        <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+                <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                    {t('bulkEditTitle').replace('{count}', String(selectedCount))}
+                </Box>
+                <IconButton onClick={onClose} size="small">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                    {t('bulkEditDescription')}
+                </Typography>
+                <FormControl fullWidth>
+                    <InputLabel>{t('major')}</InputLabel>
+                    <Select
+                        id="bulk-major"
+                        value={majorName}
+                        onChange={e => { setMajorName(e.target.value); setClassroomName(''); }}
+                        label={t('major')}
+                    >
+                        <MenuItem value="">-- {t('dontChange')} --</MenuItem>
+                        {majors.map(m => (
+                            <MenuItem key={m.id} value={m.name}>{m.name}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+                <FormControl fullWidth disabled={!majorName}>
+                    <InputLabel>{t('classroom')}</InputLabel>
+                    <Select
+                        id="bulk-classroom"
+                        value={classroomName}
+                        onChange={e => setClassroomName(e.target.value)}
+                        label={t('classroom')}
+                    >
+                        <MenuItem value="">-- {t('dontChange')} --</MenuItem>
+                        {filteredClassrooms.map(c => (
+                            <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </DialogContent>
+            <Divider />
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={onClose} variant="outlined">
+                    {t('cancel')}
+                </Button>
+                <Button onClick={handleSave} variant="contained">
+                    {t('saveChanges')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

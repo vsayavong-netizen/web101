@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Card, CardContent, Typography, Box, Button, Checkbox,
+  Chip, Divider
+} from '@mui/material';
+import { Warning as WarningIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { ProjectGroup, ProjectStatus, User, ScoringSettings, ProjectHealthStatus } from '../types';
 import StatusBadge from './StatusBadge';
 import { getAdvisorColor } from '../utils/colorUtils';
-import { ExclamationTriangleIcon, SparklesIcon } from './icons';
 import { ToastMessage } from '../context/ToastContext';
 import ScoreEntryModal from './ScoreEntryModal';
 import { useTranslations } from '../hooks/useTranslations';
@@ -21,11 +25,15 @@ interface ProjectCardProps {
     onSelect?: () => void;
 }
 
-const InfoRow: React.FC<{ label: string; value?: string; children?: React.ReactNode; className?: string }> = ({ label, value, children, className = '' }) => (
-  <div className={`flex justify-between text-sm ${className}`}>
-    <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
-    <dd className="text-slate-700 dark:text-slate-300 font-medium text-right truncate">{value || children}</dd>
-  </div>
+const InfoRow: React.FC<{ label: string; value?: string; children?: React.ReactNode }> = ({ label, value, children }) => (
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', mb: 0.5 }}>
+    <Typography component="dt" variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography component="dd" variant="body2" fontWeight="medium" color="text.primary" sx={{ textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {value || children}
+    </Typography>
+  </Box>
 );
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ group, user, onSelectProject, onUpdateStatus, updateDetailedScore, addToast, scoringSettings, projectHealthStatus, onOpenAiAssistant, isSelected, onSelect }) => {
@@ -47,99 +55,135 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ group, user, onSelectProject,
         setIsModalOpen(false);
     };
 
+    const getHealthColor = (health: string): 'success' | 'warning' | 'error' | 'default' => {
+        if (health === 'On Track') return 'success';
+        if (health === 'Needs Attention') return 'warning';
+        if (health === 'At Risk') return 'error';
+        return 'default';
+    };
+
     return (
         <>
-            <div onClick={() => onSelectProject(group)} className={`relative bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 flex flex-col justify-between cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-xl hover:ring-2 hover:ring-blue-500'}`}>
+            <Card
+                onClick={() => onSelectProject(group)}
+                sx={{
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: isSelected ? 2 : 0,
+                    borderColor: isSelected ? 'primary.main' : 'transparent',
+                    '&:hover': {
+                        boxShadow: 6,
+                        border: 2,
+                        borderColor: 'primary.main'
+                    }
+                }}
+            >
                 {isSelectable && (
-                    <div className="absolute top-3 right-3 z-10">
-                         <input
-                            type="checkbox"
-                            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                    <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+                        <Checkbox
                             checked={isSelected}
                             onChange={onSelect}
                             onClick={(e) => e.stopPropagation()}
-                           />
-                    </div>
+                            color="primary"
+                        />
+                    </Box>
                 )}
-                <div>
-                    {/* Project Info */}
-                    <div className="pb-3 mb-3 border-b border-slate-200 dark:border-slate-700">
-                         <div className="flex justify-between items-start">
-                            <div className="pr-10">
-                               <h3 className="font-bold text-lg text-blue-600 dark:text-blue-400">{project.projectId}</h3>
-                               <p className="font-semibold text-slate-800 dark:text-slate-100 truncate" title={project.topicLao}>{project.topicLao}</p>
-                               <p className="text-sm text-slate-600 dark:text-slate-300 truncate" title={project.topicEng}>{project.topicEng}</p>
-                               {project.similarityInfo && (
-                                    <div className="mt-2 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center">
-                                        <ExclamationTriangleIcon className="w-4 h-4 mr-1 flex-shrink-0" />
-                                        <span>{project.similarityInfo.similarityPercentage}% {t('similarTo')} {project.similarityInfo.similarProjectId}</span>
-                                    </div>
+                <CardContent>
+                    <Box sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box sx={{ pr: 5, flex: 1, minWidth: 0 }}>
+                                <Typography variant="h6" color="primary" fontWeight="bold" gutterBottom>
+                                    {project.projectId}
+                                </Typography>
+                                <Typography variant="subtitle1" fontWeight="medium" noWrap title={project.topicLao}>
+                                    {project.topicLao}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" noWrap title={project.topicEng}>
+                                    {project.topicEng}
+                                </Typography>
+                                {project.similarityInfo && (
+                                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', color: 'warning.main' }}>
+                                        <WarningIcon sx={{ fontSize: 16, mr: 0.5, flexShrink: 0 }} />
+                                        <Typography variant="caption" fontWeight="medium">
+                                            {project.similarityInfo.similarityPercentage}% {t('similarTo')} {project.similarityInfo.similarProjectId}
+                                        </Typography>
+                                    </Box>
                                 )}
                                 {projectHealthStatus && (
-                                    <div className="mt-2">
-                                        {(() => {
-                                            let colorClass = 'bg-slate-400';
-                                            if (projectHealthStatus.health === 'On Track') colorClass = 'bg-green-500';
-                                            if (projectHealthStatus.health === 'Needs Attention') colorClass = 'bg-yellow-500';
-                                            if (projectHealthStatus.health === 'At Risk') colorClass = 'bg-red-500';
-                                            if (projectHealthStatus.health === 'N/A') colorClass = 'bg-slate-400';
-                                            return (
-                                                <span 
-                                                    className={`inline-flex items-center gap-2 text-xs font-semibold text-white px-2 py-1 rounded-full ${colorClass}`}
-                                                    title={`${t('aiAnalysis')}: ${projectHealthStatus.summary}`}
-                                                >
-                                                    <SparklesIcon className="w-3 h-3"/>
-                                                    {t('health')}: {projectHealthStatus.health}
-                                                </span>
-                                            );
-                                        })()}
-                                    </div>
+                                    <Box sx={{ mt: 1 }}>
+                                        <Chip
+                                            icon={<SparklesIcon sx={{ fontSize: 12 }} />}
+                                            label={`${t('health')}: ${projectHealthStatus.health}`}
+                                            color={getHealthColor(projectHealthStatus.health)}
+                                            size="small"
+                                            title={`${t('aiAnalysis')}: ${projectHealthStatus.summary}`}
+                                        />
+                                    </Box>
                                 )}
-                            </div>
+                            </Box>
                             <StatusBadge project={project} user={user} onUpdateStatus={onUpdateStatus} />
-                        </div>
-                    </div>
-                    <dl className="space-y-2 mb-4">
+                        </Box>
+                    </Box>
+                    <Box component="dl" sx={{ mb: 2 }}>
                         <InfoRow label={t('advisor')}>
-                          <div className="flex items-center justify-end">
-                            <span className="h-2 w-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: getAdvisorColor(project.advisorName) }}></span>
-                            <span className="truncate">{project.advisorName}</span>
-                          </div>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <Box
+                                    sx={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        mr: 1,
+                                        flexShrink: 0,
+                                        bgcolor: getAdvisorColor(project.advisorName)
+                                    }}
+                                />
+                                <Typography variant="body2" noWrap>
+                                    {project.advisorName}
+                                </Typography>
+                            </Box>
                         </InfoRow>
-                        <InfoRow label={t('defenseSchedule')} value={project.defenseDate ? `${project.defenseDate}, ${project.defenseTime} (${project.defenseRoom})` : t('notScheduled')} />
-                    </dl>
+                        <InfoRow 
+                            label={t('defenseSchedule')} 
+                            value={project.defenseDate ? `${project.defenseDate}, ${project.defenseTime} (${project.defenseRoom})` : t('notScheduled')} 
+                        />
+                    </Box>
 
-                    {/* Student Info */}
                     {students.map((student, index) => (
-                        <div key={student.studentId} className={`pt-3 ${index > 0 ? 'mt-3 border-t border-slate-200 dark:border-slate-700' : ''}`}>
-                             <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">{student.name} {student.surname}</h4>
-                             <dl className="space-y-1.5">
+                        <Box key={student.studentId} sx={{ pt: index > 0 ? 2 : 0, mt: index > 0 ? 2 : 0, borderTop: index > 0 ? 1 : 0, borderColor: 'divider' }}>
+                            <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                                {student.name} {student.surname}
+                            </Typography>
+                            <Box component="dl">
                                 <InfoRow label={t('studentId')} value={student.studentId} />
                                 <InfoRow label={t('gender')} value={student.gender} />
-                             </dl>
-                        </div>
+                            </Box>
+                        </Box>
                     ))}
 
                     {updateDetailedScore && scoringSettings && (
-                        <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
-                            <div className="flex justify-between items-center">
-                                <p className="text-sm font-medium">{t('yourScore')}: <span className="font-bold">{project.mainAdvisorScore?.toFixed(2) ?? t('na')}</span> / {advisorRubricTotal}</p>
-                                <button
+                        <Box sx={{ pt: 2, mt: 2, borderTop: 1, borderColor: 'divider' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2" fontWeight="medium">
+                                    {t('yourScore')}: <Box component="span" fontWeight="bold">{project.mainAdvisorScore?.toFixed(2) ?? t('na')}</Box> / {advisorRubricTotal}
+                                </Typography>
+                                <Button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setIsModalOpen(true);
                                     }}
-                                    className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                                    size="small"
+                                    sx={{ textTransform: 'none' }}
                                 >
                                     {project.mainAdvisorScore !== null ? t('editScore') : t('enterScore')}
-                                </button>
-                            </div>
-                        </div>
+                                </Button>
+                            </Box>
+                        </Box>
                     )}
-                </div>
-            </div>
+                </CardContent>
+            </Card>
             {isModalOpen && scoringSettings && (
-                 <ScoreEntryModal
+                <ScoreEntryModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSaveScore}

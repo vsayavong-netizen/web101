@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, SxProps, Theme } from '@mui/material';
 
 // Heroicons v2, typically used as 24x24 outline
 const iconProps = {
@@ -9,15 +10,43 @@ const iconProps = {
   stroke: "currentColor"
 };
 
-export const PlusIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-);
+// Helper to extract sx and convert to style
+const createIconComponent = (path: React.ReactNode) => {
+  return React.forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }>(({ sx, ...props }, ref) => {
+    if (sx) {
+      return (
+        <Box component="svg" ref={ref} {...iconProps} {...props} sx={sx}>
+          {path}
+        </Box>
+      );
+    }
+    return <svg ref={ref} {...iconProps} {...props}>{path}</svg>;
+  });
+};
+
+export const PlusIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
+};
 export const ArrowRightOnRectangleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
 );
-export const BuildingLibraryIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" /></svg>
-);
+export const BuildingLibraryIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" /></svg>;
+};
 export const ArrowDownTrayIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
 );
@@ -39,30 +68,73 @@ export const BookOpenIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
 export const BuildingOfficeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h6.375a.625.625 0 01.625.625v3.375a.625.625 0 01-.625.625H9v-4.625zM9.75 6.75v4.625m6-4.625v4.625" /></svg>
 );
-export const CalendarPlusIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-);
+export const CalendarPlusIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+};
 export const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
 );
-export const TableCellsIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6zM3.75 12h16.5m-16.5 0v6.75m16.5-6.75v6.75m0-6.75H3.75M6.75 20.25h10.5M9 3.75v16.5M15 3.75v16.5" /></svg>
-);
+export const TableCellsIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6zM3.75 12h16.5m-16.5 0v6.75m16.5-6.75v6.75m0-6.75H3.75M6.75 20.25h10.5M9 3.75v16.5M15 3.75v16.5" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6zM3.75 12h16.5m-16.5 0v6.75m16.5-6.75v6.75m0-6.75H3.75M6.75 20.25h10.5M9 3.75v16.5M15 3.75v16.5" /></svg>;
+};
 export const ClipboardDocumentCheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" /></svg>
 );
-export const ChartBarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-);
-export const ChartPieIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>
-);
-export const MegaphoneIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
-);
-export const InboxStackIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.12-1.588H6.88a2.25 2.25 0 00-2.12 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" /></svg>
-);
+export const ChartBarIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>;
+};
+export const ChartPieIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>;
+};
+export const MegaphoneIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>;
+};
+export const InboxStackIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.12-1.588H6.88a2.25 2.25 0 00-2.12 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.12-1.588H6.88a2.25 2.25 0 00-2.12 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" /></svg>;
+};
 export const UserCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
 );
@@ -75,24 +147,59 @@ export const ClipboardDocumentListIcon: React.FC<React.SVGProps<SVGSVGElement>> 
 export const DocumentCheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 );
-export const PencilSquareIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-);
-export const Cog6ToothIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-1.003 1.11-1.226M12 20.25v-2.25m-3.866-4.25a7.5 7.5 0 1011.632-4.25 7.5 7.5 0 00-11.632 4.25zM12 18a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.75 0v1.5c0 .207.168.375.375.375z" /></svg>
-);
-export const CalendarDaysIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M12 11.25h.008v.008H12v-.008z" /></svg>
-);
-export const DocumentChartBarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-);
+export const PencilSquareIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
+};
+export const Cog6ToothIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-1.003 1.11-1.226M12 20.25v-2.25m-3.866-4.25a7.5 7.5 0 1011.632-4.25 7.5 7.5 0 00-11.632 4.25zM12 18a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.75 0v1.5c0 .207.168.375.375.375z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-1.003 1.11-1.226M12 20.25v-2.25m-3.866-4.25a7.5 7.5 0 1011.632-4.25 7.5 7.5 0 00-11.632 4.25zM12 18a.375.375 0 00.375-.375v-1.5a.375.375 0 00-.75 0v1.5c0 .207.168.375.375.375z" /></svg>;
+};
+export const CalendarDaysIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M12 11.25h.008v.008H12v-.008z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M12 11.25h.008v.008H12v-.008z" /></svg>;
+};
+export const DocumentChartBarIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>;
+};
 export const KeyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
 );
-export const SparklesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.25 21l-.648-.428a2.25 2.25 0 01-1.47-2.47l.428-1.594a2.25 2.25 0 012.47-1.47l1.594.428a2.25 2.25 0 011.47 2.47l-.428 1.594a2.25 2.25 0 01-2.47 1.47z" /></svg>
-);
+export const SparklesIcon: React.FC<React.SVGProps<SVGSVGElement> & { sx?: SxProps<Theme> }> = ({ sx, className, ...props }) => {
+  if (sx) {
+    return (
+      <Box component="svg" {...iconProps} {...props} sx={sx} className={undefined}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.25 21l-.648-.428a2.25 2.25 0 01-1.47-2.47l.428-1.594a2.25 2.25 0 012.47-1.47l1.594.428a2.25 2.25 0 011.47 2.47l-.428 1.594a2.25 2.25 0 01-2.47 1.47z" />
+      </Box>
+    );
+  }
+  return <svg {...iconProps} {...props} className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.25 21l-.648-.428a2.25 2.25 0 01-1.47-2.47l.428-1.594a2.25 2.25 0 012.47-1.47l1.594.428a2.25 2.25 0 011.47 2.47l-.428 1.594a2.25 2.25 0 01-2.47 1.47z" /></svg>;
+};
 export const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...iconProps} {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
 );

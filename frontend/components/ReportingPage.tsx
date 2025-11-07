@@ -1,10 +1,16 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import {
+    Box, Paper, Typography, Button, Select, MenuItem, FormControl, InputLabel,
+    Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    CircularProgress, Alert, Stack, Divider
+} from '@mui/material';
 import { ProjectGroup, Advisor, Student, Major, ProjectStatus, Classroom, Gender } from '../types';
-import { DocumentChartBarIcon, TableCellsIcon, MagnifyingGlassIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
+import { DocumentChartBarIcon, TableCellsIcon, SparklesIcon } from './icons';
 import SortableHeader, { SortConfig } from './SortableHeader';
 import { ExcelUtils } from '../utils/excelUtils';
 import { useToast } from '../hooks/useToast';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { useTranslations } from '../hooks/useTranslations';
 import ColumnSelector from './ColumnSelector';
 import Pagination from './Pagination';
@@ -117,7 +123,7 @@ export const ReportingPage: React.FC<ReportingPageProps> = ({ projectGroups, adv
         return sortedData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     }, [sortedData, currentPage]);
     
-    const handleExport = useCallback(() => {
+    const handleExport = useCallback(async () => {
         if (!generatedData) {
             addToast({ type: 'info', message: t('generateReportFirst') });
             return;
@@ -131,10 +137,13 @@ export const ReportingPage: React.FC<ReportingPageProps> = ({ projectGroups, adv
             return selectedRow;
         });
 
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-        XLSX.writeFile(workbook, `${reportType}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+        try {
+            await ExcelUtils.exportToExcel(dataToExport, `${reportType}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+            addToast({ type: 'success', message: t('exportSuccess') });
+        } catch (error) {
+            console.error('Export failed:', error);
+            addToast({ type: 'error', message: t('exportFailed') });
+        }
     }, [generatedData, sortedData, selectedColumns, reportType, addToast, t, ALL_COLUMNS]);
     
     const handleAiSummary = async () => {
@@ -184,15 +193,75 @@ export const ReportingPage: React.FC<ReportingPageProps> = ({ projectGroups, adv
         switch(reportType) {
             case 'project':
                 return <>
-                    <select onChange={e => setFilters(f => ({...f, majorName: e.target.value}))} className="select-style"><option value="all">{t('allMajors')}</option>{majors.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-                    <select onChange={e => setFilters(f => ({...f, advisorName: e.target.value}))} className="select-style"><option value="all">{t('allAdvisors')}</option>{advisors.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}</select>
-                    <select onChange={e => setFilters(f => ({...f, status: e.target.value}))} className="select-style"><option value="all">{t('allStatuses')}</option>{Object.values(ProjectStatus).map(s => <option key={s} value={s}>{s}</option>)}</select>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('allMajors')}</InputLabel>
+                        <Select
+                            value={filters.majorName || 'all'}
+                            onChange={e => setFilters(f => ({...f, majorName: e.target.value}))}
+                            label={t('allMajors')}
+                        >
+                            <MenuItem value="all">{t('allMajors')}</MenuItem>
+                            {majors.map(m => <MenuItem key={m.id} value={m.name}>{m.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('allAdvisors')}</InputLabel>
+                        <Select
+                            value={filters.advisorName || 'all'}
+                            onChange={e => setFilters(f => ({...f, advisorName: e.target.value}))}
+                            label={t('allAdvisors')}
+                        >
+                            <MenuItem value="all">{t('allAdvisors')}</MenuItem>
+                            {advisors.map(a => <MenuItem key={a.id} value={a.name}>{a.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('allStatuses')}</InputLabel>
+                        <Select
+                            value={filters.status || 'all'}
+                            onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+                            label={t('allStatuses')}
+                        >
+                            <MenuItem value="all">{t('allStatuses')}</MenuItem>
+                            {Object.values(ProjectStatus).map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                        </Select>
+                    </FormControl>
                 </>;
             case 'student':
                 return <>
-                    <select onChange={e => setFilters(f => ({...f, major: e.target.value}))} className="select-style"><option value="all">{t('allMajors')}</option>{majors.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-                    <select onChange={e => setFilters(f => ({...f, classroom: e.target.value}))} className="select-style"><option value="all">{t('classrooms')}</option>{classrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select>
-                    <select onChange={e => setFilters(f => ({...f, gender: e.target.value}))} className="select-style"><option value="all">{t('allGenders')}</option>{Object.values(Gender).map(g => <option key={g} value={g}>{g}</option>)}</select>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('allMajors')}</InputLabel>
+                        <Select
+                            value={filters.major || 'all'}
+                            onChange={e => setFilters(f => ({...f, major: e.target.value}))}
+                            label={t('allMajors')}
+                        >
+                            <MenuItem value="all">{t('allMajors')}</MenuItem>
+                            {majors.map(m => <MenuItem key={m.id} value={m.name}>{m.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('classrooms')}</InputLabel>
+                        <Select
+                            value={filters.classroom || 'all'}
+                            onChange={e => setFilters(f => ({...f, classroom: e.target.value}))}
+                            label={t('classrooms')}
+                        >
+                            <MenuItem value="all">{t('classrooms')}</MenuItem>
+                            {classrooms.map(c => <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl fullWidth>
+                        <InputLabel>{t('allGenders')}</InputLabel>
+                        <Select
+                            value={filters.gender || 'all'}
+                            onChange={e => setFilters(f => ({...f, gender: e.target.value}))}
+                            label={t('allGenders')}
+                        >
+                            <MenuItem value="all">{t('allGenders')}</MenuItem>
+                            {Object.values(Gender).map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
+                        </Select>
+                    </FormControl>
                 </>;
             default: return null;
         }
@@ -206,60 +275,155 @@ export const ReportingPage: React.FC<ReportingPageProps> = ({ projectGroups, adv
     };
     
     return (
-        <div className="space-y-6">
-            <style>{`.select-style { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; display: block; width: 100%; border-radius: 0.375rem; border-width: 0; padding-top: 0.5rem; padding-bottom: 0.5rem; padding-left: 0.75rem; color: #111827; ring: 1px solid #d1d5db; --tw-ring-inset: inset; } .dark .select-style { background-color: #374151; color: #fff; ring-color: #4b5563; } .label-style { display: block; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; } .dark .label-style { color: #d1d5db; } .btn-primary { background-color: #2563eb; color: #fff; font-weight: 700; padding: 0.5rem 1rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; } .btn-primary:hover { background-color: #1d4ed8; } .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; } .btn-secondary { background-color: #4b5563; color: #fff; font-weight: 700; padding: 0.5rem 1rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; } .btn-secondary:hover { background-color: #374151; } .btn-secondary:disabled { background-color: #9ca3af; cursor: not-allowed; } .btn-special { background-color: #7c3aed; color: #fff; font-weight: 700; padding: 0.5rem 1rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; } .btn-special:hover { background-color: #6d28d9; } .btn-special:disabled { background-color: #9ca3af; cursor: not-allowed; }`}</style>
-            <div className="flex items-center">
-               <DocumentChartBarIcon className="w-8 h-8 text-blue-600 mr-3"/>
-               <div>
-                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('reportingInsights')}</h2>
-                 <p className="text-slate-500 dark:text-slate-400 mt-1">{t('reportingDescription')}</p>
-               </div>
-            </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <DocumentChartBarIcon sx={{ width: 32, height: 32, color: 'primary.main' }} />
+                <Box>
+                    <Typography variant="h5" component="h2" fontWeight="bold">
+                        {t('reportingInsights')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {t('reportingDescription')}
+                    </Typography>
+                </Box>
+            </Box>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div><label className="label-style">{t('reportType')}</label><select value={reportType} onChange={e => setReportType(e.target.value as any)} className="select-style"><option value="project">{t('projectReport')}</option><option value="student">{t('studentReport')}</option></select></div>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid size={{ xs: 12, md: 6, lg: 3 }}>
+                        <FormControl fullWidth>
+                            <InputLabel>{t('reportType')}</InputLabel>
+                            <Select
+                                value={reportType}
+                                onChange={e => setReportType(e.target.value as any)}
+                                label={t('reportType')}
+                            >
+                                <MenuItem value="project">{t('projectReport')}</MenuItem>
+                                <MenuItem value="student">{t('studentReport')}</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
                     {renderFilters()}
-                    <div className="md:col-span-2 lg:col-span-4"><label className="label-style">{t('columns')}</label><ColumnSelector allColumns={availableColumns} selectedColumns={selectedColumns} setSelectedColumns={setSelectedColumns} /></div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button onClick={handleGenerateReport} className="btn-primary w-full sm:w-auto">{t('generateReport')}</button>
-                    <button onClick={handleExport} disabled={!generatedData} className="btn-secondary w-full sm:w-auto"><TableCellsIcon className="w-5 h-5 mr-2"/>{t('exportToExcel')}</button>
-                    <button onClick={handleAiSummary} disabled={!generatedData || isGeneratingSummary} className="btn-special w-full sm:w-auto"><SparklesIcon className="w-5 h-5 mr-2"/>{t('aiSummary')}</button>
-                </div>
-            </div>
+                    <Grid size={{ xs: 12, md: 12, lg: 12 }}>
+                        <FormControl fullWidth>
+                            <InputLabel>{t('columns')}</InputLabel>
+                            <Box sx={{ mt: 2 }}>
+                                <ColumnSelector 
+                                    allColumns={availableColumns} 
+                                    selectedColumns={selectedColumns} 
+                                    setSelectedColumns={setSelectedColumns} 
+                                />
+                            </Box>
+                        </FormControl>
+                    </Grid>
+                </Grid>
+                <Divider sx={{ my: 2 }} />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <Button 
+                        onClick={handleGenerateReport} 
+                        variant="contained"
+                        color="primary"
+                    >
+                        {t('generateReport')}
+                    </Button>
+                    <Button 
+                        onClick={handleExport} 
+                        disabled={!generatedData}
+                        variant="contained"
+                        color="secondary"
+                        startIcon={<TableCellsIcon sx={{ width: 20, height: 20 }} />}
+                    >
+                        {t('exportToExcel')}
+                    </Button>
+                    <Button 
+                        onClick={handleAiSummary} 
+                        disabled={!generatedData || isGeneratingSummary}
+                        variant="contained"
+                        sx={{ bgcolor: 'purple.600', '&:hover': { bgcolor: 'purple.700' } }}
+                        startIcon={isGeneratingSummary ? <CircularProgress size={16} color="inherit" /> : <SparklesIcon sx={{ width: 20, height: 20 }} />}
+                    >
+                        {t('aiSummary')}
+                    </Button>
+                </Stack>
+            </Paper>
 
             {aiSummary && (
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 flex items-center gap-2"><SparklesIcon className="w-5 h-5"/>{t('aiSummary')}</h3>
-                    <div className="prose prose-sm max-w-none text-purple-700 dark:text-purple-300 mt-2" dangerouslySetInnerHTML={{ __html: aiSummary.replace(/\n/g, '<br />') }}/>
-                </div>
+                <Alert 
+                    severity="info" 
+                    icon={<SparklesIcon sx={{ width: 20, height: 20 }} />}
+                    sx={{ 
+                        bgcolor: 'purple.50', 
+                        border: '1px solid',
+                        borderColor: 'purple.200',
+                        '& .MuiAlert-message': {
+                            '& p': { mb: 1 },
+                            '& ul': { mb: 1, pl: 2 }
+                        }
+                    }}
+                >
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                        {t('aiSummary')}
+                    </Typography>
+                    <Box 
+                        sx={{ 
+                            '& p': { mb: 1 },
+                            '& ul': { mb: 1, pl: 2 },
+                            '& li': { mb: 0.5 }
+                        }}
+                        dangerouslySetInnerHTML={{ __html: aiSummary.replace(/\n/g, '<br />') }}
+                    />
+                </Alert>
             )}
             
             {generatedData && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm text-left">
-                             <thead className="bg-slate-100 dark:bg-slate-700"><tr>{selectedColumns.map(colKey => (
-<React.Fragment key={colKey}>
-    <SortableHeader 
-        sortKey={colKey} 
-        title={ALL_COLUMNS.find(c => c.key === colKey)?.label || colKey} 
-        sortConfig={sortConfig} 
-        requestSort={requestSort} 
-        className="px-4 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider" 
-    />
-</React.Fragment>
-))}</tr></thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                {paginatedData.map((row, index) => <tr key={index}>{selectedColumns.map(key => <td key={key} className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{row[key] ?? ''}</td>)}</tr>)}
-                            </tbody>
-                        </table>
-                    </div>
-                    {generatedData.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">{t('noDataForFilters')}</p>}
-                    <Pagination currentPage={currentPage} totalPages={Math.ceil(sortedData.length / ITEMS_PER_PAGE)} totalItems={sortedData.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setCurrentPage} />
-                </div>
+                <Paper elevation={3}>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    {selectedColumns.map(colKey => (
+                                        <SortableHeader 
+                                            key={colKey}
+                                            sortKey={colKey} 
+                                            title={ALL_COLUMNS.find(c => c.key === colKey)?.label || colKey} 
+                                            sortConfig={sortConfig} 
+                                            requestSort={requestSort}
+                                        />
+                                    ))}
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {paginatedData.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={selectedColumns.length} align="center" sx={{ py: 4 }}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {t('noDataForFilters')}
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    paginatedData.map((row, index) => (
+                                        <TableRow key={index}>
+                                            {selectedColumns.map(key => (
+                                                <TableCell key={key}>
+                                                    {row[key] ?? ''}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <Pagination 
+                        currentPage={currentPage} 
+                        totalPages={Math.ceil(sortedData.length / ITEMS_PER_PAGE)} 
+                        totalItems={sortedData.length} 
+                        itemsPerPage={ITEMS_PER_PAGE} 
+                        onPageChange={setCurrentPage} 
+                    />
+                </Paper>
             )}
-        </div>
+        </Box>
     );
 };

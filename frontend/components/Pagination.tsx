@@ -1,5 +1,8 @@
 import React from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from './icons';
+import {
+  Box, Button, Typography, IconButton, Paper
+} from '@mui/material';
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface PaginationProps {
@@ -32,54 +35,80 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, totalI
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 sm:px-6 rounded-b-lg">
-      <div className="flex flex-1 justify-between sm:hidden">
-        <button
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        borderTop: 1, 
+        borderColor: 'divider',
+        px: { xs: 2, sm: 3 },
+        py: 2,
+        borderRadius: '0 0 4px 4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 2
+      }}
+    >
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, flex: 1, justifyContent: 'space-between', width: '100%' }}>
+        <Button
           onClick={handlePrevious}
           disabled={currentPage === 1}
-          className="relative inline-flex items-center rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+          variant="outlined"
+          size="small"
         >
           {t('previous')}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+          variant="outlined"
+          size="small"
         >
           {t('next')}
-        </button>
-      </div>
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-700 dark:text-slate-300">
-            {t('showing')} <span className="font-medium">{startItem}</span> {t('to')} <span className="font-medium">{endItem}</span> {t('of')} <span className="font-medium">{totalItems}</span> {t('results')}
-          </p>
-        </div>
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-            <button
-              onClick={handlePrevious}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <span className="sr-only">{t('previous')}</span>
-              <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-600">
+        </Button>
+      </Box>
+      <Box sx={{ display: { xs: 'none', sm: 'flex' }, flex: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="body2" color="text.secondary">
+          {t('showing')} <Box component="span" fontWeight="medium">{startItem}</Box> {t('to')} <Box component="span" fontWeight="medium">{endItem}</Box> {t('of')} <Box component="span" fontWeight="medium">{totalItems}</Box> {t('results')}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <IconButton
+            onClick={handlePrevious}
+            disabled={currentPage === 1}
+            size="small"
+            sx={{ border: 1, borderColor: 'divider', borderRadius: '4px 0 0 4px' }}
+            aria-label={t('previous')}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderTop: 1,
+              borderBottom: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <Typography variant="body2" fontWeight="medium">
               {t('page')} {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={handleNext}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <span className="sr-only">{t('next')}</span>
-              <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </nav>
-        </div>
-      </div>
-    </div>
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            size="small"
+            sx={{ border: 1, borderColor: 'divider', borderRadius: '0 4px 4px 0' }}
+            aria-label={t('next')}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      </Box>
+    </Paper>
   );
 };
 

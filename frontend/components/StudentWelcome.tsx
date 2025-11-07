@@ -1,4 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
+import {
+    Box, Paper, Typography, Button, Tabs, Tab, Grid, LinearProgress,
+    IconButton, Stack, Divider
+} from '@mui/material';
 import { PlusIcon, BuildingLibraryIcon, AcademicCapIcon, QuestionMarkCircleIcon, SparklesIcon } from './icons';
 import { Advisor, ProjectGroup, Announcement, User, ProjectStatus, Major, Gender } from '../types';
 import { getAdvisorColor } from '../utils/colorUtils';
@@ -28,38 +33,43 @@ const AdvisorWorkload: React.FC<{ advisor: Advisor; count: number }> = ({ adviso
     const percentage = advisor.quota > 0 ? (count / advisor.quota) * 100 : 0;
     const color = getAdvisorColor(advisor.name);
     return (
-        <div className="flex flex-col">
-            <div className="flex justify-between items-baseline">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 flex items-center">
-                  <span className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: color }}></span>
-                  {advisor.name}
-                </p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{count} / {advisor.quota} {t('projects')}</p>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-1">
-                <div 
-                    className="h-2 rounded-full" 
-                    style={{ width: `${percentage}%`, backgroundColor: color }}
-                ></div>
-            </div>
-        </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <Typography variant="body2" fontWeight="semibold" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box
+                        component="span"
+                        sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            mr: 1,
+                            bgcolor: color
+                        }}
+                    />
+                    {advisor.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {count} / {advisor.quota} {t('projects')}
+                </Typography>
+            </Box>
+            <Box sx={{ width: '100%', bgcolor: 'action.hover', borderRadius: '999px', height: 8, mt: 0.5 }}>
+                <LinearProgress
+                    variant="determinate"
+                    value={Math.min(percentage, 100)}
+                    sx={{
+                        height: 8,
+                        borderRadius: '999px',
+                        bgcolor: 'action.hover',
+                        '& .MuiLinearProgress-bar': {
+                            borderRadius: '999px',
+                            bgcolor: color
+                        }
+                    }}
+                />
+            </Box>
+        </Box>
     );
 };
-
-const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium text-center rounded-t-lg transition-colors border-b-2
-      ${active
-        ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
-        : 'text-slate-500 border-transparent hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600'
-      }`
-    }
-  >
-    {children}
-  </button>
-);
 
 
 export const StudentWelcome: React.FC<StudentWelcomeProps> = ({ onRegisterClick, onOpenSuggester, advisors, advisorProjectCounts, allProjects, announcements, user, onStartTour, onSelectProject, majors }) => {
@@ -145,72 +155,154 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({ onRegisterClick,
   }, [filteredProjects, sortConfig]);
 
   return (
-    <div className="space-y-6">
-        <div className="border-b border-slate-200 dark:border-slate-700">
-            <div className="flex -mb-px space-x-4">
-                <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>{t('dashboard')}</TabButton>
-                <TabButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')}>{t('browseAllProjects')}</TabButton>
-            </div>
-        </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs 
+                value={activeTab} 
+                onChange={(_, newValue) => setActiveTab(newValue)}
+                sx={{
+                    '& .MuiTab-root': {
+                        textTransform: 'none',
+                        minHeight: 48,
+                        fontWeight: 500
+                    }
+                }}
+            >
+                <Tab value="dashboard" label={t('dashboard')} />
+                <Tab value="projects" label={t('browseAllProjects')} />
+            </Tabs>
+        </Box>
 
         {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in">
-                <div id="welcome-panel" className="relative lg:col-span-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg text-center py-16 px-6">
-                  <button onClick={onStartTour} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" title="Replay introduction tour">
-                    <QuestionMarkCircleIcon className="w-6 h-6" />
-                  </button>
-                  <BuildingLibraryIcon className="mx-auto h-16 w-16 text-blue-500" />
-                  <h2 className="mt-4 text-2xl font-bold text-slate-800 dark:text-slate-100">{t('welcomeToPortal')}</h2>
-                  <p className="mt-2 text-md text-slate-600 dark:text-slate-400">
-                    {t('notAssignedToProject')}
-                  </p>
-                  <p className="mt-1 text-md text-slate-600 dark:text-slate-400">
-                    {t('canRegisterProject')}
-                  </p>
-                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <button
-                      id="ai-topic-suggester-btn-welcome"
-                      type="button"
-                      onClick={onOpenSuggester}
-                      className="inline-flex items-center rounded-md bg-purple-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-purple-700 transition-transform transform hover:scale-105"
+            <Grid container spacing={3}>
+                <Grid size={{ xs: 12, lg: 8 }}>
+                    <Paper 
+                        id="welcome-panel"
+                        elevation={3}
+                        sx={{ 
+                            position: 'relative',
+                            textAlign: 'center',
+                            py: 8,
+                            px: 3
+                        }}
                     >
-                      <SparklesIcon className="-ml-1 mr-2 h-5 w-5" />
-                      {t('aiTopicSuggestion')}
-                    </button>
-                    <button
-                      id="register-project-btn-welcome"
-                      type="button"
-                      onClick={onRegisterClick}
-                      className="inline-flex items-center rounded-md bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-blue-700 transition-transform transform hover:scale-105"
-                    >
-                      <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                      {t('registerYourProject')}
-                    </button>
-                  </div>
-                </div>
-                <div className="lg:col-span-1 space-y-8">
-                     <AnnouncementsFeed announcements={announcements} user={user} />
-                     <div id="advisor-workload-panel" className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-                        <div className="flex items-start space-x-4">
-                            <div className="flex-shrink-0 bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400 rounded-full p-3">
-                                <AcademicCapIcon className="w-6 h-6" />
-                            </div>
-                            <div className="flex-1">
-                                 <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">{t('allAdvisors')}</p>
-                                 <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-                                    {advisors.map(adv => (
-                                        <AdvisorWorkload key={adv.id} advisor={adv} count={advisorProjectCounts[adv.name] || 0} />
-                                    ))}
-                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        <IconButton
+                            onClick={onStartTour}
+                            sx={{
+                                position: 'absolute',
+                                top: 16,
+                                right: 16,
+                                color: 'text.secondary',
+                                '&:hover': {
+                                    color: 'primary.main',
+                                    bgcolor: 'action.hover'
+                                }
+                            }}
+                            title="Replay introduction tour"
+                        >
+                            <QuestionMarkCircleIcon sx={{ width: 24, height: 24 }} />
+                        </IconButton>
+                        <BuildingLibraryIcon sx={{ width: 64, height: 64, color: 'primary.main', mx: 'auto' }} />
+                        <Typography variant="h4" component="h2" fontWeight="bold" sx={{ mt: 2 }}>
+                            {t('welcomeToPortal')}
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                            {t('notAssignedToProject')}
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+                            {t('canRegisterProject')}
+                        </Typography>
+                        <Stack 
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={2}
+                            sx={{ mt: 4, justifyContent: 'center', alignItems: 'center' }}
+                        >
+                            <Button
+                                id="ai-topic-suggester-btn-welcome"
+                                variant="contained"
+                                onClick={onOpenSuggester}
+                                startIcon={<SparklesIcon sx={{ width: 20, height: 20 }} />}
+                                sx={{
+                                    bgcolor: 'purple.600',
+                                    '&:hover': {
+                                        bgcolor: 'purple.700',
+                                        transform: 'scale(1.05)'
+                                    },
+                                    transition: 'transform 0.2s',
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {t('aiTopicSuggestion')}
+                            </Button>
+                            <Button
+                                id="register-project-btn-welcome"
+                                variant="contained"
+                                color="primary"
+                                onClick={onRegisterClick}
+                                startIcon={<PlusIcon sx={{ width: 20, height: 20 }} />}
+                                sx={{
+                                    '&:hover': {
+                                        transform: 'scale(1.05)'
+                                    },
+                                    transition: 'transform 0.2s',
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {t('registerYourProject')}
+                            </Button>
+                        </Stack>
+                    </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 4 }}>
+                    <Stack spacing={3}>
+                        <AnnouncementsFeed announcements={announcements} user={user} />
+                        <Paper 
+                            id="advisor-workload-panel"
+                            elevation={3}
+                            sx={{ p: 3 }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                <Box
+                                    sx={{
+                                        flexShrink: 0,
+                                        bgcolor: 'primary.light',
+                                        color: 'primary.main',
+                                        borderRadius: '50%',
+                                        p: 1.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <AcademicCapIcon sx={{ width: 24, height: 24 }} />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" fontWeight="semibold" sx={{ mb: 2 }}>
+                                        {t('allAdvisors')}
+                                    </Typography>
+                                    <Box sx={{ maxHeight: 256, overflowY: 'auto', pr: 1 }}>
+                                        <Stack spacing={2}>
+                                            {advisors.map(adv => (
+                                                <AdvisorWorkload 
+                                                    key={adv.id} 
+                                                    advisor={adv} 
+                                                    count={advisorProjectCounts[adv.name] || 0} 
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Paper>
+                    </Stack>
+                </Grid>
+            </Grid>
         )}
         
         {activeTab === 'projects' && (
-            <div className="space-y-6 animate-fade-in">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <ProjectFilters
                     user={user}
                     searchQuery={searchQuery}
@@ -239,8 +331,8 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({ onRegisterClick,
                     requestSort={requestSort}
                     onUpdateStatus={(projectId: string, status: ProjectStatus) => {}}
                 />
-            </div>
+            </Box>
         )}
-    </div>
+    </Box>
   );
 };

@@ -1,7 +1,15 @@
-
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Grid, Stack, Switch, Checkbox, Tooltip, InputAdornment
+} from '@mui/material';
+import { 
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Search as SearchIcon, UploadFile as UploadFileIcon,
+  Download as DownloadIcon, School as SchoolIcon
+} from '@mui/icons-material';
 import { Advisor, ProjectGroup, Major, User } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, AcademicCapIcon, MagnifyingGlassIcon, DocumentArrowUpIcon, TableCellsIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import AdvisorModal from './AdvisorModal';
@@ -32,18 +40,11 @@ interface AdvisorManagementProps {
 }
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: () => void; }> = ({ enabled, onChange }) => (
-    <button
-        type="button"
-        className={`${enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-        role="switch"
-        aria-checked={enabled}
-        onClick={onChange}
-    >
-        <span
-            aria-hidden="true"
-            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
+    <Switch
+        checked={enabled}
+        onChange={onChange}
+        color="primary"
+    />
 );
 
 const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
@@ -179,7 +180,7 @@ const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
 
     const handleImportClick = () => fileInputRef.current?.click();
 
-    const handleExportExcel = useCallback(() => {
+    const handleExportExcel = useCallback(async () => {
         const dataToExport = sortedAndFilteredAdvisors.map(advisor => {
             const projectCount = advisorProjectCounts[advisor.name] || 0;
             const committeeCount = committeeCounts[advisor.id] || { main: 0, second: 0, third: 0 };
@@ -200,37 +201,15 @@ const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
             return;
         }
     
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Advisors');
-    
-        worksheet['!cols'] = [
-            { wch: 10 }, // ID
-            { wch: 25 }, // Name
-            { wch: 20 }, // Supervising
-            { wch: 20 }, // Main Committee
-            { wch: 20 }, // 2nd Committee
-            { wch: 20 }, // 3rd Committee
-            { wch: 30 }, // Specialized Majors
-            { wch: 15 }, // Department Admin
-        ];
-    
-        XLSX.writeFile(workbook, 'advisors_report.xlsx');
+        await ExcelUtils.exportToExcel(dataToExport, 'advisors_report.xlsx');
         addToast({ type: 'success', message: t('advisorExportSuccess') });
     }, [sortedAndFilteredAdvisors, advisorProjectCounts, committeeCounts, getMajorNames, addToast, t]);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = e.target?.result;
-                // FIX: Cast `data` to string as XLSX.read with type 'binary' expects a string, which was causing a type error.
-                const workbook = XLSX.read(data as string, { type: 'binary' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json<any>(worksheet);
+        try {
+            const json = await ExcelUtils.readExcelFile(file);
                 const existingAdvisorNames = new Set(advisors.map(a => a.name.toLowerCase()));
                 const majorAbbrToIdMap = new Map(majors.map(m => [m.abbreviation.toLowerCase(), m.id]));
                 const processedData = json.map(row => {
@@ -253,14 +232,12 @@ const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
                     const advisorId = advisors.find(a => a.name.toLowerCase() === name.toLowerCase())?.id;
                     return { id: advisorId, name, quota: Number(row['Quota']) || 5, mainCommitteeQuota: Number(row['Main Committee Quota']) || 5, secondCommitteeQuota: Number(row['2nd Committee Quota']) || 5, thirdCommitteeQuota: Number(row['3rd Committee Quota']) || 5, specializedMajorIds, _status: error ? 'error' : status, _error: error || undefined };
                 });
-                setReviewData(processedData as any);
-                setIsReviewModalOpen(true);
-            } catch (error) {
-                addToast({ type: 'error', message: t('fileParseError') });
-                console.error("File parse error:", error);
-            } finally { if (event.target) event.target.value = ''; }
-        };
-        reader.readAsBinaryString(file);
+            setReviewData(processedData as any);
+            setIsReviewModalOpen(true);
+        } catch (error) {
+            addToast({ type: 'error', message: t('fileParseError') });
+            console.error("File parse error:", error);
+        } finally { if (event.target) event.target.value = ''; }
     };
 
     const handleConfirmImport = (validData: (Omit<Advisor, 'id'> | Advisor)[]) => {
@@ -277,100 +254,227 @@ const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                 <div className="flex items-center">
-                   <AcademicCapIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageAdvisors')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('advisorsDescription')}</p>
-                   </div>
-                </div>
-                 <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx, .xls"/>
-                    <button onClick={handleImportClick} className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"><DocumentArrowUpIcon className="w-5 h-5 mr-2" /> {t('import')}</button>
-                    <button onClick={handleExportExcel} className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                        <TableCellsIcon className="w-5 h-5 mr-2" /> {t('exportExcel')}
-                    </button>
-                    <button onClick={handleAddClick} className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"><PlusIcon className="w-5 h-5 mr-2" /> {t('addAdvisor')}</button>
-                </div>
-            </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <SchoolIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageAdvisors')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('advisorsDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: { xs: 2, sm: 0 } }}>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx, .xls"/>
+                    <Button
+                        onClick={handleImportClick}
+                        variant="contained"
+                        startIcon={<UploadFileIcon />}
+                        sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('import')}
+                    </Button>
+                    <Button
+                        onClick={handleExportExcel}
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('exportExcel')}
+                    </Button>
+                    <Button
+                        onClick={handleAddClick}
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        {t('addAdvisor')}
+                    </Button>
+                </Stack>
+            </Box>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-                <div className="mb-4"><div className="relative w-full sm:w-1/2 lg:w-1/3"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><MagnifyingGlassIcon className="h-5 w-5 text-gray-400" /></div><input type="text" className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-slate-700 dark:text-white" placeholder={t('searchByAdvisor')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div></div>
-                {selectedAdvisorIds.size > 0 && <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg flex justify-between items-center mb-4"><span className="font-semibold text-blue-800 dark:text-blue-200">{t('bulkActionsSelected').replace('{count}', String(selectedAdvisorIds.size))}</span><div className="flex gap-2"><button onClick={() => setIsBulkEditModalOpen(true)} className="text-sm font-medium text-blue-600 dark:text-blue-300 hover:underline">{t('edit')}</button><button onClick={() => setIsBulkDeleteModalOpen(true)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:underline">{t('delete')}</button></div></div>}
-                
-                <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {paginatedAdvisors.map(advisor => {
-                        const projectCount = advisorProjectCounts[advisor.name] || 0;
-                        return (
-                            <AdvisorCard
-                                key={advisor.id}
-                                advisor={advisor}
-                                user={user}
-                                projectCount={projectCount}
-                                getMajorNames={getMajorNames}
-                                onEdit={() => handleEditClick(advisor)}
-                                onDelete={() => handleDeleteRequest(advisor)}
-                                onSelect={handleSelect}
-                                isSelected={selectedAdvisorIds.has(advisor.id)}
-                                onToggleAiAssistant={() => handleToggleAiAssistant(advisor)}
-                            />
-                        );
-                    })}
-                </div>
+            <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box sx={{ mb: 2 }}>
+                    <TextField
+                        placeholder={t('searchByAdvisor')}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                </Box>
+                {selectedAdvisorIds.size > 0 && (
+                    <Box sx={{ 
+                        bgcolor: 'primary.light', 
+                        p: 2, 
+                        borderRadius: 1, 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        mb: 2
+                    }}>
+                        <Typography variant="body2" fontWeight={600} color="primary.dark">
+                            {t('bulkActionsSelected').replace('{count}', String(selectedAdvisorIds.size))}
+                        </Typography>
+                        <Stack direction="row" spacing={1}>
+                            <Button
+                                onClick={() => setIsBulkEditModalOpen(true)}
+                                size="small"
+                                color="primary"
+                            >
+                                {t('edit')}
+                            </Button>
+                            <Button
+                                onClick={() => setIsBulkDeleteModalOpen(true)}
+                                size="small"
+                                color="error"
+                            >
+                                {t('delete')}
+                            </Button>
+                        </Stack>
+                    </Box>
+                )}
+                <Box sx={{ display: { lg: 'none' } }}>
+                    <Grid container spacing={2}>
+                        {paginatedAdvisors.map(advisor => {
+                            const projectCount = advisorProjectCounts[advisor.name] || 0;
+                            return (
+                                <Grid item xs={12} sm={6} key={advisor.id}>
+                                    <AdvisorCard
+                                        advisor={advisor}
+                                        user={user}
+                                        projectCount={projectCount}
+                                        getMajorNames={getMajorNames}
+                                        onEdit={() => handleEditClick(advisor)}
+                                        onDelete={() => handleDeleteRequest(advisor)}
+                                        onSelect={handleSelect}
+                                        isSelected={selectedAdvisorIds.has(advisor.id)}
+                                        onToggleAiAssistant={() => handleToggleAiAssistant(advisor)}
+                                    />
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                </Box>
 
-                <div className="hidden lg:block overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                            <tr>
-                                <th scope="col" className="p-4"><input type="checkbox" onChange={handleSelectAll} checked={selectedAdvisorIds.size > 0 && selectedAdvisorIds.size === sortedAndFilteredAdvisors.length} className="w-4 h-4 text-blue-600" /></th>
+                <TableContainer sx={{ display: { xs: 'none', lg: 'block' } }}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        checked={selectedAdvisorIds.size > 0 && selectedAdvisorIds.size === sortedAndFilteredAdvisors.length}
+                                        indeterminate={selectedAdvisorIds.size > 0 && selectedAdvisorIds.size < sortedAndFilteredAdvisors.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                </TableCell>
                                 <SortableHeader sortKey="id" title="ID" sortConfig={sortConfig} requestSort={requestSort} />
                                 <SortableHeader sortKey="name" title={t('fullName')} sortConfig={sortConfig} requestSort={requestSort} />
                                 <SortableHeader sortKey="projectCount" title={t('projectsSupervising')} sortConfig={sortConfig} requestSort={requestSort} />
-                                <th scope="col" className="px-6 py-3">{t('specializedMajors')}</th>
-                                {user.role === 'Admin' && <th scope="col" className="px-6 py-3">{t('aiAssistant')}</th>}
-                                <th scope="col" className="px-6 py-3 text-right">{t('actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                                <TableCell>{t('specializedMajors')}</TableCell>
+                                {user.role === 'Admin' && (
+                                    <TableCell>{t('aiAssistant')}</TableCell>
+                                )}
+                                <TableCell align="right">{t('actions')}</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
                             {paginatedAdvisors.map(advisor => {
                                 const projectCount = advisorProjectCounts[advisor.name] || 0;
                                 const isSelected = selectedAdvisorIds.has(advisor.id);
                                 const isOverloaded = projectCount > advisor.quota;
                                 return (
-                                <tr key={advisor.id} className={`border-b dark:border-slate-700 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
-                                    <td className="w-4 p-4"><input type="checkbox" checked={isSelected} onChange={() => handleSelect(advisor.id)} className="w-4 h-4 text-blue-600"/></td>
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{advisor.id}</td>
-                                    <td className="px-6 py-4">{advisor.name}</td>
-                                    <td className={`px-6 py-4 ${isOverloaded ? 'text-red-500 dark:text-red-400 font-bold' : ''}`}>{projectCount} / {advisor.quota}</td>
-                                    <td className="px-6 py-4">{getMajorNames(advisor.specializedMajorIds)}</td>
-                                    {user.role === 'Admin' && <td className="px-6 py-4"><ToggleSwitch enabled={advisor.isAiAssistantEnabled ?? true} onChange={() => handleToggleAiAssistant(advisor)} /></td>}
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <button onClick={() => handleEditClick(advisor)} className="p-2 text-slate-500 hover:text-blue-600"><PencilIcon className="w-5 h-5" /></button>
-                                        <button onClick={() => handleDeleteRequest(advisor)} className="p-2 text-slate-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
-                                    </td>
-                                </tr>
-                            )})}
-                        </tbody>
-                    </table>
-                    {sortedAndFilteredAdvisors.length === 0 && <div className="text-center py-10 text-slate-500 dark:text-slate-400">{searchQuery ? `No advisors found for "${searchQuery}".` : t('noAdvisorsData')}</div>}
-                </div>
-                 <Pagination
+                                    <TableRow 
+                                        key={advisor.id}
+                                        selected={isSelected}
+                                        sx={{
+                                            '&:hover': { bgcolor: 'action.hover' },
+                                        }}
+                                    >
+                                        <TableCell padding="checkbox">
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onChange={() => handleSelect(advisor.id)}
+                                            />
+                                        </TableCell>
+                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500 }}>
+                                            {advisor.id}
+                                        </TableCell>
+                                        <TableCell>{advisor.name}</TableCell>
+                                          <TableCell sx={{ color: isOverloaded ? 'error.main' : 'inherit', fontWeight: isOverloaded ? 'bold' : 'normal' }}>
+                                              {projectCount} / {advisor.quota}
+                                          </TableCell>
+                                        <TableCell>{getMajorNames(advisor.specializedMajorIds)}</TableCell>
+                                        {user.role === 'Admin' && (
+                                            <TableCell>
+                                                <ToggleSwitch 
+                                                    enabled={advisor.isAiAssistantEnabled ?? true} 
+                                                    onChange={() => handleToggleAiAssistant(advisor)} 
+                                                />
+                                            </TableCell>
+                                        )}
+                                        <TableCell align="right">
+                                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleEditClick(advisor)}
+                                                    color="primary"
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDeleteRequest(advisor)}
+                                                    color="error"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Stack>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                    {sortedAndFilteredAdvisors.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 5 }}>
+                            <Typography color="text.secondary">
+                                {searchQuery ? `No advisors found for "${searchQuery}".` : t('noAdvisorsData')}
+                            </Typography>
+                        </Box>
+                    )}
+                </TableContainer>
+                <Pagination
                     currentPage={currentPage}
                     totalPages={Math.ceil(sortedAndFilteredAdvisors.length / ITEMS_PER_PAGE)}
                     totalItems={sortedAndFilteredAdvisors.length}
                     itemsPerPage={ITEMS_PER_PAGE}
                     onPageChange={setCurrentPage}
                 />
-            </div>
+            </Paper>
             
             {isModalOpen && <AdvisorModal user={user} onClose={() => setIsModalOpen(false)} onSave={handleSaveAdvisor} advisorToEdit={editingAdvisor} allAdvisors={advisors} majors={majors} />}
             {advisorToDelete && <ConfirmationModal isOpen={!!advisorToDelete} onClose={() => setAdvisorToDelete(null)} onConfirm={confirmDelete} title={t('deleteAdvisorTitle')} message={t('deleteAdvisorMessage').replace('${name}', advisorToDelete.name)} />}
             {isBulkEditModalOpen && <AdvisorBulkEditModal isOpen={isBulkEditModalOpen} onClose={() => setIsBulkEditModalOpen(false)} onSave={handleBulkEdit} selectedCount={selectedAdvisorIds.size} />}
             {isBulkDeleteModalOpen && <ConfirmationModal isOpen={isBulkDeleteModalOpen} onClose={() => setIsBulkDeleteModalOpen(false)} onConfirm={handleBulkDelete} title={t('bulkDeleteAdvisorTitle').replace('${count}', String(selectedAdvisorIds.size))} message={t('bulkDeleteAdvisorMessage').replace('${count}', String(selectedAdvisorIds.size))} />}
             {isReviewModalOpen && <ImportReviewModal<Omit<Advisor, 'id'> | Advisor> isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} onConfirm={handleConfirmImport} data={reviewData} columns={[{ key: '_status', header: 'Status' }, { key: 'name', header: 'Name' }, { key: 'quota', header: 'Quota' }, { key: 'specializedMajorIds', header: 'Majors' }, { key: '_error', header: 'Error' }]} dataTypeName="Advisors" />}
-        </div>
+        </Box>
     );
 };
 

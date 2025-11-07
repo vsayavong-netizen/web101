@@ -1,6 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Stack, InputAdornment, Chip, CircularProgress
+} from '@mui/material';
+import { 
+  Search as SearchIcon, Download as DownloadIcon,
+  Inventory as InventoryIcon
+} from '@mui/icons-material';
 import { ProjectGroup, FinalSubmissionFile, FinalSubmissionStatus } from '../types';
-import { ArrowDownTrayIcon, MagnifyingGlassIcon, InboxStackIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import SortableHeader, { SortConfig, SortDirection } from './SortableHeader';
 import JSZip from 'jszip';
@@ -39,16 +47,16 @@ const getFileDataUrl = (fileId: string): string => {
     }
 };
 
-const getStatusStyles = (status: FinalSubmissionStatus) => {
+const getStatusColor = (status: FinalSubmissionStatus): 'success' | 'info' | 'warning' | 'default' => {
     switch (status) {
         case FinalSubmissionStatus.Approved:
-            return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+            return 'success';
         case FinalSubmissionStatus.Submitted:
-            return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+            return 'info';
         case FinalSubmissionStatus.RequiresRevision:
-            return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+            return 'warning';
         default:
-            return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200';
+            return 'default';
     }
 };
 
@@ -233,110 +241,160 @@ const SubmissionsManagement: React.FC<SubmissionsManagementProps> = ({ projectGr
         }
     }, [sortedAndFilteredPreDefense, sortedAndFilteredPostDefense, addToast, t]);
 
-    return (
-        <div className="space-y-8">
-            {/* Pre-Defense Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                    <div className="flex items-center">
-                       <InboxStackIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                       <div>
-                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('preDefenseTitle')}</h2>
-                         <p className="text-slate-500 dark:text-slate-400 mt-1">{t('preDefenseDescription')}</p>
-                       </div>
-                    </div>
-                    <button onClick={() => handleBulkDownload('pre')} disabled={isZippingPre} className="mt-4 sm:mt-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed">
-                        {isZippingPre ? (<><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>{t('zipping')}</>) : (<><ArrowDownTrayIcon className="w-5 h-5 mr-2" />{t('downloadAll').replace('${count}', String(sortedAndFilteredPreDefense.length))}</>)}
-                    </button>
-                </div>
-                 <div className="mb-4">
-                     <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" /></div>
-                        <input type="text" className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400" placeholder={t('searchSubmissionsPlaceholder')} value={preSearchQuery} onChange={(e) => setPreSearchQuery(e.target.value)} />
-                    </div>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                            <tr>
-                                <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={preSortConfig} requestSort={requestPreSort} />
-                                <SortableHeader sortKey="studentNames" title={t('students')} sortConfig={preSortConfig} requestSort={requestPreSort} />
-                                <th scope="col" className="px-6 py-3">{t('fileName')}</th>
-                                <SortableHeader sortKey="submittedAt" title={t('submitted')} sortConfig={preSortConfig} requestSort={requestPreSort} />
-                                <SortableHeader sortKey="status" title={t('status')} sortConfig={preSortConfig} requestSort={requestPreSort} />
-                                <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={preSortConfig} requestSort={requestPreSort} />
-                                <th scope="col" className="px-6 py-3 text-right">{t('download')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedAndFilteredPreDefense.map(row => (
-                                <tr key={`${row.projectId}-pre`} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{row.projectId}</td>
-                                    <td className="px-6 py-4">{row.studentNames}</td>
-                                    <td className="px-6 py-4 truncate max-w-xs" title={row.file.name}>{row.file.name} <span className="text-slate-400 text-xs">({formatBytes(row.file.size)})</span></td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(row.file.submittedAt).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyles(row.file.status)}`}>{row.file.status}</span></td>
-                                    <td className="px-6 py-4">{row.advisorName}</td>
-                                    <td className="px-6 py-4 text-right"><button onClick={() => handleDownload(row)} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowDownTrayIcon className="w-5 h-5" /></button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {sortedAndFilteredPreDefense.length === 0 && (<div className="text-center py-10 text-slate-500 dark:text-slate-400">{preSearchQuery ? `${t('noProjectsForQuery').replace('${query}', preSearchQuery)}` : t('noPreDefenseFiles')}</div>)}
-                </div>
-            </div>
+    const renderTable = (
+        title: string,
+        description: string,
+        rows: SubmissionRow[],
+        searchQuery: string,
+        setSearchQuery: (query: string) => void,
+        sortConfig: SortConfig<SubmissionSortKey> | null,
+        requestSort: (key: SubmissionSortKey) => void,
+        onBulkDownload: () => void,
+        isZipping: boolean,
+        emptyMessage: string
+    ) => (
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <InventoryIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {title}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {description}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
+                    onClick={onBulkDownload}
+                    disabled={isZipping}
+                    variant="contained"
+                    startIcon={isZipping ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+                    sx={{ fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
+                >
+                    {isZipping ? t('zipping') : t('downloadAll').replace('${count}', String(rows.length))}
+                </Button>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchSubmissionsPlaceholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Box>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
+                            <SortableHeader sortKey="studentNames" title={t('students')} sortConfig={sortConfig} requestSort={requestSort} />
+                            <TableCell>{t('fileName')}</TableCell>
+                            <SortableHeader sortKey="submittedAt" title={t('submitted')} sortConfig={sortConfig} requestSort={requestSort} />
+                            <SortableHeader sortKey="status" title={t('status')} sortConfig={sortConfig} requestSort={requestSort} />
+                            <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={sortConfig} requestSort={requestSort} />
+                            <TableCell align="right">{t('download')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {rows.map(row => (
+                            <TableRow 
+                                key={`${row.projectId}-${row.submissionType}`}
+                                sx={{
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <TableCell component="th" scope="row" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                    {row.projectId}
+                                </TableCell>
+                                <TableCell>{row.studentNames}</TableCell>
+                                <TableCell>
+                                    <Box sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.file.name}>
+                                        <Typography variant="body2" noWrap>
+                                            {row.file.name}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            ({formatBytes(row.file.size)})
+                                        </Typography>
+                                    </Box>
+                                </TableCell>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                    {new Date(row.file.submittedAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                    <Chip 
+                                        label={row.file.status} 
+                                        color={getStatusColor(row.file.status)}
+                                        size="small"
+                                    />
+                                </TableCell>
+                                <TableCell>{row.advisorName}</TableCell>
+                                <TableCell align="right">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => handleDownload(row)}
+                                        color="primary"
+                                    >
+                                        <DownloadIcon />
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                {rows.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery ? `${t('noProjectsForQuery').replace('${query}', searchQuery)}` : emptyMessage}
+                        </Typography>
+                    </Box>
+                )}
+            </TableContainer>
+        </Paper>
+    );
 
-            {/* Post-Defense Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                    <div className="flex items-center">
-                        <InboxStackIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('postDefenseTitle')}</h2>
-                            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('postDefenseDescription')}</p>
-                        </div>
-                    </div>
-                    <button onClick={() => handleBulkDownload('post')} disabled={isZippingPost} className="mt-4 sm:mt-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed">
-                        {isZippingPost ? (<><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>{t('zipping')}</>) : (<><ArrowDownTrayIcon className="w-5 h-5 mr-2" />{t('downloadAll').replace('${count}', String(sortedAndFilteredPostDefense.length))}</>)}
-                    </button>
-                </div>
-                <div className="mb-4">
-                    <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" /></div>
-                        <input type="text" className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400" placeholder={t('searchSubmissionsPlaceholder')} value={postSearchQuery} onChange={(e) => setPostSearchQuery(e.target.value)} />
-                    </div>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                            <tr>
-                                <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={postSortConfig} requestSort={requestPostSort} />
-                                <SortableHeader sortKey="studentNames" title={t('students')} sortConfig={postSortConfig} requestSort={requestPostSort} />
-                                <th scope="col" className="px-6 py-3">{t('fileName')}</th>
-                                <SortableHeader sortKey="submittedAt" title={t('submitted')} sortConfig={postSortConfig} requestSort={requestPostSort} />
-                                <SortableHeader sortKey="status" title={t('status')} sortConfig={postSortConfig} requestSort={requestPostSort} />
-                                <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={postSortConfig} requestSort={requestPostSort} />
-                                <th scope="col" className="px-6 py-3 text-right">{t('download')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedAndFilteredPostDefense.map(row => (
-                                <tr key={`${row.projectId}-post`} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{row.projectId}</td>
-                                    <td className="px-6 py-4">{row.studentNames}</td>
-                                    <td className="px-6 py-4 truncate max-w-xs" title={row.file.name}>{row.file.name} <span className="text-slate-400 text-xs">({formatBytes(row.file.size)})</span></td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(row.file.submittedAt).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyles(row.file.status)}`}>{row.file.status}</span></td>
-                                    <td className="px-6 py-4">{row.advisorName}</td>
-                                    <td className="px-6 py-4 text-right"><button onClick={() => handleDownload(row)} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowDownTrayIcon className="w-5 h-5" /></button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {sortedAndFilteredPostDefense.length === 0 && (<div className="text-center py-10 text-slate-500 dark:text-slate-400">{postSearchQuery ? `${t('noProjectsForQuery').replace('${query}', postSearchQuery)}` : t('noPostDefenseFiles')}</div>)}
-                </div>
-            </div>
-        </div>
+    return (
+        <Box sx={{ py: 2 }}>
+            {renderTable(
+                t('preDefenseTitle'),
+                t('preDefenseDescription'),
+                sortedAndFilteredPreDefense,
+                preSearchQuery,
+                setPreSearchQuery,
+                preSortConfig,
+                requestPreSort,
+                () => handleBulkDownload('pre'),
+                isZippingPre,
+                t('noPreDefenseFiles')
+            )}
+            {renderTable(
+                t('postDefenseTitle'),
+                t('postDefenseDescription'),
+                sortedAndFilteredPostDefense,
+                postSearchQuery,
+                setPostSearchQuery,
+                postSortConfig,
+                requestPostSort,
+                () => handleBulkDownload('post'),
+                isZippingPost,
+                t('noPostDefenseFiles')
+            )}
+        </Box>
     );
 };
 

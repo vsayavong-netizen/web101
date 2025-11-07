@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Checkbox, Button, Tooltip, Grid, Chip, Typography
+} from '@mui/material';
+import { Warning as ExclamationTriangleIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { ProjectGroup, ProjectStatus, User, ScoringSettings, ProjectHealthStatus, Role } from '../types';
 import EmptyState from './EmptyState';
 import ProjectCard from './ProjectCard';
 import SortableHeader, { SortConfig } from './SortableHeader';
 import StatusBadge from './StatusBadge';
 import { getAdvisorColor } from '../utils/colorUtils';
-import { ExclamationTriangleIcon, SparklesIcon } from './icons';
 import { ToastMessage } from '../context/ToastContext';
 import ScoreEntryModal from './ScoreEntryModal';
 import { useTranslations } from '../hooks/useTranslations';
@@ -32,17 +36,20 @@ const ScoreEntryCell: React.FC<{
     };
 
     return (
-        <div className="flex items-center gap-2">
-            <span>{project.mainAdvisorScore?.toFixed(2) ?? t('na')}</span>
-            <button
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2">
+                {project.mainAdvisorScore?.toFixed(2) ?? t('na')}
+            </Typography>
+            <Button
                 onClick={(e) => {
                     e.stopPropagation();
                     setIsModalOpen(true);
                 }}
-                className="font-medium text-blue-600 dark:text-blue-400 hover:underline text-xs"
+                size="small"
+                sx={{ textTransform: 'none', minWidth: 'auto', fontSize: '0.75rem' }}
             >
                 {project.mainAdvisorScore !== null ? t('editAction') : t('enterAction')}
-            </button>
+            </Button>
             {isModalOpen && (
                 <ScoreEntryModal
                     isOpen={isModalOpen}
@@ -54,7 +61,7 @@ const ScoreEntryCell: React.FC<{
                     maxTotalScore={maxTotalScore}
                 />
             )}
-        </div>
+        </Box>
     );
 };
 
@@ -92,201 +99,244 @@ const ProjectTable: React.FC<ProjectTableProps> = ({ user, effectiveRole, projec
 
   if (!hasProjects) {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg text-center py-10 text-slate-500 dark:text-slate-400">
-             <EmptyState user={user} onRegisterClick={onRegisterClick} />
-        </div>
+        <Paper elevation={3} sx={{ textAlign: 'center', py: 5 }}>
+            <EmptyState user={user} onRegisterClick={onRegisterClick} />
+        </Paper>
     );
   }
+
+  const getHealthColor = (health: string): 'success' | 'warning' | 'error' | 'default' => {
+    if (health === 'On Track') return 'success';
+    if (health === 'Needs Attention') return 'warning';
+    if (health === 'At Risk') return 'error';
+    return 'default';
+  };
 
   return (
     <>
       {/* Mobile Card View */}
-      <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {projectGroups.map(group => (
-            <ProjectCard
-              key={group.project.projectId}
-              group={group}
-              user={user}
-              onSelectProject={onSelectProject}
-              onUpdateStatus={onUpdateStatus}
-              updateDetailedScore={updateDetailedScore}
-              addToast={addToast}
-              scoringSettings={scoringSettings}
-              projectHealthStatus={projectHealth?.[group.project.projectId]}
-              onOpenAiAssistant={onOpenAiAssistant}
-              isSelected={isSelectable ? selectedIds.has(group.project.projectId) : undefined}
-              onSelect={isSelectable ? () => onSelect(group.project.projectId) : undefined}
-            />
-        ))}
-      </div>
+      <Box sx={{ display: { lg: 'none' } }}>
+        <Grid container spacing={2}>
+          {projectGroups.map(group => (
+            <Grid size={{ xs: 12, sm: 6 }} key={group.project.projectId}>
+              <ProjectCard
+                group={group}
+                user={user}
+                onSelectProject={onSelectProject}
+                onUpdateStatus={onUpdateStatus}
+                updateDetailedScore={updateDetailedScore}
+                addToast={addToast}
+                scoringSettings={scoringSettings}
+                projectHealthStatus={projectHealth?.[group.project.projectId]}
+                onOpenAiAssistant={onOpenAiAssistant}
+                isSelected={isSelectable ? selectedIds.has(group.project.projectId) : undefined}
+                onSelect={isSelectable ? () => onSelect(group.project.projectId) : undefined}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
       
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-lg">
-        <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-            <tr>
+      <TableContainer component={Paper} elevation={3} sx={{ display: { xs: 'none', lg: 'block' } }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
               {isSelectable && (
-                <th scope="col" className="p-4">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                <TableCell padding="checkbox">
+                  <Checkbox
                     checked={projectGroups.length > 0 && selectedIds.size === projectGroups.length}
                     onChange={onSelectAll}
+                    color="primary"
                   />
-                </th>
+                </TableCell>
               )}
-              <th scope="col" className="px-6 py-3">{t('no')}</th>
+              <TableCell>{t('no')}</TableCell>
               <SortableHeader sortKey="studentId" title={t('studentId')} sortConfig={sortConfig} requestSort={requestSort} />
-              <th scope="col" className="px-6 py-3">{t('gender')}</th>
-              <th scope="col" className="px-6 py-3">{t('name')}</th>
-              <th scope="col" className="px-6 py-3">{t('major')}</th>
+              <TableCell>{t('gender')}</TableCell>
+              <TableCell>{t('name')}</TableCell>
+              <TableCell>{t('major')}</TableCell>
               <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
-              <th scope="col" className="px-6 py-3">{t('topicLao')}</th>
-              <th scope="col" className="px-6 py-3">{t('topicEng')}</th>
-              {projectHealth && onOpenAiAssistant && <th scope="col" className="px-4 py-3">{t('health')}</th>}
-              <th scope="col" className="px-4 py-3">{t('similarity')}</th>
+              <TableCell>{t('topicLao')}</TableCell>
+              <TableCell>{t('topicEng')}</TableCell>
+              {projectHealth && onOpenAiAssistant && <TableCell>{t('health')}</TableCell>}
+              <TableCell>{t('similarity')}</TableCell>
               <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={sortConfig} requestSort={requestSort} />
-              <th scope="col" className="px-6 py-3">{t('defenseSchedule')}</th>
-              <th scope="col" className="px-6 py-3">{t('status')}</th>
-              {updateDetailedScore && scoringSettings && <th scope="col" className="px-6 py-3">{t('advisorScore')} (/{maxAdvisorScore})</th>}
-              <th scope="col" className="px-6 py-3">{t('details')}</th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableCell>{t('defenseSchedule')}</TableCell>
+              <TableCell>{t('status')}</TableCell>
+              {updateDetailedScore && scoringSettings && <TableCell>{t('advisorScore')} (/{maxAdvisorScore})</TableCell>}
+              <TableCell>{t('details')}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {projectGroups.map((group, index) => {
               const { project, students } = group;
               const student1 = students[0];
               const student2 = students[1];
-              const rowSpanValue = 2; // Always 2 rows for consistency
+              const rowSpanValue = 2;
               const isSelected = isSelectable && selectedIds.has(project.projectId);
 
               return (
                 <React.Fragment key={project.projectId}>
-                  <tr className={`project-table-row align-top ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
+                  <TableRow 
+                    sx={{ 
+                      bgcolor: isSelected ? 'action.selected' : 'transparent',
+                      '&:hover': { bgcolor: 'action.hover' }
+                    }}
+                  >
                     {isSelectable && (
-                        <td className="p-4 align-middle" rowSpan={rowSpanValue}>
-                           <input
-                            type="checkbox"
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
-                            checked={isSelected}
-                            onChange={() => onSelect(project.projectId)}
-                            onClick={(e) => e.stopPropagation()}
-                           />
-                        </td>
+                      <TableCell padding="checkbox" rowSpan={rowSpanValue}>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => onSelect(project.projectId)}
+                          onClick={(e) => e.stopPropagation()}
+                          color="primary"
+                        />
+                      </TableCell>
                     )}
-                    <td className="px-6 py-4 align-middle" rowSpan={rowSpanValue}>
-                        {index + 1}
-                    </td>
-                    {/* Student 1 Info */}
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{student1.studentId}</td>
-                    <td className="px-6 py-4">{student1.gender}</td>
-                    <td className="px-6 py-4">{student1.name} {student1.surname}</td>
-                    <td className="px-6 py-4">{student1.major}</td>
-
-                    {/* Shared Project Info */}
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                        {project.projectId}
-                    </td>
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>{project.topicLao}</td>
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>{project.topicEng}</td>
+                    <TableCell rowSpan={rowSpanValue} align="center">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>{student1.studentId}</TableCell>
+                    <TableCell>{student1.gender}</TableCell>
+                    <TableCell>{student1.name} {student1.surname}</TableCell>
+                    <TableCell>{student1.major}</TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                      {project.projectId}
+                    </TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                      {project.topicLao}
+                    </TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                      {project.topicEng}
+                    </TableCell>
                     {projectHealth && onOpenAiAssistant && (
-                        <td className="px-4 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                            {(() => {
-                                const healthStatus = projectHealth[project.projectId];
-                                if (healthStatus) {
-                                    let colorClass = 'bg-slate-400';
-                                    if (healthStatus.health === 'On Track') colorClass = 'bg-green-500';
-                                    if (healthStatus.health === 'Needs Attention') colorClass = 'bg-yellow-500';
-                                    if (healthStatus.health === 'At Risk') colorClass = 'bg-red-500';
-                                    if (healthStatus.health === 'N/A') colorClass = 'bg-slate-400';
-                                    
-                                    return (
-                                        <span 
-                                            className={`flex items-center gap-2 text-xs font-semibold text-white px-2.5 py-1 rounded-full ${colorClass}`}
-                                            title={`${t('aiAnalysis')}: ${healthStatus.summary}`}
-                                        >
-                                            <SparklesIcon className="w-3 h-3" />
-                                            {healthStatus.health}
-                                        </span>
-                                    );
-                                }
-                                return <span className="text-xs text-slate-400">{t('na')}</span>;
-                            })()}
-                        </td>
+                      <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                        {(() => {
+                          const healthStatus = projectHealth[project.projectId];
+                          if (healthStatus) {
+                            return (
+                              <Tooltip title={`${t('aiAnalysis')}: ${healthStatus.summary}`}>
+                                <Chip
+                                  icon={<SparklesIcon sx={{ fontSize: 12 }} />}
+                                  label={healthStatus.health}
+                                  color={getHealthColor(healthStatus.health)}
+                                  size="small"
+                                />
+                              </Tooltip>
+                            );
+                          }
+                          return <Typography variant="caption" color="text.secondary">{t('na')}</Typography>;
+                        })()}
+                      </TableCell>
                     )}
-                    <td className="px-4 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
                       {project.similarityInfo && (
-                        <div className="group relative flex justify-center">
-                          <span className="flex items-center text-amber-600 dark:text-amber-400 text-xs font-semibold">
-                            <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                            {project.similarityInfo.similarityPercentage}%
-                          </span>
-                          <div className="absolute bottom-full mb-2 hidden w-64 group-hover:block bg-slate-800 text-white text-xs rounded p-2 z-10 shadow-lg text-left transform -translate-x-1/2 left-1/2">
-                            <p className="font-bold border-b border-slate-600 pb-1 mb-1">{t('potentialOverlap')}</p>
-                            <p>{t('similarTo')} <strong className="text-amber-300">{project.similarityInfo.similarProjectId}</strong></p>
-                            <p className="mt-1 whitespace-normal">{t('reason')}: {project.similarityInfo.reason}</p>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                      <div className="flex items-center">
-                        <span className="h-2 w-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: getAdvisorColor(project.advisorName) }}></span>
-                        <span>{project.advisorName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50 whitespace-nowrap" rowSpan={rowSpanValue}>
-                      {project.defenseDate ? (
-                          <div className="text-xs">
-                              <p className="font-semibold">{project.defenseDate}</p>
-                              <p className="text-slate-500">{project.defenseTime} {t('inRoom')} {project.defenseRoom}</p>
-                          </div>
-                      ) : (
-                          <span className="text-xs text-slate-400">{t('notScheduled')}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                        <StatusBadge project={project} user={user} onUpdateStatus={onUpdateStatus} />
-                    </td>
-                    {updateDetailedScore && addToast && scoringSettings && (
-                        <td className="px-6 py-4 align-middle bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                            <ScoreEntryCell
-                                projectGroup={group}
-                                user={user}
-                                scoringSettings={scoringSettings}
-                                updateDetailedScore={updateDetailedScore}
-                                addToast={addToast}
-                            />
-                        </td>
-                    )}
-                    <td className="px-6 py-4 align-middle text-center bg-slate-50 dark:bg-slate-900/50" rowSpan={rowSpanValue}>
-                        <button
-                            onClick={() => onSelectProject(group)}
-                            className="px-2.5 py-1 text-xs font-semibold text-blue-800 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-                            aria-label={t('viewDetailsForProject').replace('${projectId}', project.projectId)}
+                        <Tooltip
+                          title={
+                            <Box>
+                              <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                                {t('potentialOverlap')}
+                              </Typography>
+                              <Typography variant="caption" display="block">
+                                {t('similarTo')} <strong>{project.similarityInfo.similarProjectId}</strong>
+                              </Typography>
+                              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                                {t('reason')}: {project.similarityInfo.reason}
+                              </Typography>
+                            </Box>
+                          }
                         >
-                            {t('view')}
-                        </button>
-                    </td>
-                  </tr>
-                  <tr className={`border-b dark:border-slate-700 align-top ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>
-                      {student2 ? (
-                          <>
-                              <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{student2.studentId}</td>
-                              <td className="px-6 py-4">{student2.gender}</td>
-                              <td className="px-6 py-4">{student2.name} {student2.surname}</td>
-                              <td className="px-6 py-4">{student2.major}</td>
-                          </>
-                      ) : (
-                          <td className="px-6 py-4" colSpan={4}>&nbsp;</td>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'warning.main' }}>
+                            <ExclamationTriangleIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            <Typography variant="caption" fontWeight="medium">
+                              {project.similarityInfo.similarityPercentage}%
+                            </Typography>
+                          </Box>
+                        </Tooltip>
                       )}
-                  </tr>
+                    </TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            mr: 1,
+                            flexShrink: 0,
+                            bgcolor: getAdvisorColor(project.advisorName)
+                          }}
+                        />
+                        <Typography variant="body2">{project.advisorName}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover', whiteSpace: 'nowrap' }}>
+                      {project.defenseDate ? (
+                        <Box>
+                          <Typography variant="caption" fontWeight="medium" display="block">
+                            {project.defenseDate}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {project.defenseTime} {t('inRoom')} {project.defenseRoom}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          {t('notScheduled')}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                      <StatusBadge project={project} user={user} onUpdateStatus={onUpdateStatus} />
+                    </TableCell>
+                    {updateDetailedScore && addToast && scoringSettings && (
+                      <TableCell rowSpan={rowSpanValue} sx={{ bgcolor: 'action.hover' }}>
+                        <ScoreEntryCell
+                          projectGroup={group}
+                          user={user}
+                          scoringSettings={scoringSettings}
+                          updateDetailedScore={updateDetailedScore}
+                          addToast={addToast}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell rowSpan={rowSpanValue} align="center" sx={{ bgcolor: 'action.hover' }}>
+                      <Button
+                        onClick={() => onSelectProject(group)}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        sx={{ textTransform: 'none' }}
+                        aria-label={t('viewDetailsForProject').replace('${projectId}', project.projectId)}
+                      >
+                        {t('view')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow
+                    sx={{
+                      bgcolor: isSelected ? 'action.selected' : 'transparent',
+                      '&:hover': { bgcolor: 'action.hover' }
+                    }}
+                  >
+                    {student2 ? (
+                      <>
+                        <TableCell>{student2.studentId}</TableCell>
+                        <TableCell>{student2.gender}</TableCell>
+                        <TableCell>{student2.name} {student2.surname}</TableCell>
+                        <TableCell>{student2.major}</TableCell>
+                      </>
+                    ) : (
+                      <TableCell colSpan={4}>&nbsp;</TableCell>
+                    )}
+                  </TableRow>
                 </React.Fragment>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
     </>
   );
 };

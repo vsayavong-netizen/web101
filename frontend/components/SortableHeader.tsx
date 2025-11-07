@@ -18,21 +18,19 @@ interface SortableHeaderProps<T> {
   title: string;
   sortConfig: SortConfig<T> | null;
   requestSort: (key: T) => void;
-  className?: string;
 }
 
 const SortableHeader = <T extends string>({ 
     sortKey, 
     title, 
     sortConfig, 
-    requestSort,
-    className
+    requestSort
 }: SortableHeaderProps<T>) => {
   const isSorted = sortConfig?.key === sortKey;
   const direction = isSorted ? sortConfig.direction : undefined;
 
   return (
-    <TableCell className={className}>
+    <TableCell>
       <TableSortLabel
         active={isSorted}
         direction={direction === 'ascending' ? 'asc' : 'desc'}

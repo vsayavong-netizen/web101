@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, IconButton, Box, Typography, Grid, Divider,
+  Paper
+} from '@mui/material';
+import { 
+  Close as CloseIcon, 
+  Add as PlusIcon, 
+  Delete as TrashIcon 
+} from '@mui/icons-material';
 import { MilestoneTemplate, MilestoneTask } from '../types';
-import { XMarkIcon, PlusIcon, TrashIcon } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslations } from '../hooks/useTranslations';
 
@@ -83,66 +92,118 @@ const MilestoneTemplateModal: React.FC<MilestoneTemplateModalProps> = ({ onClose
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; }`}</style>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-slate-700 flex-shrink-0">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{isEditMode ? t('editTemplate') : t('addTemplate')}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} noValidate className="flex-grow overflow-y-auto pr-2">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('templateName')}</label>
-              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className={`input-style mt-1 ${errors.name ? 'border-red-500' : ''}`} />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-            </div>
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('description')}</label>
-              <textarea id="description" rows={2} value={description} onChange={e => setDescription(e.target.value)} className={`input-style mt-1 ${errors.description ? 'border-red-500' : ''}`} />
-              {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
-            </div>
-            <div className="pt-2">
-                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">{t('milestoneTasks')}</h3>
-                 {errors.tasksError && <p className="text-red-500 text-xs mt-1">{errors.tasksError}</p>}
-                <div className="mt-2 space-y-3">
-                    {tasks.map((task, index) => (
-                        <div key={task.id} className="grid grid-cols-12 gap-2 items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
-                           <div className="col-span-8">
-                                <label htmlFor={`task-name-${index}`} className="sr-only">{t('taskName')}</label>
-                                <input type="text" id={`task-name-${index}`} placeholder="e.g., Chapter 1: Introduction" value={task.name} onChange={e => handleTaskChange(index, 'name', e.target.value)} className={`input-style ${errors.tasks?.[index]?.name ? 'border-red-500' : ''}`} />
-                                {errors.tasks?.[index]?.name && <p className="text-red-500 text-xs mt-1">{errors.tasks[index].name}</p>}
-                           </div>
-                           <div className="col-span-3">
-                                <label htmlFor={`task-days-${index}`} className="sr-only">{t('durationInDays')}</label>
-                                <div className="relative">
-                                    <input type="number" id={`task-days-${index}`} value={task.durationDays} onChange={e => handleTaskChange(index, 'durationDays', parseInt(e.target.value, 10) || 0)} min="1" className={`input-style pr-12 ${errors.tasks?.[index]?.duration ? 'border-red-500' : ''}`} />
-                                    <span className="absolute inset-y-0 right-3 flex items-center text-sm text-slate-500 dark:text-slate-400">{t('days')}</span>
-                                </div>
-                                {errors.tasks?.[index]?.duration && <p className="text-red-500 text-xs mt-1">{errors.tasks[index].duration}</p>}
-                           </div>
-                           <div className="col-span-1 flex items-center pt-2">
-                               <button type="button" onClick={() => handleRemoveTask(index)} className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400" aria-label={t('removeTask')}>
-                                   <TrashIcon className="w-5 h-5"/>
-                               </button>
-                           </div>
-                        </div>
-                    ))}
-                </div>
-                <button type="button" onClick={handleAddTask} className="mt-4 flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                    <PlusIcon className="w-4 h-4 mr-1"/> {t('addTask')}
-                </button>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-4 pt-6 border-t dark:border-slate-700 mt-6 flex-shrink-0">
-            <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white font-bold py-2 px-4 rounded-lg">{t('cancel')}</button>
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">{t('saveTemplate')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+        <Typography variant="h6" fontWeight="bold">
+          {isEditMode ? t('editTemplate') : t('addTemplate')}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+          <TextField
+            fullWidth
+            label={t('templateName')}
+            id="name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            error={!!errors.name}
+            helperText={errors.name}
+          />
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label={t('description')}
+            id="description"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            error={!!errors.description}
+            helperText={errors.description}
+          />
+          <Box>
+            <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+              {t('milestoneTasks')}
+            </Typography>
+            {errors.tasksError && (
+              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>
+                {errors.tasksError}
+              </Typography>
+            )}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+              {tasks.map((task, index) => (
+                <Paper key={task.id} elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
+                  <Grid container spacing={2} alignItems="flex-start">
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="e.g., Chapter 1: Introduction"
+                        id={`task-name-${index}`}
+                        value={task.name}
+                        onChange={e => handleTaskChange(index, 'name', e.target.value)}
+                        error={!!errors.tasks?.[index]?.name}
+                        helperText={errors.tasks?.[index]?.name}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        id={`task-days-${index}`}
+                        value={task.durationDays}
+                        onChange={e => handleTaskChange(index, 'durationDays', parseInt(e.target.value, 10) || 0)}
+                        inputProps={{ min: 1 }}
+                        error={!!errors.tasks?.[index]?.duration}
+                        helperText={errors.tasks?.[index]?.duration}
+                        InputProps={{
+                          endAdornment: (
+                            <Typography variant="caption" sx={{ mr: 1 }}>
+                              {t('days')}
+                            </Typography>
+                          )
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={1} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveTask(index)}
+                        color="error"
+                        aria-label={t('removeTask')}
+                      >
+                        <TrashIcon />
+                      </IconButton>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              ))}
+            </Box>
+            <Button
+              startIcon={<PlusIcon />}
+              onClick={handleAddTask}
+              sx={{ mt: 2 }}
+              size="small"
+            >
+              {t('addTask')}
+            </Button>
+          </Box>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} variant="outlined">
+            {t('cancel')}
+          </Button>
+          <Button type="submit" variant="contained">
+            {t('saveTemplate')}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

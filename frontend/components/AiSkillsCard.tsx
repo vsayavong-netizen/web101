@@ -1,6 +1,9 @@
 import React from 'react';
+import {
+  Paper, Typography, Box, Button, List, ListItem, CircularProgress
+} from '@mui/material';
+import { AutoAwesome as SparklesIcon, Assignment as ClipboardDocumentListIcon } from '@mui/icons-material';
 import { StudentSkillsAnalysis } from '../types';
-import { SparklesIcon, ClipboardDocumentListIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface AiSkillsCardProps {
@@ -13,44 +16,58 @@ const AiSkillsCard: React.FC<AiSkillsCardProps> = ({ skillsAnalysis, isAnalyzing
     const t = useTranslations();
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                <ClipboardDocumentListIcon className="w-6 h-6 text-blue-500" />
-                {t('aiSkillsAnalysis')}
-            </h3>
+        <Paper elevation={3} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <ClipboardDocumentListIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+                <Typography variant="h6" fontWeight="medium">
+                    {t('aiSkillsAnalysis')}
+                </Typography>
+            </Box>
             
             {!skillsAnalysis && (
-                <div className="text-center">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{t('aiSkillsAnalysisDescription')}</p>
-                    <button onClick={onAnalyze} disabled={isAnalyzing} className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 disabled:bg-slate-400">
-                        {isAnalyzing ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                {t('analyzing')}
-                            </>
-                        ) : (
-                            <>
-                                <SparklesIcon className="w-5 h-5" />
-                                {t('analyzeMySkills')}
-                            </>
-                        )}
-                    </button>
-                </div>
+                <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {t('aiSkillsAnalysisDescription')}
+                    </Typography>
+                    <Button
+                        onClick={onAnalyze}
+                        disabled={isAnalyzing}
+                        variant="contained"
+                        color="secondary"
+                        startIcon={isAnalyzing ? <CircularProgress size={16} color="inherit" /> : <SparklesIcon />}
+                        sx={{ textTransform: 'none' }}
+                    >
+                        {isAnalyzing ? t('analyzing') : t('analyzeMySkills')}
+                    </Button>
+                </Box>
             )}
             
             {skillsAnalysis && (
-                <div className="space-y-3 text-sm animate-fade-in">
-                    <p className="italic text-slate-600 dark:text-slate-400">{skillsAnalysis.summary}</p>
-                    <ul className="space-y-2">
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Typography variant="body2" fontStyle="italic" color="text.secondary">
+                        {skillsAnalysis.summary}
+                    </Typography>
+                    <List>
                         {skillsAnalysis.skills.map(s => (
-                            <li key={s.skill} className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md">
-                                <strong className="font-semibold text-slate-800 dark:text-slate-100">{s.skill}:</strong> {s.justification}
-                            </li>
+                            <ListItem
+                                key={s.skill}
+                                sx={{
+                                    bgcolor: 'action.hover',
+                                    borderRadius: 1,
+                                    mb: 0.5,
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start'
+                                }}
+                            >
+                                <Typography variant="body2">
+                                    <Box component="strong" fontWeight="medium">{s.skill}:</Box> {s.justification}
+                                </Typography>
+                            </ListItem>
                         ))}
-                    </ul>
-                </div>
+                    </List>
+                </Box>
             )}
-        </div>
+        </Paper>
     );
 };
 

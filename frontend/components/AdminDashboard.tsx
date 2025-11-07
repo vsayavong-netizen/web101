@@ -1,7 +1,16 @@
-
 import React, { useState, useMemo } from 'react';
+import {
+  Box, Paper, Typography, Button, Card, CardContent, Grid,
+  List, ListItem, ListItemButton, ListItemText, Avatar,
+  Divider, Chip
+} from '@mui/material';
+import { 
+  Assignment as AssignmentIcon, Groups as GroupsIcon,
+  School as SchoolIcon, AccessTime as AccessTimeIcon,
+  ChevronRight as ChevronRightIcon, CheckCircle as CheckCircleIcon,
+  Security as SecurityIcon
+} from '@mui/icons-material';
 import { User, ProjectGroup, Advisor, Student, Announcement, Notification, ProjectStatus, Major, DefenseSettings, ScoringSettings, MilestoneTemplate, Classroom } from '../types';
-import { ClipboardDocumentListIcon, UserGroupIcon, AcademicCapIcon, ClockIcon, ExclamationTriangleIcon, ChevronRightIcon, SparklesIcon, CheckCircleIcon, ShieldCheckIcon } from './icons';
 import AnnouncementsFeed from './AnnouncementsFeed';
 import ActivityFeed from './ActivityFeed';
 import { useToast } from '../hooks/useToast';
@@ -30,17 +39,44 @@ interface AdminDashboardProps {
     classrooms: Classroom[];
 }
 
-const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; onClick?: () => void; color: string; }> = ({ title, value, icon, onClick, color }) => (
-    <button onClick={onClick} disabled={!onClick} className={`bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md flex items-center space-x-4 w-full text-left ${onClick ? 'transition-transform transform hover:scale-105 hover:shadow-lg' : 'cursor-default'}`}>
-        <div className={`flex-shrink-0 ${color} rounded-full p-3`}>
-            {icon}
-        </div>
-        <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
-        </div>
-    </button>
-);
+const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; onClick?: () => void; color: string; }> = ({ title, value, icon, onClick, color }) => {
+    const getColorFromClass = (colorClass: string) => {
+        if (colorClass.includes('blue')) return 'primary';
+        if (colorClass.includes('green')) return 'success';
+        if (colorClass.includes('indigo')) return 'info';
+        if (colorClass.includes('yellow')) return 'warning';
+        return 'default';
+    };
+    
+    const muiColor = getColorFromClass(color);
+    
+    return (
+        <Card 
+            component={onClick ? 'button' : 'div'}
+            onClick={onClick}
+            disabled={!onClick}
+            sx={{ 
+                p: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2, 
+                width: '100%',
+                textAlign: 'left',
+                cursor: onClick ? 'pointer' : 'default',
+                '&:hover': onClick ? { transform: 'scale(1.02)', boxShadow: 6 } : {},
+                transition: 'all 0.2s'
+            }}
+        >
+            <Avatar sx={{ bgcolor: `${muiColor}.light`, color: `${muiColor}.main` }}>
+                {icon}
+            </Avatar>
+            <Box>
+                <Typography variant="body2" color="text.secondary">{title}</Typography>
+                <Typography variant="h4" fontWeight="bold">{value}</Typography>
+            </Box>
+        </Card>
+    );
+};
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     const { 
@@ -77,101 +113,200 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
     return (
         <>
-            <div className="space-y-8 animate-fade-in">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t('adminDashboardTitle')}</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">{t('adminDashboardDescription')}</p>
-                </div>
+            <Box sx={{ py: 2 }}>
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+                        {t('adminDashboardTitle')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {t('adminDashboardDescription')}
+                    </Typography>
+                </Box>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title={t('totalProjects')} value={projectGroups.length} icon={<ClipboardDocumentListIcon className="w-6 h-6 text-blue-800" />} onClick={() => onNavigate('projects')} color="bg-blue-100 dark:bg-blue-900/50" />
-                    <StatCard title={t('totalStudents')} value={students.length} icon={<UserGroupIcon className="w-6 h-6 text-green-800" />} onClick={() => onNavigate('students')} color="bg-green-100 dark:bg-green-900/50" />
-                    <StatCard title={t('totalAdvisors')} value={advisors.length} icon={<AcademicCapIcon className="w-6 h-6 text-indigo-800" />} onClick={() => onNavigate('advisors')} color="bg-indigo-100 dark:bg-indigo-900/50" />
-                    <StatCard title={t('pendingProjects')} value={pendingProjects.length} icon={<ClockIcon className="w-6 h-6 text-yellow-800" />} onClick={() => onViewProjects('pending')} color="bg-yellow-100 dark:bg-yellow-900/50" />
-                </div>
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard 
+                            title={t('totalProjects')} 
+                            value={projectGroups.length} 
+                            icon={<AssignmentIcon />} 
+                            onClick={() => onNavigate('projects')} 
+                            color="bg-blue-100 dark:bg-blue-900/50" 
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard 
+                            title={t('totalStudents')} 
+                            value={students.length} 
+                            icon={<GroupsIcon />} 
+                            onClick={() => onNavigate('students')} 
+                            color="bg-green-100 dark:bg-green-900/50" 
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard 
+                            title={t('totalAdvisors')} 
+                            value={advisors.length} 
+                            icon={<SchoolIcon />} 
+                            onClick={() => onNavigate('advisors')} 
+                            color="bg-indigo-100 dark:bg-indigo-900/50" 
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard 
+                            title={t('pendingProjects')} 
+                            value={pendingProjects.length} 
+                            icon={<AccessTimeIcon />} 
+                            onClick={() => onViewProjects('pending')} 
+                            color="bg-yellow-100 dark:bg-yellow-900/50" 
+                        />
+                    </Grid>
+                </Grid>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    {/* Column 1: Action Center & System Tools */}
-                    <div className="space-y-8">
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
-                            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('actionCenter')}</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <h4 className="font-semibold text-slate-600 dark:text-slate-300 mb-2">{t('pendingProjectsToReview')} ({pendingProjects.length})</h4>
-                                    {pendingProjects.length > 0 ? (
-                                        <button onClick={() => onViewProjects('pending')} className="w-full text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 flex justify-between items-center">
-                                            <span>{t('viewPendingProjects')}</span>
-                                            <ChevronRightIcon className="w-4 h-4" />
-                                        </button>
-                                    ) : (
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('noPendingProjectsToReview')}</p>
-                                    )}
-                                </div>
-                                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <h4 className="font-semibold text-slate-600 dark:text-slate-300 mb-2">{t('pendingStudentApprovals')} ({pendingStudents.length})</h4>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                        {pendingStudents.length > 0 ? pendingStudents.map(student => (
-                                            <div key={student.studentId} className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-2 rounded-md">
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{student.name} {student.surname}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{student.major}</p>
-                                                </div>
-                                                <button onClick={() => handleApproveStudent(student)} className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-3 py-1">{t('approve')}</button>
-                                            </div>
-                                        )) : (
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('noPendingStudents')}</p>
+                <Grid container spacing={3}>
+                    <Grid item xs={12} lg={4}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <Paper elevation={3} sx={{ p: 3 }}>
+                                <Typography variant="h6" fontWeight="medium" gutterBottom>
+                                    {t('actionCenter')}
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
+                                    <Box>
+                                        <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                                            {t('pendingProjectsToReview')} ({pendingProjects.length})
+                                        </Typography>
+                                        {pendingProjects.length > 0 ? (
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                endIcon={<ChevronRightIcon />}
+                                                onClick={() => onViewProjects('pending')}
+                                                size="small"
+                                            >
+                                                {t('viewPendingProjects')}
+                                            </Button>
+                                        ) : (
+                                            <Typography variant="body2" color="text.secondary">
+                                                {t('noPendingProjectsToReview')}
+                                            </Typography>
                                         )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                    </Box>
+                                    <Divider />
+                                    <Box>
+                                        <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                                            {t('pendingStudentApprovals')} ({pendingStudents.length})
+                                        </Typography>
+                                        <Box sx={{ maxHeight: 200, overflowY: 'auto', pr: 1 }}>
+                                            {pendingStudents.length > 0 ? (
+                                                <List dense>
+                                                    {pendingStudents.map((student, index) => (
+                                                        <React.Fragment key={student.studentId}>
+                                                            {index > 0 && <Divider />}
+                                                            <ListItem
+                                                                secondaryAction={
+                                                                    <Button
+                                                                        size="small"
+                                                                        variant="contained"
+                                                                        color="success"
+                                                                        onClick={() => handleApproveStudent(student)}
+                                                                    >
+                                                                        {t('approve')}
+                                                                    </Button>
+                                                                }
+                                                                sx={{ bgcolor: 'action.hover', borderRadius: 1, mb: 0.5 }}
+                                                            >
+                                                                <ListItemText
+                                                                    primary={`${student.name} ${student.surname}`}
+                                                                    secondary={student.major}
+                                                                />
+                                                            </ListItem>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </List>
+                                            ) : (
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {t('noPendingStudents')}
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            </Paper>
 
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
-                            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('systemTools')}</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{t('checkAppReadinessDescription')}</p>
-                            <button onClick={() => setIsReadinessModalOpen(true)} className="w-full flex items-center justify-center gap-2 text-sm text-white bg-slate-600 hover:bg-slate-700 rounded-lg px-4 py-2">
-                                <ShieldCheckIcon className="w-5 h-5"/>
-                                <span>{t('checkAppReadiness')}</span>
-                            </button>
-                        </div>
-                    </div>
+                            <Paper elevation={3} sx={{ p: 3 }}>
+                                <Typography variant="h6" fontWeight="medium" gutterBottom>
+                                    {t('systemTools')}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    {t('checkAppReadinessDescription')}
+                                </Typography>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    startIcon={<SecurityIcon />}
+                                    onClick={() => setIsReadinessModalOpen(true)}
+                                    sx={{ bgcolor: 'grey.700', '&:hover': { bgcolor: 'grey.800' } }}
+                                >
+                                    {t('checkAppReadiness')}
+                                </Button>
+                            </Paper>
+                        </Box>
+                    </Grid>
 
-                    {/* Column 2: Workload & Activity */}
-                    <div className="space-y-8">
-                         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
-                            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('advisorWorkloadSnapshot')}</h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900/50 rounded-md">
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{t('overloadedAdvisors')}</span>
-                                    <span className={`font-bold ${overloadedAdvisors.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'}`}>{overloadedAdvisors.length}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900/50 rounded-md">
-                                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{t('avgLoad')}</span>
-                                    <span className="font-bold text-slate-800 dark:text-slate-100">{averageLoad}</span>
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">{t('mostLoadedAdvisors')}</h4>
-                                    <div className="space-y-2">
-                                        {mostLoadedAdvisors.map(adv => (
-                                            <button key={adv.id} onClick={() => onManageAdvisorProjects(adv.name)} className="w-full text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="font-medium text-slate-800 dark:text-slate-200">{adv.name}</span>
-                                                    <span className="font-semibold text-slate-600 dark:text-slate-300">{advisorProjectCounts[adv.name] || 0} / {adv.quota} {t('projects')}</span>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <Grid item xs={12} lg={4}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <Paper elevation={3} sx={{ p: 3 }}>
+                                <Typography variant="h6" fontWeight="medium" gutterBottom>
+                                    {t('advisorWorkloadSnapshot')}
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                        <Typography variant="body2" fontWeight="medium">
+                                            {t('overloadedAdvisors')}
+                                        </Typography>
+                                        <Chip 
+                                            label={overloadedAdvisors.length} 
+                                            color={overloadedAdvisors.length > 0 ? 'error' : 'default'}
+                                            size="small"
+                                        />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                        <Typography variant="body2" fontWeight="medium">
+                                            {t('avgLoad')}
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="bold">
+                                            {averageLoad}
+                                        </Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                                            {t('mostLoadedAdvisors')}
+                                        </Typography>
+                                        <List dense>
+                                            {mostLoadedAdvisors.map(adv => (
+                                                <ListItemButton
+                                                    key={adv.id}
+                                                    onClick={() => onManageAdvisorProjects(adv.name)}
+                                                >
+                                                    <ListItemText
+                                                        primary={adv.name}
+                                                        secondary={`${advisorProjectCounts[adv.name] || 0} / ${adv.quota} ${t('projects')}`}
+                                                    />
+                                                </ListItemButton>
+                                            ))}
+                                        </List>
+                                    </Box>
+                                </Box>
+                            </Paper>
 
-                        <ActivityFeed notifications={notifications} onSelectNotification={onSelectNotification} />
-                    </div>
+                            <ActivityFeed notifications={notifications} onSelectNotification={onSelectNotification} />
+                        </Box>
+                    </Grid>
 
-                    {/* Column 3: Announcements */}
-                    <AnnouncementsFeed announcements={announcements} user={user} />
-                </div>
-            </div>
+                    <Grid item xs={12} lg={4}>
+                        <AnnouncementsFeed announcements={announcements} user={user} />
+                    </Grid>
+                </Grid>
+            </Box>
             {isReadinessModalOpen && (
                 <AppReadinessModal
                     onClose={() => setIsReadinessModalOpen(false)}

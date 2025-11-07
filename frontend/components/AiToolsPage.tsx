@@ -1,5 +1,9 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+    Box, Paper, Typography, Button, Select, MenuItem, FormControl, InputLabel,
+    TextField, Grid, CircularProgress, Chip, Divider, Stack
+} from '@mui/material';
 import { User, ProjectGroup, Advisor, Major, SystemHealthIssue, AdvisorSuggestion, SimilarityInfo, SystemSecurityIssue, Student } from '../types';
 import { SparklesIcon, HeartIcon, AcademicCapIcon, MagnifyingGlassIcon, ShieldCheckIcon, CheckCircleIcon } from './icons';
 import { useToast } from '../hooks/useToast';
@@ -22,20 +26,33 @@ interface AiToolsPageProps {
 }
 
 const ToolCard: React.FC<{ title: string; description: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, description, icon, children }) => (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <div className="flex items-start gap-4 mb-4">
-            <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-900/50 rounded-full p-3">
+    <Paper elevation={3} sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+            <Box sx={{ 
+                flexShrink: 0, 
+                bgcolor: 'primary.light', 
+                borderRadius: '50%', 
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
                 {icon}
-            </div>
-            <div>
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">{title}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
-            </div>
-        </div>
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+            </Box>
+            <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" component="h3" fontWeight="bold" gutterBottom>
+                    {title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    {description}
+                </Typography>
+            </Box>
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        <Box>
             {children}
-        </div>
-    </div>
+        </Box>
+    </Paper>
 );
 
 const AiToolsPage: React.FC<AiToolsPageProps> = ({ user, projectGroups, advisors, students, majors, advisorProjectCounts, systemHealthIssues, isAnalyzingSystemHealth, onRunSystemHealthAnalysis, securityIssues, isAnalyzingSecurity, onRunSecurityAudit }) => {
@@ -192,97 +209,246 @@ const AiToolsPage: React.FC<AiToolsPageProps> = ({ user, projectGroups, advisors
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center">
-               <SparklesIcon className="w-8 h-8 text-blue-600 mr-3"/>
-               <div>
-                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('aiToolsTitle')}</h2>
-                 <p className="text-slate-500 dark:text-slate-400 mt-1">{t('aiToolsShortDescription')}</p>
-               </div>
-            </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <SparklesIcon sx={{ width: 32, height: 32, color: 'primary.main' }} />
+                <Box>
+                    <Typography variant="h5" component="h2" fontWeight="bold">
+                        {t('aiToolsTitle')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {t('aiToolsShortDescription')}
+                    </Typography>
+                </Box>
+            </Box>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ToolCard title={t('systemHealthCheckTitle')} description={t('systemHealthCheckDescription')} icon={<HeartIcon className="w-6 h-6 text-blue-600"/>}>
-                    <button onClick={onRunSystemHealthAnalysis} disabled={isAnalyzingSystemHealth} className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                        {isAnalyzingSystemHealth ? (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>) : t('runAnalysis')}
-                    </button>
-                    <div className="mt-4 space-y-3 max-h-60 overflow-y-auto pr-2">
-                        {systemHealthIssues === null && !isAnalyzingSystemHealth && (<p className="text-sm text-center text-slate-500 dark:text-slate-400">{t('runAnalysisToSeeResults')}</p>)}
-                        {isAnalyzingSystemHealth && (<div className="text-sm text-center text-slate-500 dark:text-slate-400">{t('analyzing')}</div>)}
-                        {systemHealthIssues?.length === 0 && (<div className="flex items-center gap-2 text-green-600 dark:text-green-400"><CheckCircleIcon className="w-5 h-5"/> <p>{t('noSystemHealthIssues')}</p></div>)}
-                        {systemHealthIssues && systemHealthIssues.length > 0 && systemHealthIssues.map((issue, index) => (
-                            <div key={index} className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-md">
-                                <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{issue.type}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">{issue.description} <em className="text-slate-500">{issue.recommendation}</em></p>
-                            </div>
-                        ))}
-                    </div>
-                </ToolCard>
-                <ToolCard title={t('securityAuditTitle')} description={t('securityAuditDescription')} icon={<ShieldCheckIcon className="w-6 h-6 text-blue-600"/>}>
-                    <button onClick={onRunSecurityAudit} disabled={isAnalyzingSecurity} className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                        {isAnalyzingSecurity ? (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>) : t('runSecurityAudit')}
-                    </button>
-                    <div className="mt-4 space-y-3 max-h-60 overflow-y-auto pr-2">
-                        {securityIssues === null && !isAnalyzingSecurity && (<p className="text-sm text-center text-slate-500 dark:text-slate-400">{t('runAnalysisToSeeResults')}</p>)}
-                        {isAnalyzingSecurity && (<div className="text-sm text-center text-slate-500 dark:text-slate-400">{t('analyzing')}</div>)}
-                        {/* FIX: Use existing translation key 'noSecurityIssues' */}
-                        {securityIssues?.length === 0 && (<div className="flex items-center gap-2 text-green-600 dark:text-green-400"><CheckCircleIcon className="w-5 h-5"/> <p>{t('noSecurityIssues')}</p></div>)}
-                        {securityIssues && securityIssues.length > 0 && securityIssues.map((issue, index) => (
-                            <div key={index} className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-md">
-                                <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{issue.type}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">{issue.description} <em className="text-slate-500">{issue.recommendation}</em></p>
-                            </div>
-                        ))}
-                    </div>
-                </ToolCard>
-                <ToolCard title={t('advisorSuggesterTitle')} description={t('advisorSuggesterDescription')} icon={<AcademicCapIcon className="w-6 h-6 text-blue-600"/>}>
-                    <div className="space-y-4">
-                         <div>
-                            <label htmlFor="project-select" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('selectPendingProject')}</label>
-                            <select id="project-select" value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className="mt-1 block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white">
-                                <option value="" disabled>{t('selectAProject')}</option>
-                                {pendingProjects.map(pg => <option key={pg.project.projectId} value={pg.project.projectId}>{pg.project.projectId} - {pg.project.topicEng}</option>)}
-                            </select>
-                         </div>
-                         <button onClick={handleSuggestAdvisors} disabled={isSuggesting || !selectedProjectId} className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                             {isSuggesting ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : t('suggestAdvisors')}
-                         </button>
-                         {suggestions && (
-                             <div className="space-y-3 pt-2">
-                                {suggestions.map(s => (
-                                    <div key={s.advisorName} className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <p className="font-bold text-slate-800 dark:text-slate-100">{s.advisorName}</p>
-                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{t('match')}: {s.matchScore}%</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('majors')}: {s.specializedMajors} | {t('workload')}: {s.currentWorkload}</p>
-                                        <p className="text-xs italic text-slate-600 dark:text-slate-300 mt-1">"{s.reasoning}"</p>
-                                    </div>
-                                ))}
-                             </div>
-                         )}
-                    </div>
-                </ToolCard>
-                 <ToolCard title={t('similarityCheckerTitle')} description={t('similarityCheckerDescription')} icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600"/>}>
-                     <div className="space-y-4">
-                         <div>
-                            <label htmlFor="topic-check" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('topicToCheck')}</label>
-                            <textarea id="topic-check" rows={2} value={topicToCheck} onChange={e => setTopicToCheck(e.target.value)} className="mt-1 block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Enter a new project topic in English..."/>
-                         </div>
-                         <button onClick={handleCheckSimilarity} disabled={isCheckingSimilarity || !topicToCheck} className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                            {isCheckingSimilarity ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : t('checkForSimilarity')}
-                         </button>
-                         {similarityResult && (
-                             <div className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
-                                <p className="text-sm font-semibold">{t('result')}: <span className="font-bold text-blue-600 dark:text-blue-400">{similarityResult.similarityPercentage.toFixed(1)}% {t('similar')}</span></p>
-                                {similarityResult.similarProjectId && <p className="text-xs">{t('mostSimilarTo')}: {similarityResult.similarProjectId}</p>}
-                                <p className="text-xs italic mt-1">"{similarityResult.reason}"</p>
-                             </div>
-                         )}
-                     </div>
-                </ToolCard>
-            </div>
-        </div>
+            <Grid container spacing={3}>
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ToolCard 
+                        title={t('systemHealthCheckTitle')} 
+                        description={t('systemHealthCheckDescription')} 
+                        icon={<HeartIcon sx={{ width: 24, height: 24, color: 'primary.main' }} />}
+                    >
+                        <Button 
+                            onClick={onRunSystemHealthAnalysis} 
+                            disabled={isAnalyzingSystemHealth}
+                            variant="contained"
+                            fullWidth
+                            sx={{ mb: 2 }}
+                        >
+                            {isAnalyzingSystemHealth ? (
+                                <CircularProgress size={20} color="inherit" />
+                            ) : (
+                                t('runAnalysis')
+                            )}
+                        </Button>
+                        <Box sx={{ maxHeight: 240, overflowY: 'auto', pr: 1 }}>
+                            {systemHealthIssues === null && !isAnalyzingSystemHealth && (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 2 }}>
+                                    {t('runAnalysisToSeeResults')}
+                                </Typography>
+                            )}
+                            {isAnalyzingSystemHealth && (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 2 }}>
+                                    {t('analyzing')}
+                                </Typography>
+                            )}
+                            {systemHealthIssues?.length === 0 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main', py: 1 }}>
+                                    <CheckCircleIcon sx={{ width: 20, height: 20 }} />
+                                    <Typography variant="body2">{t('noSystemHealthIssues')}</Typography>
+                                </Box>
+                            )}
+                            {systemHealthIssues && systemHealthIssues.length > 0 && (
+                                <Stack spacing={1}>
+                                    {systemHealthIssues.map((issue, index) => (
+                                        <Paper key={index} elevation={0} sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+                                            <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                                {issue.type}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {issue.description} <em>{issue.recommendation}</em>
+                                            </Typography>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Box>
+                    </ToolCard>
+                </Grid>
+                
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ToolCard 
+                        title={t('securityAuditTitle')} 
+                        description={t('securityAuditDescription')} 
+                        icon={<ShieldCheckIcon sx={{ width: 24, height: 24, color: 'primary.main' }} />}
+                    >
+                        <Button 
+                            onClick={onRunSecurityAudit} 
+                            disabled={isAnalyzingSecurity}
+                            variant="contained"
+                            fullWidth
+                            sx={{ mb: 2 }}
+                        >
+                            {isAnalyzingSecurity ? (
+                                <CircularProgress size={20} color="inherit" />
+                            ) : (
+                                t('runSecurityAudit')
+                            )}
+                        </Button>
+                        <Box sx={{ maxHeight: 240, overflowY: 'auto', pr: 1 }}>
+                            {securityIssues === null && !isAnalyzingSecurity && (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 2 }}>
+                                    {t('runAnalysisToSeeResults')}
+                                </Typography>
+                            )}
+                            {isAnalyzingSecurity && (
+                                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 2 }}>
+                                    {t('analyzing')}
+                                </Typography>
+                            )}
+                            {securityIssues?.length === 0 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main', py: 1 }}>
+                                    <CheckCircleIcon sx={{ width: 20, height: 20 }} />
+                                    <Typography variant="body2">{t('noSecurityIssues')}</Typography>
+                                </Box>
+                            )}
+                            {securityIssues && securityIssues.length > 0 && (
+                                <Stack spacing={1}>
+                                    {securityIssues.map((issue, index) => (
+                                        <Paper key={index} elevation={0} sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+                                            <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                                {issue.type}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {issue.description} <em>{issue.recommendation}</em>
+                                            </Typography>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Box>
+                    </ToolCard>
+                </Grid>
+                
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ToolCard 
+                        title={t('advisorSuggesterTitle')} 
+                        description={t('advisorSuggesterDescription')} 
+                        icon={<AcademicCapIcon sx={{ width: 24, height: 24, color: 'primary.main' }} />}
+                    >
+                        <Stack spacing={2}>
+                            <FormControl fullWidth>
+                                <InputLabel id="project-select-label">{t('selectPendingProject')}</InputLabel>
+                                <Select
+                                    labelId="project-select-label"
+                                    id="project-select"
+                                    value={selectedProjectId}
+                                    onChange={e => setSelectedProjectId(e.target.value)}
+                                    label={t('selectPendingProject')}
+                                >
+                                    <MenuItem value="" disabled>{t('selectAProject')}</MenuItem>
+                                    {pendingProjects.map(pg => (
+                                        <MenuItem key={pg.project.projectId} value={pg.project.projectId}>
+                                            {pg.project.projectId} - {pg.project.topicEng}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <Button 
+                                onClick={handleSuggestAdvisors} 
+                                disabled={isSuggesting || !selectedProjectId}
+                                variant="contained"
+                                fullWidth
+                            >
+                                {isSuggesting ? (
+                                    <CircularProgress size={20} color="inherit" />
+                                ) : (
+                                    t('suggestAdvisors')
+                                )}
+                            </Button>
+                            {suggestions && (
+                                <Stack spacing={1.5} sx={{ pt: 1 }}>
+                                    {suggestions.map(s => (
+                                        <Paper key={s.advisorName} elevation={0} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {s.advisorName}
+                                                </Typography>
+                                                <Chip 
+                                                    label={`${t('match')}: ${s.matchScore}%`} 
+                                                    color="primary" 
+                                                    size="small"
+                                                />
+                                            </Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                                {t('majors')}: {s.specializedMajors} | {t('workload')}: {s.currentWorkload}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic', display: 'block' }}>
+                                                "{s.reasoning}"
+                                            </Typography>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Stack>
+                    </ToolCard>
+                </Grid>
+                
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ToolCard 
+                        title={t('similarityCheckerTitle')} 
+                        description={t('similarityCheckerDescription')} 
+                        icon={<MagnifyingGlassIcon sx={{ width: 24, height: 24, color: 'primary.main' }} />}
+                    >
+                        <Stack spacing={2}>
+                            <TextField
+                                id="topic-check"
+                                label={t('topicToCheck')}
+                                multiline
+                                rows={2}
+                                value={topicToCheck}
+                                onChange={e => setTopicToCheck(e.target.value)}
+                                placeholder="Enter a new project topic in English..."
+                                fullWidth
+                            />
+                            <Button 
+                                onClick={handleCheckSimilarity} 
+                                disabled={isCheckingSimilarity || !topicToCheck.trim()}
+                                variant="contained"
+                                fullWidth
+                            >
+                                {isCheckingSimilarity ? (
+                                    <CircularProgress size={20} color="inherit" />
+                                ) : (
+                                    t('checkForSimilarity')
+                                )}
+                            </Button>
+                            {similarityResult && (
+                                <Paper elevation={0} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                                    <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                        {t('result')}: <Chip 
+                                            label={`${similarityResult.similarityPercentage.toFixed(1)}% ${t('similar')}`} 
+                                            color="primary" 
+                                            size="small"
+                                            sx={{ ml: 1 }}
+                                        />
+                                    </Typography>
+                                    {similarityResult.similarProjectId && (
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            {t('mostSimilarTo')}: {similarityResult.similarProjectId}
+                                        </Typography>
+                                    )}
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic', display: 'block' }}>
+                                        "{similarityResult.reason}"
+                                    </Typography>
+                                </Paper>
+                            )}
+                        </Stack>
+                    </ToolCard>
+                </Grid>
+            </Grid>
+        </Box>
     );
 };
 

@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
+import {
+  Paper, Typography, Box, List, ListItem, Avatar, Divider
+} from '@mui/material';
+import { Campaign as MegaphoneIcon } from '@mui/icons-material';
 import { Announcement, User } from '../types';
-import { MegaphoneIcon } from './icons';
 import { formatTimeAgo } from '../utils/timeUtils';
 import { useTranslations } from '../hooks/useTranslations';
 
@@ -30,32 +33,49 @@ const AnnouncementsFeed: React.FC<AnnouncementsFeedProps> = ({ announcements, us
     }, [announcements, user.role]);
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-            <div className="flex items-center mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mr-3">
-                     <MegaphoneIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white">{t('recentAnnouncements')}</h3>
-            </div>
+        <Paper elevation={3} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main', mr: 1.5 }}>
+                    <MegaphoneIcon />
+                </Avatar>
+                <Typography variant="h6" fontWeight="bold">
+                    {t('recentAnnouncements')}
+                </Typography>
+            </Box>
             {relevantAnnouncements.length > 0 ? (
-                <ul className="space-y-4">
+                <List>
                     {relevantAnnouncements.map((announcement, index) => (
-                        <li key={announcement.id} className={`pt-4 ${index > 0 ? 'border-t border-slate-200 dark:border-slate-700' : ''}`}>
-                            <p className="font-semibold text-slate-800 dark:text-slate-100">{announcement.title}</p>
-                            <div 
-                                className="mt-1 text-sm text-slate-600 dark:text-slate-300 prose"
-                                dangerouslySetInnerHTML={{ __html: parseMarkdown(announcement.content) }}
-                            />
-                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                {t('postedBy').replace('{author}', announcement.authorName)} &bull; {formatTimeAgo(announcement.createdAt, t)}
-                            </p>
-                        </li>
+                        <React.Fragment key={announcement.id}>
+                            {index > 0 && <Divider sx={{ my: 2 }} />}
+                            <ListItem disablePadding sx={{ flexDirection: 'column', alignItems: 'flex-start', pt: index > 0 ? 0 : 1 }}>
+                                <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                                    {announcement.title}
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        mt: 0.5,
+                                        fontSize: '0.875rem',
+                                        color: 'text.secondary',
+                                        '& strong': { fontWeight: 'bold' },
+                                        '& em': { fontStyle: 'italic' }
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: parseMarkdown(announcement.content) }}
+                                />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                                    {t('postedBy').replace('{author}', announcement.authorName)} &bull; {formatTimeAgo(announcement.createdAt, t)}
+                                </Typography>
+                            </ListItem>
+                        </React.Fragment>
                     ))}
-                </ul>
+                </List>
             ) : (
-                <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-4">{t('noAnnouncements')}</p>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        {t('noAnnouncements')}
+                    </Typography>
+                </Box>
             )}
-        </div>
+        </Paper>
     );
 };
 

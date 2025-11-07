@@ -1,7 +1,15 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+  Box, Paper, Typography, Button, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  InputAdornment
+} from '@mui/material';
+import { 
+  Search as SearchIcon, Download as DownloadIcon,
+  EditNote as EditNoteIcon
+} from '@mui/icons-material';
 import { ProjectGroup, ScoringSettings, Advisor } from '../types';
 import SortableHeader, { SortConfig, SortDirection } from './SortableHeader';
-import { MagnifyingGlassIcon, PencilSquareIcon, TableCellsIcon } from './icons';
 import { ExcelUtils } from '../utils/excelUtils';
 import { useToast } from '../hooks/useToast';
 import { useTranslations } from '../hooks/useTranslations';
@@ -113,15 +121,15 @@ const ScoringManagement: React.FC<ScoringManagementProps> = ({ projectGroups, sc
         return filtered;
     }, [projectsWithScores, searchQuery, sortConfig]);
 
-    const handleExportExcel = useCallback(() => {
+    const handleExportExcel = useCallback(async () => {
         const dataToExport = sortedAndFilteredProjects.map(pg => ({
-            'Project ID': pg.project.projectId,
-            'Students': pg.studentNames,
-            'Advisor': pg.project.advisorName,
-            'Advisor Score': pg.project.mainAdvisorScore?.toFixed(2) ?? 'N/A',
-            'Committee Avg.': pg.committeeAvgScore?.toFixed(2) ?? 'N/A',
-            'Final Score': pg.finalScore?.toFixed(2) ?? 'N/A',
-            'Final Grade': pg.finalGrade,
+            [t('projectId')]: pg.project.projectId,
+            [t('students')]: pg.studentNames,
+            [t('advisor')]: pg.project.advisorName,
+            [t('advisorScore')]: pg.project.mainAdvisorScore?.toFixed(2) ?? t('na'),
+            [t('committeeAvg')]: pg.committeeAvgScore?.toFixed(2) ?? t('na'),
+            [t('finalScore')]: pg.finalScore?.toFixed(2) ?? t('na'),
+            [t('finalGrade')]: pg.finalGrade,
         }));
     
         if (dataToExport.length === 0) {
@@ -129,86 +137,108 @@ const ScoringManagement: React.FC<ScoringManagementProps> = ({ projectGroups, sc
             return;
         }
     
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Scoring');
-    
-        worksheet['!cols'] = [{ wch: 15 }, { wch: 40 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
-    
-        XLSX.writeFile(workbook, 'scoring_report.xlsx');
+        await ExcelUtils.exportToExcel(dataToExport, 'scoring_report.xlsx');
         addToast({ type: 'success', message: t('exportScoringSuccess') });
     }, [sortedAndFilteredProjects, addToast, t]);
     
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <PencilSquareIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageScoringTitle')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manageScoringDescription')}</p>
-                   </div>
-                </div>
-                <button
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <EditNoteIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageScoringTitle')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('manageScoringDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
                     onClick={handleExportExcel}
-                    className="mt-4 sm:mt-0 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
                 >
-                    <TableCellsIcon className="w-5 h-5 mr-2" />
                     {t('exportScoringReport')}
-                </button>
-            </div>
-            <div className="mb-4">
-                <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400"
-                        placeholder={t('searchByIdTopicStudent')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                        <tr>
+                </Button>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchByIdTopicStudent')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Box>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow>
                             <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="studentNames" title={t('students')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3">{t('advisorScore')}</th>
-                            <th scope="col" className="px-6 py-3">{t('committeeAvg')}</th>
+                            <TableCell>{t('advisorScore')}</TableCell>
+                            <TableCell>{t('committeeAvg')}</TableCell>
                             <SortableHeader sortKey="finalScore" title={t('finalScore')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="finalGrade" title={t('finalGrade')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3">{t('details')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                            <TableCell>{t('details')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {sortedAndFilteredProjects.map(pg => (
-                            <tr key={pg.project.projectId} className="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                <td className="px-6 py-4 font-medium">{pg.project.projectId}</td>
-                                <td className="px-6 py-4">{pg.studentNames}</td>
-                                <td className="px-6 py-4">{pg.project.advisorName}</td>
-                                <td className="px-6 py-4">{pg.project.mainAdvisorScore?.toFixed(2) ?? t('na')}</td>
-                                <td className="px-6 py-4">{pg.committeeAvgScore?.toFixed(2) ?? t('na')}</td>
-                                <td className="px-6 py-4 font-semibold">{pg.finalScore?.toFixed(2) ?? t('na')}</td>
-                                <td className="px-6 py-4 font-bold">{pg.finalGrade}</td>
-                                <td className="px-6 py-4">
-                                    <button onClick={() => onSelectProject(pg)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline">{t('view')}</button>
-                                </td>
-                            </tr>
+                            <TableRow 
+                                key={pg.project.projectId}
+                                sx={{
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <TableCell component="th" scope="row" sx={{ fontWeight: 500 }}>
+                                    {pg.project.projectId}
+                                </TableCell>
+                                <TableCell>{pg.studentNames}</TableCell>
+                                <TableCell>{pg.project.advisorName}</TableCell>
+                                <TableCell>{pg.project.mainAdvisorScore?.toFixed(2) ?? t('na')}</TableCell>
+                                <TableCell>{pg.committeeAvgScore?.toFixed(2) ?? t('na')}</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>{pg.finalScore?.toFixed(2) ?? t('na')}</TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>{pg.finalGrade}</TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="small"
+                                        onClick={() => onSelectProject(pg)}
+                                        sx={{ textTransform: 'none' }}
+                                    >
+                                        {t('view')}
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
                 {sortedAndFilteredProjects.length === 0 && (
-                    <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                        {searchQuery ? t('noProjectsForQuery').replace('${query}', searchQuery) : t('noScoreableProjects')}
-                    </div>
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery ? t('noProjectsForQuery').replace('${query}', searchQuery) : t('noScoreableProjects')}
+                        </Typography>
+                    </Box>
                 )}
-            </div>
-        </div>
+            </TableContainer>
+        </Paper>
     );
 };
 

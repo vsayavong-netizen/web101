@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Select, MenuItem, FormControl,
+  InputLabel, FormHelperText, IconButton, Box, Typography, Grid, Divider
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Student, Gender, Major, Classroom } from '../types';
-import { XMarkIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface StudentModalProps {
@@ -68,63 +73,151 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; } .input-style:disabled { background-color: #e2e8f0; } .dark .input-style:disabled { background-color: #475569; }`}</style>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-8 w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-slate-700">
-          <h2 className="text-2xl font-bold">{isEditMode ? t('editStudent') : t('addStudent')}</h2>
-          <button onClick={onClose}><XMarkIcon className="w-6 h-6" /></button>
-        </div>
-        <form onSubmit={handleSubmit} noValidate className="flex-grow overflow-y-auto pr-2 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="studentId" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('studentId')}</label>
-              <input type="text" id="studentId" value={student.studentId || ''} onChange={e => handleChange('studentId', e.target.value)} disabled={isEditMode} className={`input-style mt-1 ${errors.studentId ? 'border-red-500' : ''}`} />
-              {errors.studentId && <p className="text-red-500 text-xs mt-1">{errors.studentId}</p>}
-            </div>
-             <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('gender')}</label>
-              <select id="gender" value={student.gender} onChange={e => handleChange('gender', e.target.value)} className="input-style mt-1"><option value={Gender.Male}>{t('male')}</option><option value={Gender.Female}>{t('female')}</option><option value={Gender.Monk}>{t('monk')}</option></select>
-            </div>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('name')}</label>
-              <input type="text" id="name" value={student.name || ''} onChange={e => handleChange('name', e.target.value)} className={`input-style mt-1 ${errors.name ? 'border-red-500' : ''}`} />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-            </div>
-            <div>
-              <label htmlFor="surname" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('surname')}</label>
-              <input type="text" id="surname" value={student.surname || ''} onChange={e => handleChange('surname', e.target.value)} className={`input-style mt-1 ${errors.surname ? 'border-red-500' : ''}`} />
-              {errors.surname && <p className="text-red-500 text-xs mt-1">{errors.surname}</p>}
-            </div>
-             <div>
-              <label htmlFor="major" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('major')}</label>
-              <select id="major" value={student.major || ''} onChange={e => handleChange('major', e.target.value)} className={`input-style mt-1 ${errors.major ? 'border-red-500' : ''}`}>{majors.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-              {errors.major && <p className="text-red-500 text-xs mt-1">{errors.major}</p>}
-            </div>
-            <div>
-              <label htmlFor="classroom" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('classroom')}</label>
-              <select id="classroom" value={student.classroom || ''} onChange={e => handleChange('classroom', e.target.value)} className={`input-style mt-1 ${errors.classroom ? 'border-red-500' : ''}`} disabled={filteredClassrooms.length === 0}>{filteredClassrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select>
-              {errors.classroom && <p className="text-red-500 text-xs mt-1">{errors.classroom}</p>}
-            </div>
-             <div className="md:col-span-2">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('email')}</label>
-              <input type="email" id="email" value={student.email || ''} onChange={e => handleChange('email', e.target.value)} className={`input-style mt-1 ${errors.email ? 'border-red-500' : ''}`} />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-            </div>
-            <div className="md:col-span-2">
-              <label htmlFor="tel" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('telephone')}</label>
-              <input type="tel" id="tel" value={student.tel || ''} onChange={e => handleChange('tel', e.target.value)} className={`input-style mt-1 ${errors.tel ? 'border-red-500' : ''}`} />
-              {errors.tel && <p className="text-red-500 text-xs mt-1">{errors.tel}</p>}
-            </div>
-             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('status')}</label>
-              <select id="status" value={student.status || 'Approved'} onChange={e => handleChange('status', e.target.value)} className="input-style mt-1"><option value="Approved">{t('approved')}</option><option value="Pending">{t('pending')}</option></select>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-4 pt-6 border-t dark:border-slate-700 mt-6"><button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 font-bold py-2 px-4 rounded-lg">{t('cancel')}</button><button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">{t('saveStudent')}</button></div>
-        </form>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+        <Typography variant="h6" fontWeight="bold">
+          {isEditMode ? t('editStudent') : t('addStudent')}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={t('studentId')}
+                id="studentId"
+                value={student.studentId || ''}
+                onChange={e => handleChange('studentId', e.target.value)}
+                disabled={isEditMode}
+                error={!!errors.studentId}
+                helperText={errors.studentId}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>{t('gender')}</InputLabel>
+                <Select
+                  id="gender"
+                  value={student.gender || Gender.Male}
+                  onChange={e => handleChange('gender', e.target.value)}
+                  label={t('gender')}
+                >
+                  <MenuItem value={Gender.Male}>{t('male')}</MenuItem>
+                  <MenuItem value={Gender.Female}>{t('female')}</MenuItem>
+                  <MenuItem value={Gender.Monk}>{t('monk')}</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={t('name')}
+                id="name"
+                value={student.name || ''}
+                onChange={e => handleChange('name', e.target.value)}
+                error={!!errors.name}
+                helperText={errors.name}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={t('surname')}
+                id="surname"
+                value={student.surname || ''}
+                onChange={e => handleChange('surname', e.target.value)}
+                error={!!errors.surname}
+                helperText={errors.surname}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.major}>
+                <InputLabel>{t('major')}</InputLabel>
+                <Select
+                  id="major"
+                  value={student.major || ''}
+                  onChange={e => handleChange('major', e.target.value)}
+                  label={t('major')}
+                >
+                  {majors.map(m => (
+                    <MenuItem key={m.id} value={m.name}>{m.name}</MenuItem>
+                  ))}
+                </Select>
+                {errors.major && <FormHelperText>{errors.major}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.classroom} disabled={filteredClassrooms.length === 0}>
+                <InputLabel>{t('classroom')}</InputLabel>
+                <Select
+                  id="classroom"
+                  value={student.classroom || ''}
+                  onChange={e => handleChange('classroom', e.target.value)}
+                  label={t('classroom')}
+                >
+                  {filteredClassrooms.map(c => (
+                    <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
+                  ))}
+                </Select>
+                {errors.classroom && <FormHelperText>{errors.classroom}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={t('email')}
+                id="email"
+                type="email"
+                value={student.email || ''}
+                onChange={e => handleChange('email', e.target.value)}
+                error={!!errors.email}
+                helperText={errors.email}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={t('telephone')}
+                id="tel"
+                type="tel"
+                value={student.tel || ''}
+                onChange={e => handleChange('tel', e.target.value)}
+                error={!!errors.tel}
+                helperText={errors.tel}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>{t('status')}</InputLabel>
+                <Select
+                  id="status"
+                  value={student.status || 'Approved'}
+                  onChange={e => handleChange('status', e.target.value)}
+                  label={t('status')}
+                >
+                  <MenuItem value="Approved">{t('approved')}</MenuItem>
+                  <MenuItem value="Pending">{t('pending')}</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} variant="outlined">
+            {t('cancel')}
+          </Button>
+          <Button type="submit" variant="contained">
+            {t('saveStudent')}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

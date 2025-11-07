@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Select, MenuItem, FormControl,
+  InputLabel, IconButton, Box, Typography, Grid, Divider
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Announcement, AnnouncementAudience } from '../types';
-import { XMarkIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface AnnouncementModalProps {
@@ -47,59 +52,100 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose, onSave, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-      <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; } .prose strong { color: inherit; } .prose em { color: inherit; }`}</style>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-slate-700 flex-shrink-0">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{isEditMode ? t('editAnnouncement') : t('newAnnouncement')}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} noValidate className="flex-grow min-h-0 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('title')}</label>
-              <input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} className={`input-style mt-1 ${errors.title ? 'border-red-500' : ''}`} />
-              {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-            </div>
-            <div>
-              <label htmlFor="audience" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('audience')}</label>
-              <select id="audience" value={audience} onChange={e => setAudience(e.target.value as AnnouncementAudience)} className="input-style mt-1">
-                <option value="All">{t('allUsers')}</option>
-                <option value="Students">{t('studentsOnly')}</option>
-                <option value="Advisors">{t('advisorsOnly')}</option>
-              </select>
-            </div>
-          </div>
+    <Dialog open={true} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+        <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+          {isEditMode ? t('editAnnouncement') : t('newAnnouncement')}
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label={t('title')}
+                id="title"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                error={!!errors.title}
+                helperText={errors.title}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>{t('audience')}</InputLabel>
+                <Select
+                  id="audience"
+                  value={audience}
+                  onChange={e => setAudience(e.target.value as AnnouncementAudience)}
+                  label={t('audience')}
+                >
+                  <MenuItem value="All">{t('allUsers')}</MenuItem>
+                  <MenuItem value="Students">{t('studentsOnly')}</MenuItem>
+                  <MenuItem value="Advisors">{t('advisorsOnly')}</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
-          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
-            <div className="flex flex-col">
-                <label htmlFor="content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('contentMarkdown')}</label>
-                <textarea 
-                    id="content" 
-                    value={content} 
-                    onChange={e => setContent(e.target.value)} 
-                    className={`input-style flex-grow resize-none ${errors.content ? 'border-red-500' : ''}`}
-                    placeholder={t('markdownHelp')}
-                />
-                {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content}</p>}
-            </div>
-            <div className="flex flex-col">
-                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('preview')}</label>
-                 <div className="input-style flex-grow prose prose-sm max-w-none dark:text-slate-200" dangerouslySetInnerHTML={{ __html: parseMarkdown(content) || `<p class="text-slate-400">${t('previewPlaceholder')}</p>` }}></div>
-            </div>
-          </div>
-          
-          <div className="flex justify-end space-x-4 pt-6 border-t dark:border-slate-700 mt-6 flex-shrink-0">
-            <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white font-bold py-2 px-4 rounded-lg">{t('cancel')}</button>
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-                {isEditMode ? t('saveChanges') : t('postAnnouncement')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <Grid container spacing={2} sx={{ flexGrow: 1, minHeight: 0 }}>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                {t('contentMarkdown')}
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                id="content"
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                error={!!errors.content}
+                helperText={errors.content}
+                placeholder={t('markdownHelp')}
+                sx={{ flexGrow: 1, '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' } }}
+                inputProps={{ style: { height: '100%', overflow: 'auto' } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                {t('preview')}
+              </Typography>
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  bgcolor: 'background.paper',
+                  overflow: 'auto',
+                  minHeight: 200,
+                  '& strong': { fontWeight: 'bold' },
+                  '& em': { fontStyle: 'italic' }
+                }}
+                dangerouslySetInnerHTML={{ 
+                  __html: parseMarkdown(content) || `<p style="color: #9ca3af;">${t('previewPlaceholder')}</p>` 
+                }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} variant="outlined">
+            {t('cancel')}
+          </Button>
+          <Button type="submit" variant="contained">
+            {isEditMode ? t('saveChanges') : t('postAnnouncement')}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

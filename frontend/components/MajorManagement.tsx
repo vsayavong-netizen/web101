@@ -1,6 +1,15 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter,
+  Grid, Stack, InputAdornment
+} from '@mui/material';
+import { 
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Search as SearchIcon, Download as DownloadIcon,
+  MenuBook as MenuBookIcon
+} from '@mui/icons-material';
 import { Major, Student, Classroom, Gender, ProjectGroup, ProjectStatus } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, BookOpenIcon, MagnifyingGlassIcon, TableCellsIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import MajorModal from './MajorModal';
@@ -228,7 +237,7 @@ const MajorManagement: React.FC<MajorManagementProps> = ({ majors, students, cla
         setIsModalOpen(false);
     };
 
-    const handleExportExcel = useCallback(() => {
+    const handleExportExcel = useCallback(async () => {
         const dataToExport = sortedAndFilteredMajors.map(major => {
             const stats = majorStats.get(major.id) || { studentCount: 0, classroomCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
             return {
@@ -254,90 +263,99 @@ const MajorManagement: React.FC<MajorManagementProps> = ({ majors, students, cla
             return;
         }
     
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Majors');
-    
-        worksheet['!cols'] = [
-            { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
-            { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 12 }
-        ];
-    
-        XLSX.writeFile(workbook, 'majors_report.xlsx');
+        await ExcelUtils.exportToExcel(dataToExport, 'majors_report.xlsx');
         addToast({ type: 'success', message: t('majorExportSuccess') });
     }, [sortedAndFilteredMajors, majorStats, addToast, t]);
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <BookOpenIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageMajors')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manageMajorsDescription')}</p>
-                   </div>
-                </div>
-                <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                    <button
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <MenuBookIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageMajors')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('manageMajorsDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: { xs: 2, sm: 0 } }}>
+                    <Button
                         onClick={handleExportExcel}
-                        className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold' }}
                     >
-                        <TableCellsIcon className="w-5 h-5 mr-2" />
                         {t('exportExcel')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleAddClick}
-                        className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
+                        sx={{ fontWeight: 'bold' }}
                     >
-                        <PlusIcon className="w-5 h-5 mr-2" />
                         {t('addMajor')}
-                    </button>
-                </div>
-            </div>
-             <div className="mb-4">
-                 <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400"
-                        placeholder={t('searchByMajor')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
+                    </Button>
+                </Stack>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchByMajor')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Box>
 
-            <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {paginatedMajors.map(major => {
-                    const stats = majorStats.get(major.id) || { studentCount: 0, classroomCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
-                    return (
-                        <MajorCard
-                            key={major.id}
-                            major={major}
-                            studentCount={stats.studentCount}
-                            classroomCount={stats.classroomCount}
-                            maleCount={stats.maleCount}
-                            femaleCount={stats.femaleCount}
-                            monkCount={stats.monkCount}
-                            projectCount={stats.projectCount}
-                            soloProjectCount={stats.soloProjectCount}
-                            duoProjectCount={stats.duoProjectCount}
-                            approvedCount={stats.approvedCount}
-                            pendingCount={stats.pendingCount}
-                            rejectedCount={stats.rejectedCount}
-                            onEdit={() => handleEditClick(major)}
-                            onDelete={() => handleDeleteRequest(major)}
-                        />
-                    );
-                })}
-            </div>
+            <Box sx={{ display: { lg: 'none' } }}>
+                <Grid container spacing={2}>
+                    {paginatedMajors.map(major => {
+                        const stats = majorStats.get(major.id) || { studentCount: 0, classroomCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
+                        return (
+                            <Grid size={{ xs: 12, sm: 6 }} key={major.id}>
+                                <MajorCard
+                                    major={major}
+                                    studentCount={stats.studentCount}
+                                    classroomCount={stats.classroomCount}
+                                    maleCount={stats.maleCount}
+                                    femaleCount={stats.femaleCount}
+                                    monkCount={stats.monkCount}
+                                    projectCount={stats.projectCount}
+                                    soloProjectCount={stats.soloProjectCount}
+                                    duoProjectCount={stats.duoProjectCount}
+                                    approvedCount={stats.approvedCount}
+                                    pendingCount={stats.pendingCount}
+                                    rejectedCount={stats.rejectedCount}
+                                    onEdit={() => handleEditClick(major)}
+                                    onDelete={() => handleDeleteRequest(major)}
+                                />
+                            </Grid>
+                        );
+                    })}
+                </Grid>
+            </Box>
 
-            <div className="hidden lg:block overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                        <tr>
+            <TableContainer sx={{ display: { xs: 'none', lg: 'block' } }}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
                             <SortableHeader sortKey="id" title={t('majorId')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="name" title={t('majorName')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="abbreviation" title={t('abbreviation')} sortConfig={sortConfig} requestSort={requestSort} />
@@ -352,65 +370,84 @@ const MajorManagement: React.FC<MajorManagementProps> = ({ majors, students, cla
                             <SortableHeader sortKey="female" title={t('female')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="monk" title={t('monk')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="classrooms" title={t('classrooms')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3 text-right">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                            <TableCell align="right">{t('actions')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {paginatedMajors.map(major => {
                             const stats = majorStats.get(major.id) || { studentCount: 0, classroomCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
                             return (
-                                <tr key={major.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{major.id}</td>
-                                    <td className="px-6 py-4">{major.name}</td>
-                                    <td className="px-6 py-4">{major.abbreviation}</td>
-                                    <td className="px-6 py-4">{stats.studentCount}</td>
-                                    <td className="px-6 py-4">{stats.projectCount}</td>
-                                    <td className="px-6 py-4">{stats.soloProjectCount}</td>
-                                    <td className="px-6 py-4">{stats.duoProjectCount}</td>
-                                    <td className="px-6 py-4 text-green-600 dark:text-green-400">{stats.approvedCount}</td>
-                                    <td className="px-6 py-4 text-yellow-600 dark:text-yellow-400">{stats.pendingCount}</td>
-                                    <td className="px-6 py-4 text-red-600 dark:text-red-400">{stats.rejectedCount}</td>
-                                    <td className="px-6 py-4">{stats.maleCount}</td>
-                                    <td className="px-6 py-4">{stats.femaleCount}</td>
-                                    <td className="px-6 py-4">{stats.monkCount}</td>
-                                    <td className="px-6 py-4">{stats.classroomCount}</td>
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <button onClick={() => handleEditClick(major)} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                            <PencilIcon className="w-5 h-5" />
-                                        </button>
-                                        <button onClick={() => handleDeleteRequest(major)} className="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                            <TrashIcon className="w-5 h-5" />
-                                        </button>
-                                    </td>
-                                </tr>
+                                <TableRow 
+                                    key={major.id}
+                                    sx={{
+                                        '&:hover': { bgcolor: 'action.hover' },
+                                    }}
+                                >
+                                    <TableCell component="th" scope="row" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                        {major.id}
+                                    </TableCell>
+                                    <TableCell>{major.name}</TableCell>
+                                    <TableCell>{major.abbreviation}</TableCell>
+                                    <TableCell>{stats.studentCount}</TableCell>
+                                    <TableCell>{stats.projectCount}</TableCell>
+                                    <TableCell>{stats.soloProjectCount}</TableCell>
+                                    <TableCell>{stats.duoProjectCount}</TableCell>
+                                    <TableCell sx={{ color: 'success.main' }}>{stats.approvedCount}</TableCell>
+                                    <TableCell sx={{ color: 'warning.main' }}>{stats.pendingCount}</TableCell>
+                                    <TableCell sx={{ color: 'error.main' }}>{stats.rejectedCount}</TableCell>
+                                    <TableCell>{stats.maleCount}</TableCell>
+                                    <TableCell>{stats.femaleCount}</TableCell>
+                                    <TableCell>{stats.monkCount}</TableCell>
+                                    <TableCell>{stats.classroomCount}</TableCell>
+                                    <TableCell align="right">
+                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleEditClick(major)}
+                                                color="primary"
+                                            >
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteRequest(major)}
+                                                color="error"
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Stack>
+                                    </TableCell>
+                                </TableRow>
                             );
                         })}
-                    </tbody>
-                    <tfoot>
-                        <tr className="bg-slate-100 dark:bg-slate-700 font-bold text-slate-800 dark:text-slate-200">
-                            <td className="px-6 py-4" colSpan={3}>{t('total')}</td>
-                            <td className="px-6 py-4">{totals.totalStudents}</td>
-                            <td className="px-6 py-4">{totals.totalProjects}</td>
-                            <td className="px-6 py-4">{totals.totalSoloProjects}</td>
-                            <td className="px-6 py-4">{totals.totalDuoProjects}</td>
-                            <td className="px-6 py-4 text-green-600 dark:text-green-400">{totals.totalApproved}</td>
-                            <td className="px-6 py-4 text-yellow-600 dark:text-yellow-400">{totals.totalPending}</td>
-                            <td className="px-6 py-4 text-red-600 dark:text-red-400">{totals.totalRejected}</td>
-                            <td className="px-6 py-4">{totals.totalMale}</td>
-                            <td className="px-6 py-4">{totals.totalFemale}</td>
-                            <td className="px-6 py-4">{totals.totalMonk}</td>
-                            <td className="px-6 py-4">{totals.totalClassrooms}</td>
-                            <td className="px-6 py-4"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-                 {sortedAndFilteredMajors.length === 0 && (
-                     <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                        {searchQuery ? `No majors found for "${searchQuery}".` : `No majors found. Click "${t('addMajor')}" to begin.`}
-                    </div>
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow sx={{ bgcolor: 'action.hover', fontWeight: 'bold' }}>
+                            <TableCell colSpan={3} sx={{ fontWeight: 'bold' }}>{t('total')}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalStudents}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalProjects}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalSoloProjects}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalDuoProjects}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>{totals.totalApproved}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', color: 'warning.main' }}>{totals.totalPending}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold', color: 'error.main' }}>{totals.totalRejected}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalMale}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalFemale}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalMonk}</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>{totals.totalClassrooms}</TableCell>
+                            <TableCell></TableCell>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+                {sortedAndFilteredMajors.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery ? `No majors found for "${searchQuery}".` : `No majors found. Click "${t('addMajor')}" to begin.`}
+                        </Typography>
+                    </Box>
                 )}
-            </div>
-             <Pagination
+            </TableContainer>
+            <Pagination
                 currentPage={currentPage}
                 totalPages={Math.ceil(sortedAndFilteredMajors.length / ITEMS_PER_PAGE)}
                 totalItems={sortedAndFilteredMajors.length}
@@ -434,7 +471,7 @@ const MajorManagement: React.FC<MajorManagementProps> = ({ majors, students, cla
                     message={t('deleteMajorMessage').replace('${majorName}', majorToDelete.name)}
                 />
             )}
-        </div>
+        </Paper>
     );
 };
 

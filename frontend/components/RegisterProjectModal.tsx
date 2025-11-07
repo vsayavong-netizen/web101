@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Select, MenuItem, FormControl,
+  InputLabel, FormHelperText, Checkbox, FormControlLabel,
+  IconButton, Box, Typography, CircularProgress, Divider
+} from '@mui/material';
+import { Close as CloseIcon, AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import { Advisor, Project, Student, ProjectGroup, ProjectStatus, User, SimilarityInfo, Major } from '../types';
 import { useToast } from '../hooks/useToast';
-import { XMarkIcon, SparklesIcon } from './icons';
 import { GoogleGenAI, Type } from "@google/genai";
 import { useTranslations } from '../hooks/useTranslations';
 
@@ -22,13 +28,6 @@ interface RegisterProjectModalProps {
 }
 
 type FormErrors = { [key: string]: string; };
-
-const InputField: React.FC<{ id: string; placeholder: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; error?: string; className?: string; disabled?: boolean; }> = ({ id, error, className, ...props}) => (
-  <div className={className}>
-    <input id={id} className={`input-style ${error ? 'border-red-500' : 'focus:border-blue-500'}`} {...props} />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-  </div>
-);
 
 export const RegisterProjectModal: React.FC<RegisterProjectModalProps> = (props) => {
   const { onClose, onAddProject, onUpdateProject, advisors, advisorProjectCounts, allProjects, allStudents, majors, user, projectToEdit, currentAcademicYear, suggestedTopic, onSuggestionUsed } = props;
@@ -223,67 +222,157 @@ export const RegisterProjectModal: React.FC<RegisterProjectModalProps> = (props)
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; } .input-style:disabled { background-color: #e2e8f0; cursor: not-allowed; } .dark .input-style:disabled { background-color: #475569; }`}</style>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-slate-700">
-          <h2 className="text-2xl font-bold">{isEditMode ? t('editProject') : t('registerProject')}</h2>
-          <button onClick={onClose}><XMarkIcon className="w-6 h-6" /></button>
-        </div>
-        <form onSubmit={handleSubmit} noValidate className="flex-grow overflow-y-auto pr-2 space-y-4">
-          <div className="relative">
-             <label htmlFor="topicLao" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('topicLao')}</label>
-             <input type="text" id="topicLao" value={topicLao} onChange={e => setTopicLao(e.target.value)} className={`input-style mt-1 ${errors.topicLao ? 'border-red-500' : ''}`} placeholder={t('laoTopicPlaceholder')} />
-             {errors.topicLao && <p className="text-red-500 text-xs mt-1">{errors.topicLao}</p>}
-             <button type="button" onClick={() => handleTranslate('lo')} disabled={isTranslatingLao || !topicEng} className="absolute top-7 right-2 p-1.5 text-purple-600 hover:bg-purple-100 rounded-full disabled:opacity-50">
-                {isTranslatingLao ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div> : <SparklesIcon className="w-4 h-4"/>}
-            </button>
-          </div>
-           <div className="relative">
-             <label htmlFor="topicEng" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('topicEng')}</label>
-             <input type="text" id="topicEng" value={topicEng} onChange={e => setTopicEng(e.target.value)} className={`input-style mt-1 ${errors.topicEng ? 'border-red-500' : ''}`} placeholder={t('engTopicPlaceholder')} />
-             {errors.topicEng && <p className="text-red-500 text-xs mt-1">{errors.topicEng}</p>}
-              <button type="button" onClick={() => handleTranslate('en')} disabled={isTranslatingEng || !topicLao} className="absolute top-7 right-2 p-1.5 text-purple-600 hover:bg-purple-100 rounded-full disabled:opacity-50">
-                {isTranslatingEng ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div> : <SparklesIcon className="w-4 h-4"/>}
-            </button>
-          </div>
-          <div>
-            <label htmlFor="student1" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('student1')}</label>
-            <select id="student1" value={student1Id || ''} onChange={e => setStudent1Id(e.target.value)} disabled={isStudentMode} className={`input-style mt-1 ${errors.student1 ? 'border-red-500' : ''}`}>
-              <option value="" disabled>{t('selectStudent1')}</option>
-              {availableStudents.map(s => <option key={s.studentId} value={s.studentId}>{s.name} {s.surname} ({s.studentId})</option>)}
-            </select>
-            {errors.student1 && <p className="text-red-500 text-xs mt-1">{errors.student1}</p>}
-          </div>
-          <div>
-            <div className="flex items-center"><input type="checkbox" id="hasSecondStudent" checked={hasSecondStudent} onChange={e => setHasSecondStudent(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><label htmlFor="hasSecondStudent" className="ml-2 text-sm text-slate-700 dark:text-slate-200">{t('addSecondStudent')}</label></div>
+    <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+        <Typography variant="h6" fontWeight="bold">
+          {isEditMode ? t('editProject') : t('registerProject')}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ position: 'relative' }}>
+            <TextField
+              fullWidth
+              label={t('topicLao')}
+              id="topicLao"
+              value={topicLao}
+              onChange={e => setTopicLao(e.target.value)}
+              placeholder={t('laoTopicPlaceholder')}
+              error={!!errors.topicLao}
+              helperText={errors.topicLao}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    onClick={() => handleTranslate('lo')}
+                    disabled={isTranslatingLao || !topicEng}
+                    size="small"
+                    sx={{ color: 'secondary.main' }}
+                  >
+                    {isTranslatingLao ? (
+                      <CircularProgress size={16} color="secondary" />
+                    ) : (
+                      <AutoAwesomeIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                )
+              }}
+            />
+          </Box>
+          <Box sx={{ position: 'relative' }}>
+            <TextField
+              fullWidth
+              label={t('topicEng')}
+              id="topicEng"
+              value={topicEng}
+              onChange={e => setTopicEng(e.target.value)}
+              placeholder={t('engTopicPlaceholder')}
+              error={!!errors.topicEng}
+              helperText={errors.topicEng}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    onClick={() => handleTranslate('en')}
+                    disabled={isTranslatingEng || !topicLao}
+                    size="small"
+                    sx={{ color: 'secondary.main' }}
+                  >
+                    {isTranslatingEng ? (
+                      <CircularProgress size={16} color="secondary" />
+                    ) : (
+                      <AutoAwesomeIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                )
+              }}
+            />
+          </Box>
+          <FormControl fullWidth error={!!errors.student1}>
+            <InputLabel>{t('student1')}</InputLabel>
+            <Select
+              id="student1"
+              value={student1Id || ''}
+              onChange={e => setStudent1Id(e.target.value)}
+              disabled={isStudentMode}
+              label={t('student1')}
+            >
+              <MenuItem value="" disabled>{t('selectStudent1')}</MenuItem>
+              {availableStudents.map(s => (
+                <MenuItem key={s.studentId} value={s.studentId}>
+                  {s.name} {s.surname} ({s.studentId})
+                </MenuItem>
+              ))}
+            </Select>
+            {errors.student1 && <FormHelperText>{errors.student1}</FormHelperText>}
+          </FormControl>
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasSecondStudent}
+                  onChange={e => setHasSecondStudent(e.target.checked)}
+                />
+              }
+              label={t('addSecondStudent')}
+            />
             {hasSecondStudent && (
-              <div className="mt-2">
-                <label htmlFor="student2" className="sr-only">{t('student2')}</label>
-                <select id="student2" value={student2Id || ''} onChange={e => setStudent2Id(e.target.value)} className={`input-style ${errors.student2 ? 'border-red-500' : ''}`}>
-                  <option value="" disabled>{t('selectStudent2')}</option>
-                  {availableStudents.filter(s => s.studentId !== student1Id).map(s => <option key={s.studentId} value={s.studentId}>{s.name} {s.surname} ({s.studentId})</option>)}
-                </select>
-                 {errors.student2 && <p className="text-red-500 text-xs mt-1">{errors.student2}</p>}
-              </div>
+              <FormControl fullWidth error={!!errors.student2} sx={{ mt: 2 }}>
+                <InputLabel>{t('student2')}</InputLabel>
+                <Select
+                  id="student2"
+                  value={student2Id || ''}
+                  onChange={e => setStudent2Id(e.target.value)}
+                  label={t('student2')}
+                >
+                  <MenuItem value="" disabled>{t('selectStudent2')}</MenuItem>
+                  {availableStudents.filter(s => s.studentId !== student1Id).map(s => (
+                    <MenuItem key={s.studentId} value={s.studentId}>
+                      {s.name} {s.surname} ({s.studentId})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.student2 && <FormHelperText>{errors.student2}</FormHelperText>}
+              </FormControl>
             )}
-          </div>
-          <div>
-            <label htmlFor="advisor" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('selectAdvisor')}</label>
-            <select id="advisor" value={advisorName} onChange={e => setAdvisorName(e.target.value)} className={`input-style mt-1 ${errors.advisorName ? 'border-red-500' : ''}`} disabled={!student1}>
-              <option value="" disabled>{availableAdvisors.length > 0 ? t('selectAnAdvisor') : t('noAvailableAdvisors')}</option>
-              {availableAdvisors.map(adv => { 
+          </Box>
+          <FormControl fullWidth error={!!errors.advisorName} disabled={!student1}>
+            <InputLabel>{t('selectAdvisor')}</InputLabel>
+            <Select
+              id="advisor"
+              value={advisorName}
+              onChange={e => setAdvisorName(e.target.value)}
+              label={t('selectAdvisor')}
+            >
+              <MenuItem value="" disabled>
+                {availableAdvisors.length > 0 ? t('selectAnAdvisor') : t('noAvailableAdvisors')}
+              </MenuItem>
+              {availableAdvisors.map(adv => {
                 if (!adv || !adv.name) return null;
-                const count = advisorProjectCounts[adv.name] || 0; 
-                const isFull = count >= (adv.quota || 0); 
-                return <option key={adv.id || adv.name} value={adv.name} disabled={isFull}>{adv.name} ({count}/{adv.quota || 0}) {isFull && `- ${t('full')}`}</option> 
+                const count = advisorProjectCounts[adv.name] || 0;
+                const isFull = count >= (adv.quota || 0);
+                return (
+                  <MenuItem key={adv.id || adv.name} value={adv.name} disabled={isFull}>
+                    {adv.name} ({count}/{adv.quota || 0}) {isFull && `- ${t('full')}`}
+                  </MenuItem>
+                );
               })}
-            </select>
-             {errors.advisorName && <p className="text-red-500 text-xs mt-1">{errors.advisorName}</p>}
-          </div>
-          <div className="flex justify-end space-x-4 pt-6 border-t dark:border-slate-700 mt-6"><button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 font-bold py-2 px-4 rounded-lg">{t('cancel')}</button><button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">{isSubmitting ? t('submitting') : t('submit')}</button></div>
-        </form>
-      </div>
-    </div>
+            </Select>
+            {errors.advisorName && <FormHelperText>{errors.advisorName}</FormHelperText>}
+          </FormControl>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} variant="outlined">
+            {t('cancel')}
+          </Button>
+          <Button type="submit" variant="contained" disabled={isSubmitting}>
+            {isSubmitting ? t('submitting') : t('submit')}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };

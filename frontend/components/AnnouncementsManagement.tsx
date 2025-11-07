@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Stack
+} from '@mui/material';
+import { 
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Campaign as CampaignIcon
+} from '@mui/icons-material';
 import { Announcement, User } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, MegaphoneIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import AnnouncementModal from './AnnouncementModal';
@@ -51,60 +59,94 @@ const AnnouncementsManagement: React.FC<AnnouncementsManagementProps> = ({ annou
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <MegaphoneIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageAnnouncements')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manageAnnouncementsDescription')}</p>
-                   </div>
-                </div>
-                <button
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <CampaignIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageAnnouncements')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('manageAnnouncementsDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
                     onClick={handleAddClick}
-                    className="mt-4 sm:mt-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    sx={{ fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
                 >
-                    <PlusIcon className="w-5 h-5 mr-2" />
                     {t('newAnnouncement')}
-                </button>
-            </div>
+                </Button>
+            </Box>
             
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">{t('title')}</th>
-                            <th scope="col" className="px-6 py-3">{t('audience')}</th>
-                            <th scope="col" className="px-6 py-3">{t('author')}</th>
-                            <th scope="col" className="px-6 py-3">{t('date')}</th>
-                            <th scope="col" className="px-6 py-3 text-right">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <TableContainer>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>{t('title')}</TableCell>
+                            <TableCell>{t('audience')}</TableCell>
+                            <TableCell>{t('author')}</TableCell>
+                            <TableCell>{t('date')}</TableCell>
+                            <TableCell align="right">{t('actions')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {announcements.map(announcement => (
-                            <tr key={announcement.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{announcement.title}</td>
-                                <td className="px-6 py-4">{announcement.audience}</td>
-                                <td className="px-6 py-4">{announcement.authorName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(announcement.createdAt).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 text-right space-x-2">
-                                    <button onClick={() => handleEditClick(announcement)} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                        <PencilIcon className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={() => setAnnouncementToDelete(announcement)} className="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                        <TrashIcon className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
+                            <TableRow 
+                                key={announcement.id}
+                                sx={{
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <TableCell component="th" scope="row" sx={{ fontWeight: 500 }}>
+                                    {announcement.title}
+                                </TableCell>
+                                <TableCell>{announcement.audience}</TableCell>
+                                <TableCell>{announcement.authorName}</TableCell>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                    {new Date(announcement.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell align="right">
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleEditClick(announcement)}
+                                            color="primary"
+                                        >
+                                            <EditIcon />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setAnnouncementToDelete(announcement)}
+                                            color="error"
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
-                 {announcements.length === 0 && (
-                    <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                        {t('noAnnouncementsFound').replace('${newAnnouncement}', t('newAnnouncement'))}
-                    </div>
+                    </TableBody>
+                </Table>
+                {announcements.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {t('noAnnouncementsFound').replace('${newAnnouncement}', t('newAnnouncement'))}
+                        </Typography>
+                    </Box>
                 )}
-            </div>
+            </TableContainer>
 
             {isModalOpen && (
                 <AnnouncementModal 
@@ -122,7 +164,7 @@ const AnnouncementsManagement: React.FC<AnnouncementsManagementProps> = ({ annou
                     message={t('deleteAnnouncementMessage').replace('${title}', announcementToDelete.title)}
                 />
             )}
-        </div>
+        </Paper>
     );
 };
 

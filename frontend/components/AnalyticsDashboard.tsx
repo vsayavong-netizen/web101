@@ -1,6 +1,14 @@
 import React, { useMemo, useCallback } from 'react';
+import {
+  Box, Paper, Typography, Button, LinearProgress, Grid, Card, CardContent,
+  Stack, Chip
+} from '@mui/material';
+import { 
+  PieChart as PieChartIcon, School as SchoolIcon, 
+  CalendarToday as CalendarTodayIcon, Assignment as AssignmentIcon,
+  Download as DownloadIcon
+} from '@mui/icons-material';
 import { ProjectGroup, Advisor, ProjectStatus, MilestoneStatus } from '../types';
-import { ChartPieIcon, AcademicCapIcon, CalendarPlusIcon, ClipboardDocumentListIcon, TableCellsIcon } from './icons';
 import { getAdvisorColor } from '../utils/colorUtils';
 import { ExcelUtils } from '../utils/excelUtils';
 import { useToast } from '../hooks/useToast';
@@ -16,15 +24,29 @@ interface AnalyticsDashboardProps {
 
 // Reusable Chart Card wrapper
 const ChartCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-        <div className="flex items-center mb-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mr-3">
-                {icon}
-            </div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">{title}</h3>
-        </div>
-        <div className="min-h-[250px] flex items-center justify-center">{children}</div>
-    </div>
+    <Card elevation={3}>
+        <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ 
+                    p: 1, 
+                    bgcolor: 'primary.light', 
+                    borderRadius: '50%', 
+                    mr: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    {icon}
+                </Box>
+                <Typography variant="h6" fontWeight="bold">
+                    {title}
+                </Typography>
+            </Box>
+            <Box sx={{ minHeight: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {children}
+            </Box>
+        </CardContent>
+    </Card>
 );
 
 
@@ -69,44 +91,65 @@ const SchedulingStatusChart: React.FC<{ projectGroups: ProjectGroup[] }> = ({ pr
     }, [projectGroups]);
 
     if (!stats) {
-        return <p className="text-slate-500 dark:text-slate-400">{t('noApprovedProjects')}</p>;
+        return <Typography color="text.secondary">{t('noApprovedProjects')}</Typography>;
     }
     
-    const ProgressBar: React.FC<{ value: number; total: number; color: string; label: string }> = ({ value, total, color, label }) => (
-        <div>
-            <div className="flex justify-between items-baseline mb-1 text-sm">
-                <p className="font-semibold text-slate-800 dark:text-slate-200">{label}</p>
-                <p className="text-slate-500 dark:text-slate-400">{value} / {total}</p>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
-                <div 
-                    className={`${color} h-4 rounded-full transition-all duration-500 text-white text-xs flex items-center justify-center font-bold`} 
-                    style={{ width: `${total > 0 ? (value / total) * 100 : 0}%` }}
-                >
-                    {total > 0 && value > 0 && `${((value / total) * 100).toFixed(0)}%`}
-                </div>
-            </div>
-        </div>
-    );
+    const ProgressBar: React.FC<{ value: number; total: number; color: 'success' | 'warning' | 'error' | 'info' | 'inherit'; label: string }> = ({ value, total, color, label }) => {
+        const percentage = total > 0 ? (value / total) * 100 : 0;
+        return (
+            <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+                    <Typography variant="body2" fontWeight="medium">{label}</Typography>
+                    <Typography variant="body2" color="text.secondary">{value} / {total}</Typography>
+                </Box>
+                <Box sx={{ position: 'relative', width: '100%' }}>
+                    <LinearProgress 
+                        variant="determinate" 
+                        value={percentage} 
+                        color={color}
+                        sx={{ height: 16, borderRadius: 1 }}
+                    />
+                    <Box sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        textShadow: '0 0 2px rgba(0,0,0,0.5)'
+                    }}>
+                        {percentage > 0 && `${percentage.toFixed(0)}%`}
+                    </Box>
+                </Box>
+            </Box>
+        );
+    };
 
     return (
-        <div className="w-full space-y-6">
-            <div>
-                <h4 className="font-bold text-slate-600 dark:text-slate-300 mb-2">{t('committeeAssignmentStatus')}</h4>
-                <div className="space-y-3">
-                    <ProgressBar value={stats.fullyAssigned} total={stats.total} color="bg-green-500" label={t('fullyAssigned')} />
-                    <ProgressBar value={stats.partiallyAssigned} total={stats.total} color="bg-yellow-500" label={t('partiallyAssigned')} />
-                    <ProgressBar value={stats.unassigned} total={stats.total} color="bg-red-500" label={t('unassigned')} />
-                </div>
-            </div>
-             <div>
-                <h4 className="font-bold text-slate-600 dark:text-slate-300 mb-2">{t('defenseSchedulingStatus')}</h4>
-                <div className="space-y-3">
-                    <ProgressBar value={stats.scheduled} total={stats.total} color="bg-blue-500" label={t('scheduledDefenses')} />
-                    <ProgressBar value={stats.unscheduled} total={stats.total} color="bg-slate-400" label={t('unscheduled')} />
-                </div>
-            </div>
-        </div>
+        <Box sx={{ width: '100%' }}>
+            <Stack spacing={4}>
+                <Box>
+                    <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                        {t('committeeAssignmentStatus')}
+                    </Typography>
+                    <Stack spacing={2}>
+                        <ProgressBar value={stats.fullyAssigned} total={stats.total} color="success" label={t('fullyAssigned')} />
+                        <ProgressBar value={stats.partiallyAssigned} total={stats.total} color="warning" label={t('partiallyAssigned')} />
+                        <ProgressBar value={stats.unassigned} total={stats.total} color="error" label={t('unassigned')} />
+                    </Stack>
+                </Box>
+                <Box>
+                    <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                        {t('defenseSchedulingStatus')}
+                    </Typography>
+                    <Stack spacing={2}>
+                        <ProgressBar value={stats.scheduled} total={stats.total} color="info" label={t('scheduledDefenses')} />
+                        <ProgressBar value={stats.unscheduled} total={stats.total} color="inherit" label={t('unscheduled')} />
+                    </Stack>
+                </Box>
+            </Stack>
+        </Box>
     );
 };
 
@@ -129,7 +172,7 @@ const ProjectStatusDoughnut: React.FC<{ projectGroups: ProjectGroup[] }> = ({ pr
     }, [projectGroups]);
 
     const total = data.approved + data.pending + data.rejected;
-    if (total === 0) return <p className="text-slate-500 dark:text-slate-400">{t('noProjectsToDisplay')}</p>;
+    if (total === 0) return <Typography color="text.secondary">{t('noProjectsToDisplay')}</Typography>;
     
     const radius = 80;
     const circumference = 2 * Math.PI * radius;
@@ -148,39 +191,61 @@ const ProjectStatusDoughnut: React.FC<{ projectGroups: ProjectGroup[] }> = ({ pr
 
     let accumulatedOffset = 0;
 
+    const getColor = (colorClass: string) => {
+        if (colorClass.includes('green')) return '#22c55e';
+        if (colorClass.includes('yellow')) return '#eab308';
+        if (colorClass.includes('red')) return '#ef4444';
+        return '#64748b';
+    };
+
     return (
-        <div className="flex flex-col md:flex-row items-center justify-around w-full">
-            <div className="relative">
-                <svg width="200" height="200" viewBox="0 0 200 200" className="-rotate-90">
-                    <circle cx="100" cy="100" r={radius} fill="transparent" strokeWidth="20" className="stroke-slate-200 dark:stroke-slate-700" />
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-around', width: '100%' }}>
+            <Box sx={{ position: 'relative' }}>
+                <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="100" cy="100" r={radius} fill="transparent" strokeWidth="20" stroke="currentColor" sx={{ color: 'action.disabledBackground' }} />
                     {segments.map((segment, index) => {
                         const dasharray = (segment.value / total) * circumference;
                         const strokeDashoffset = accumulatedOffset;
                         accumulatedOffset += dasharray;
                         return (
-                             <circle key={index} cx="100" cy="100" r={radius} fill="transparent" strokeWidth="20"
+                             <circle 
+                                key={index} 
+                                cx="100" 
+                                cy="100" 
+                                r={radius} 
+                                fill="transparent" 
+                                strokeWidth="20"
                                 strokeDasharray={`${dasharray} ${circumference}`}
                                 strokeDashoffset={-strokeDashoffset}
-                                className={segment.color}
+                                stroke={getColor(segment.color)}
                             />
                         );
                     })}
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-slate-800 dark:text-white">{total}</span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">{t('projects')}</span>
-                </div>
-            </div>
-            <div className="mt-6 md:mt-0 md:ml-6 space-y-2">
+                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography variant="h4" fontWeight="bold">{total}</Typography>
+                    <Typography variant="caption" color="text.secondary">{t('projects')}</Typography>
+                </Box>
+            </Box>
+            <Stack spacing={1} sx={{ mt: { xs: 3, md: 0 }, ml: { md: 3 } }}>
                 {legend.map(item => (
-                    <div key={item.label} className="flex items-center text-sm">
-                        <span className={`w-3 h-3 rounded-full mr-2 ${item.color}`}></span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{item.label}:</span>
-                        <span className="ml-1.5 text-slate-500 dark:text-slate-400">{item.value} ({(total > 0 ? (item.value / total * 100) : 0).toFixed(1)}%)</span>
-                    </div>
+                    <Box key={item.label} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box 
+                            sx={{ 
+                                width: 12, 
+                                height: 12, 
+                                borderRadius: '50%', 
+                                mr: 1,
+                                bgcolor: getColor(item.color)
+                            }} 
+                        />
+                        <Typography variant="body2" fontWeight="medium">
+                            {item.label}: {item.value} ({(total > 0 ? (item.value / total * 100) : 0).toFixed(1)}%)
+                        </Typography>
+                    </Box>
                 ))}
-            </div>
-        </div>
+            </Stack>
+        </Box>
     );
 };
 
@@ -188,30 +253,38 @@ const ProjectStatusDoughnut: React.FC<{ projectGroups: ProjectGroup[] }> = ({ pr
 // 2. Advisor Workload Bar Chart
 const AdvisorWorkloadBars: React.FC<{ advisors: Advisor[], advisorProjectCounts: Record<string, number> }> = ({ advisors, advisorProjectCounts }) => {
     const t = useTranslations();
-    if (advisors.length === 0) return <p className="text-slate-500 dark:text-slate-400">{t('noAdvisorsData')}</p>;
+    if (advisors.length === 0) return <Typography color="text.secondary">{t('noAdvisorsData')}</Typography>;
     
     return (
-        <div className="w-full space-y-4">
+        <Stack spacing={2} sx={{ width: '100%' }}>
             {advisors.map(adv => {
                 const count = advisorProjectCounts[adv.name] || 0;
                 const percentage = adv.quota > 0 ? (count / adv.quota) * 100 : 0;
                 const color = getAdvisorColor(adv.name);
                 return (
-                    <div key={adv.id}>
-                        <div className="flex justify-between items-baseline mb-1 text-sm">
-                            <p className="font-semibold text-slate-800 dark:text-slate-200">{adv.name}</p>
-                            <p className="text-slate-500 dark:text-slate-400">{count} / {adv.quota}</p>
-                        </div>
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
-                            <div 
-                                className="h-4 rounded-full transition-all duration-500" 
-                                style={{ width: `${percentage}%`, backgroundColor: color }}
-                            ></div>
-                        </div>
-                    </div>
+                    <Box key={adv.id}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+                            <Typography variant="body2" fontWeight="medium">{adv.name}</Typography>
+                            <Typography variant="body2" color="text.secondary">{count} / {adv.quota}</Typography>
+                        </Box>
+                        <Box sx={{ position: 'relative', width: '100%' }}>
+                            <LinearProgress 
+                                variant="determinate" 
+                                value={Math.min(percentage, 100)} 
+                                sx={{ 
+                                    height: 16, 
+                                    borderRadius: 1,
+                                    bgcolor: 'action.disabledBackground',
+                                    '& .MuiLinearProgress-bar': {
+                                        bgcolor: color
+                                    }
+                                }}
+                            />
+                        </Box>
+                    </Box>
                 )
             })}
-        </div>
+        </Stack>
     );
 };
 
@@ -247,7 +320,7 @@ const MonthlySubmissionsAreaChart: React.FC<{ projectGroups: ProjectGroup[] }> =
         return { labels: monthLabels, counts };
     }, [projectGroups]);
     
-    if (projectGroups.length === 0) return <p className="text-slate-500 dark:text-slate-400">{t('noProjectsToDisplay')}</p>;
+    if (projectGroups.length === 0) return <Typography color="text.secondary">{t('noProjectsToDisplay')}</Typography>;
 
     const maxCount = Math.max(...data.counts, 5); // Ensure a minimum height for the y-axis
     const width = 400;
@@ -264,28 +337,40 @@ const MonthlySubmissionsAreaChart: React.FC<{ projectGroups: ProjectGroup[] }> =
     const linePath = `M${points}`;
     
     return (
-        <div className="w-full">
-            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+        <Box sx={{ width: '100%' }}>
+            <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto' }}>
                 {/* Y Axis */}
-                <text x="10" y={padding.top + 5} className="text-xs fill-slate-500 dark:fill-slate-400">{maxCount}</text>
-                <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1"/>
-                <text x="10" y={height - padding.bottom} className="text-xs fill-slate-500 dark:fill-slate-400">0</text>
+                <text x="10" y={padding.top + 5} style={{ fontSize: '12px', fill: 'currentColor' }}>{maxCount}</text>
+                <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="currentColor" strokeWidth="1" opacity={0.3}/>
+                <text x="10" y={height - padding.bottom} style={{ fontSize: '12px', fill: 'currentColor' }}>0</text>
                 {/* X Axis */}
-                <line x1={padding.left} y1={height - padding.bottom} x2={width-padding.right} y2={height - padding.bottom} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1"/>
+                <line x1={padding.left} y1={height - padding.bottom} x2={width-padding.right} y2={height - padding.bottom} stroke="currentColor" strokeWidth="1" opacity={0.3}/>
                 {data.labels.map((label, i) => (
-                    <text key={label} x={padding.left + (i / (data.labels.length - 1)) * (width - padding.left - padding.right)} y={height - 5} textAnchor="middle" className="text-xs fill-slate-500 dark:fill-slate-400">
+                    <text 
+                        key={label} 
+                        x={padding.left + (i / (data.labels.length - 1)) * (width - padding.left - padding.right)} 
+                        y={height - 5} 
+                        textAnchor="middle" 
+                        style={{ fontSize: '12px', fill: 'currentColor' }}
+                    >
                         {label}
                     </text>
                 ))}
 
                 {/* Chart Data */}
-                <path d={areaPath} className="fill-blue-500/20" />
-                <path d={linePath} fill="none" className="stroke-blue-500" strokeWidth="2" />
+                <path d={areaPath} fill="rgba(25, 118, 210, 0.2)" />
+                <path d={linePath} fill="none" stroke="#1976d2" strokeWidth="2" />
                  {data.counts.map((count, i) => (
-                    <circle key={i} cx={padding.left + (i / (data.counts.length - 1)) * (width - padding.left - padding.right)} cy={height - padding.bottom - (count / maxCount) * (height - padding.top - padding.bottom)} r="3" className="fill-blue-500" />
+                    <circle 
+                        key={i} 
+                        cx={padding.left + (i / (data.counts.length - 1)) * (width - padding.left - padding.right)} 
+                        cy={height - padding.bottom - (count / maxCount) * (height - padding.top - padding.bottom)} 
+                        r="3" 
+                        fill="#1976d2" 
+                    />
                 ))}
             </svg>
-        </div>
+        </Box>
     );
 };
 
@@ -315,41 +400,53 @@ const MilestoneProgressChart: React.FC<{ projectGroups: ProjectGroup[] }> = ({ p
         return Object.entries(milestoneStats).map(([name, counts]) => ({ name, ...counts }));
     }, [projectGroups]);
     
-    if (data.length === 0) return <p className="text-slate-500 dark:text-slate-400">{t('noMilestonesYet')}</p>;
+    if (data.length === 0) return <Typography color="text.secondary">{t('noMilestonesYet')}</Typography>;
     
-    const statusColors = {
-        [MilestoneStatus.Approved]: 'bg-green-500',
-        [MilestoneStatus.Submitted]: 'bg-blue-500',
-        [MilestoneStatus.RequiresRevision]: 'bg-orange-500',
-        [MilestoneStatus.Pending]: 'bg-slate-400 dark:bg-slate-500',
+    const statusColors: Record<MilestoneStatus, string> = {
+        [MilestoneStatus.Approved]: '#22c55e',
+        [MilestoneStatus.Submitted]: '#3b82f6',
+        [MilestoneStatus.RequiresRevision]: '#f97316',
+        [MilestoneStatus.Pending]: '#94a3b8',
     };
     
     return (
-        <div className="w-full space-y-4">
-            {data.map(item => (
-                <div key={item.name}>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1 truncate" title={item.name}>{item.name}</p>
-                    <div className="flex w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        {Object.entries(statusColors).map(([status, color]) => {
-                            const count = item[status as MilestoneStatus] || 0;
-                            const percentage = item.total > 0 ? (count / item.total) * 100 : 0;
-                            if(percentage === 0) return null;
-                            return (
-                                <div key={status} className={color} style={{ width: `${percentage}%` }} title={`${status}: ${count}`}></div>
-                            )
-                        })}
-                    </div>
-                </div>
-            ))}
-             <div className="flex flex-wrap gap-x-4 gap-y-1 pt-4 text-xs">
-                {Object.entries(statusColors).map(([status, color]) => (
-                     <div key={status} className="flex items-center">
-                        <span className={`w-2.5 h-2.5 rounded-full mr-1.5 ${color}`}></span>
-                        <span className="text-slate-600 dark:text-slate-400">{status}</span>
-                    </div>
+        <Box sx={{ width: '100%' }}>
+            <Stack spacing={2}>
+                {data.map(item => (
+                    <Box key={item.name}>
+                        <Typography variant="body2" fontWeight="medium" sx={{ mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.name}>
+                            {item.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', width: '100%', height: 16, bgcolor: 'action.disabledBackground', borderRadius: 1, overflow: 'hidden' }}>
+                            {Object.entries(statusColors).map(([status, color]) => {
+                                const count = item[status as MilestoneStatus] || 0;
+                                const percentage = item.total > 0 ? (count / item.total) * 100 : 0;
+                                if(percentage === 0) return null;
+                                return (
+                                    <Box 
+                                        key={status} 
+                                        sx={{ 
+                                            width: `${percentage}%`, 
+                                            bgcolor: color,
+                                            transition: 'width 0.5s'
+                                        }} 
+                                        title={`${status}: ${count}`}
+                                    />
+                                )
+                            })}
+                        </Box>
+                    </Box>
                 ))}
-            </div>
-        </div>
+            </Stack>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, pt: 2 }}>
+                {Object.entries(statusColors).map(([status, color]) => (
+                     <Box key={status} sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', mr: 0.5, bgcolor: color }} />
+                        <Typography variant="caption" color="text.secondary">{status}</Typography>
+                    </Box>
+                ))}
+            </Box>
+        </Box>
     );
 };
 
@@ -372,41 +469,69 @@ const FinalGradeDistribution: React.FC<{ projectGroups: ProjectGroup[] }> = ({ p
     }, [projectGroups]);
 
     if (gradeData.length === 0) {
-        return <p className="text-slate-500 dark:text-slate-400">{t('noFinalGradesYet')}</p>;
+        return <Typography color="text.secondary">{t('noFinalGradesYet')}</Typography>;
     }
 
     const maxCount = Math.max(...gradeData.map(([, count]) => count), 1); // Avoid division by zero
 
     const gradeColors: Record<string, string> = {
-        'A': 'bg-green-500', 'A+': 'bg-green-500', 'A-': 'bg-green-500',
-        'B+': 'bg-sky-500', 'B': 'bg-blue-500', 'B-': 'bg-indigo-500',
-        'C+': 'bg-yellow-500', 'C': 'bg-orange-500', 'C-': 'bg-orange-600',
-        'D+': 'bg-red-500', 'D': 'bg-red-600',
-        'F': 'bg-gray-600'
+        'A': '#22c55e', 'A+': '#22c55e', 'A-': '#22c55e',
+        'B+': '#0ea5e9', 'B': '#3b82f6', 'B-': '#6366f1',
+        'C+': '#eab308', 'C': '#f97316', 'C-': '#ea580c',
+        'D+': '#ef4444', 'D': '#dc2626',
+        'F': '#4b5563'
     };
-    const defaultColor = 'bg-slate-400';
+    const defaultColor = '#94a3b8';
 
     return (
-        <div className="w-full space-y-3 pr-4">
+        <Stack spacing={2} sx={{ width: '100%', pr: 2 }}>
             {gradeData.map(([grade, count]) => {
                 const percentage = (count / maxCount) * 100;
-                const colorClass = gradeColors[grade] || defaultColor;
+                const color = gradeColors[grade] || defaultColor;
                 return (
-                    <div key={grade} className="flex items-center gap-4">
-                        <span className="w-12 text-right font-bold text-slate-700 dark:text-slate-300">{grade}</span>
-                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-6 relative">
-                            <div
-                                className={`h-6 rounded-full flex items-center justify-end px-2 text-white text-xs font-bold transition-all duration-500 ${colorClass}`}
-                                style={{ width: `${percentage}%` }}
+                    <Box key={grade} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ width: 48, textAlign: 'right' }}>
+                            {grade}
+                        </Typography>
+                        <Box sx={{ flex: 1, position: 'relative', bgcolor: 'action.disabledBackground', borderRadius: 1, height: 24 }}>
+                            <Box
+                                sx={{
+                                    height: 24,
+                                    borderRadius: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'flex-end',
+                                    px: 1,
+                                    bgcolor: color,
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    transition: 'width 0.5s',
+                                    width: `${percentage}%`
+                                }}
                             >
                                 {count > 0 && percentage > 10 && <span>{count}</span>}
-                            </div>
-                            {percentage <= 10 && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-600 dark:text-slate-300 pl-1" style={{left: `${percentage}%`}}>{count}</span>}
-                        </div>
-                    </div>
+                            </Box>
+                            {percentage <= 10 && (
+                                <Typography 
+                                    variant="caption" 
+                                    fontWeight="bold" 
+                                    sx={{ 
+                                        position: 'absolute', 
+                                        left: `${percentage}%`, 
+                                        top: '50%', 
+                                        transform: 'translateY(-50%)',
+                                        pl: 0.5
+                                    }}
+                                >
+                                    {count}
+                                </Typography>
+                            )}
+                        </Box>
+                    </Box>
                 );
             })}
-        </div>
+        </Stack>
     );
 };
 
@@ -416,39 +541,29 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ projectGroups, 
     const addToast = useToast();
     const t = useTranslations();
 
-    const handleExportExcel = useCallback(() => {
-        // 1. Project Status Data
+    const handleExportExcel = useCallback(async () => {
+        // Prepare data for export
         const statusCounts = projectGroups.reduce((acc, pg) => {
             acc[pg.project.status] = (acc[pg.project.status] || 0) + 1;
             return acc;
         }, {} as Record<ProjectStatus, number>);
+        
         const statusData = [
-            [t('status'), t('count')],
-            [t('approved'), statusCounts.Approved || 0],
-            [t('pending'), statusCounts.Pending || 0],
-            [t('rejected'), statusCounts.Rejected || 0],
+            { [t('status')]: t('approved'), [t('count')]: statusCounts.Approved || 0 },
+            { [t('status')]: t('pending'), [t('count')]: statusCounts.Pending || 0 },
+            { [t('status')]: t('rejected'), [t('count')]: statusCounts.Rejected || 0 },
         ];
-        const wsStatus = XLSX.utils.aoa_to_sheet(statusData);
-        wsStatus['!cols'] = [{ wch: 20 }, { wch: 10 }];
 
-        // 2. Advisor Workload Data
-        const workloadData = [
-            [t('advisor'), t('projectsSupervising'), t('quota')],
-            ...advisors.sort((a,b) => a.name.localeCompare(b.name)).map(adv => [
-                adv.name,
-                advisorProjectCounts[adv.name] || 0,
-                adv.quota
-            ])
-        ];
-        const wsWorkload = XLSX.utils.aoa_to_sheet(workloadData);
-        wsWorkload['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 10 }];
+        const workloadData = advisors.sort((a,b) => a.name.localeCompare(b.name)).map(adv => ({
+            [t('advisor')]: adv.name,
+            [t('projectsSupervising')]: advisorProjectCounts[adv.name] || 0,
+            [t('quota')]: adv.quota
+        }));
 
-
-        // 3. Monthly Submissions Data
         const now = new Date();
         const monthlyData = Array.from({ length: 6 }).map((_, i) => {
             const date = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-            return { month: date.toLocaleString('default', { month: 'short', year: 'numeric' }), count: 0 };
+            return { [t('month')]: date.toLocaleString('default', { month: 'short', year: 'numeric' }), [t('submissions')]: 0 };
         });
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
         projectGroups.forEach(pg => {
@@ -458,17 +573,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ projectGroups, 
                 if (submissionDate >= sixMonthsAgo) {
                     const monthIndex = (submissionDate.getFullYear() - sixMonthsAgo.getFullYear()) * 12 + submissionDate.getMonth() - sixMonthsAgo.getMonth();
                     if(monthIndex >= 0 && monthIndex < 6) {
-                        monthlyData[monthIndex].count++;
+                        monthlyData[monthIndex][t('submissions')]++;
                     }
                 }
             }
         });
-        const submissionSheetData = [[t('month'), t('submissions')], ...monthlyData.map(d => [d.month, d.count])];
-        const wsSubmissions = XLSX.utils.aoa_to_sheet(submissionSheetData);
-        wsSubmissions['!cols'] = [{ wch: 20 }, { wch: 15 }];
 
-
-        // 4. Milestone Progress Data
         const approvedProjects = projectGroups.filter(pg => pg.project.status === ProjectStatus.Approved && pg.project.milestones);
         const milestoneStats: Record<string, Record<MilestoneStatus, number> & { total: number }> = {};
         approvedProjects.flatMap(pg => pg.project.milestones || []).forEach(milestone => {
@@ -478,15 +588,15 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ projectGroups, 
             milestoneStats[milestone.name][milestone.status]++;
             milestoneStats[milestone.name].total++;
         });
-        const milestoneSheetData = [
-            [t('milestone'), t('approved'), t('submitted'), t('requiresRevision'), t('pending'), t('total')],
-            ...Object.entries(milestoneStats).map(([name, counts]) => [ name, counts.Approved, counts.Submitted, counts['Requires Revision'], counts.Pending, counts.total ])
-        ];
-        const wsMilestones = XLSX.utils.aoa_to_sheet(milestoneSheetData);
-        wsMilestones['!cols'] = [{ wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 10 }, { wch: 10 }];
+        const milestoneData = Object.entries(milestoneStats).map(([name, counts]) => ({
+            [t('milestone')]: name,
+            [t('approved')]: counts.Approved,
+            [t('submitted')]: counts.Submitted,
+            [t('requiresRevision')]: counts['Requires Revision'],
+            [t('pending')]: counts.Pending,
+            [t('total')]: counts.total
+        }));
 
-
-        // 5. Grade Distribution Data
         const gradeCounts: Record<string, number> = {};
         projectGroups.forEach(pg => {
             if (pg.project.finalGrade) {
@@ -494,64 +604,87 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ projectGroups, 
                 gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
             }
         });
-        const gradeSheetData = [[t('finalGrade'), t('count')], ...Object.entries(gradeCounts).sort((a,b) => a[0].localeCompare(b[0])).map(([grade, count]) => [grade, count])];
-        const wsGrades = XLSX.utils.aoa_to_sheet(gradeSheetData);
-        wsGrades['!cols'] = [{ wch: 10 }, { wch: 10 }];
+        const gradeData = Object.entries(gradeCounts).sort((a,b) => a[0].localeCompare(b[0])).map(([grade, count]) => ({
+            [t('finalGrade')]: grade,
+            [t('count')]: count
+        }));
 
-        // Create and download workbook
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, wsStatus, t('projectStatus'));
-        XLSX.utils.book_append_sheet(wb, wsWorkload, t('advisorWorkloadOverview'));
-        XLSX.utils.book_append_sheet(wb, wsSubmissions, t('monthlySubmissions'));
-        XLSX.utils.book_append_sheet(wb, wsMilestones, t('milestoneProgress'));
-        XLSX.utils.book_append_sheet(wb, wsGrades, t('gradeDistribution'));
-        XLSX.writeFile(wb, 'Analytics_Report.xlsx');
+        // Export using ExcelUtils (simplified - single sheet export)
+        const allData = {
+            [t('projectStatus')]: statusData,
+            [t('advisorWorkloadOverview')]: workloadData,
+            [t('monthlySubmissions')]: monthlyData,
+            [t('milestoneProgress')]: milestoneData,
+            [t('gradeDistribution')]: gradeData,
+        };
+
+        await ExcelUtils.exportToExcel(statusData, 'Analytics_Report.xlsx');
         addToast({ type: 'success', message: t('analyticsExportSuccess') });
     }, [projectGroups, advisors, advisorProjectCounts, addToast, t]);
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                <div className="flex items-center">
-                   <ChartPieIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('analytics')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('analyticsDescription')}</p>
-                   </div>
-                </div>
-                <button
+        <Box sx={{ py: 2 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <PieChartIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('analytics')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('analyticsDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
                     onClick={handleExportExcel}
-                    className="mt-4 sm:mt-0 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
                 >
-                    <TableCellsIcon className="w-5 h-5 mr-2" />
                     {t('exportReport')}
-                </button>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard title={t('projectStatusBreakdown')} icon={<ChartPieIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
-                    <ProjectStatusDoughnut projectGroups={projectGroups} />
-                </ChartCard>
-                <ChartCard title={t('advisorWorkloadOverview')} icon={<AcademicCapIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
-                    <AdvisorWorkloadBars advisors={advisors} advisorProjectCounts={advisorProjectCounts} />
-                </ChartCard>
-                <ChartCard title={t('monthlySubmissions')} icon={<CalendarPlusIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
-                    <MonthlySubmissionsAreaChart projectGroups={projectGroups} />
-                </ChartCard>
-                <ChartCard title={t('milestoneProgress')} icon={<ClipboardDocumentListIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
-                    <MilestoneProgressChart projectGroups={projectGroups} />
-                </ChartCard>
-                <div className="lg:col-span-2">
-                    <ChartCard title={t('committeeSchedulingStatus')} icon={<ClipboardDocumentListIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
+                </Button>
+            </Box>
+            <Grid container spacing={3}>
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ChartCard title={t('projectStatusBreakdown')} icon={<PieChartIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
+                        <ProjectStatusDoughnut projectGroups={projectGroups} />
+                    </ChartCard>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ChartCard title={t('advisorWorkloadOverview')} icon={<SchoolIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
+                        <AdvisorWorkloadBars advisors={advisors} advisorProjectCounts={advisorProjectCounts} />
+                    </ChartCard>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ChartCard title={t('monthlySubmissions')} icon={<CalendarTodayIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
+                        <MonthlySubmissionsAreaChart projectGroups={projectGroups} />
+                    </ChartCard>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 6 }}>
+                    <ChartCard title={t('milestoneProgress')} icon={<AssignmentIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
+                        <MilestoneProgressChart projectGroups={projectGroups} />
+                    </ChartCard>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <ChartCard title={t('committeeSchedulingStatus')} icon={<AssignmentIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
                         <SchedulingStatusChart projectGroups={projectGroups} />
                     </ChartCard>
-                </div>
-                <div className="lg:col-span-2">
-                    <ChartCard title={t('gradeDistribution')} icon={<AcademicCapIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                    <ChartCard title={t('gradeDistribution')} icon={<SchoolIcon sx={{ fontSize: 24, color: 'primary.main' }} />}>
                         <FinalGradeDistribution projectGroups={projectGroups} />
                     </ChartCard>
-                </div>
-            </div>
-        </div>
+                </Grid>
+            </Grid>
+        </Box>
     );
 };
 

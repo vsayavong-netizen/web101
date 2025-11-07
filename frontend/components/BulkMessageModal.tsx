@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { XMarkIcon, PaperAirplaneIcon, SparklesIcon } from './icons';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, IconButton, Box, Typography, Divider,
+  List, ListItem, ListItemText, CircularProgress
+} from '@mui/material';
+import { 
+  Close as CloseIcon, 
+  Send as PaperAirplaneIcon, 
+  AutoAwesome as SparklesIcon 
+} from '@mui/icons-material';
 import { ProjectGroup, User } from '../types';
 import { GoogleGenAI } from "@google/genai";
 import { useToast } from '../hooks/useToast';
@@ -64,47 +73,83 @@ const BulkMessageModal: React.FC<BulkMessageModalProps> = ({ isOpen, onClose, on
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center pb-4 border-b dark:border-slate-700">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('sendBulkMessage')}</h2>
-                    <button onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
-                        <XMarkIcon className="w-6 h-6" />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+                <Typography variant="h6" fontWeight="bold">
+                    {t('sendBulkMessage')}
+                </Typography>
+                <IconButton onClick={onClose} size="small">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+                <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {t('messageWillBeSentTo').replace('${count}', String(selectedProjects.length))}
+                    </Typography>
+                    <List dense sx={{ maxHeight: 100, overflow: 'auto', bgcolor: 'background.default', borderRadius: 1, mt: 1 }}>
+                        {selectedProjects.map(p => (
+                            <ListItem key={p.project.projectId} sx={{ py: 0.5 }}>
+                                <ListItemText 
+                                    primary={`${p.project.projectId} - ${p.students.map(s => s.name).join(', ')}`}
+                                    primaryTypographyProps={{ variant: 'caption' }}
+                                />
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
 
-                <div className="my-4">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('messageWillBeSentTo').replace('${count}', String(selectedProjects.length))}</p>
-                    <ul className="text-xs text-slate-500 dark:text-slate-500 mt-2 list-disc list-inside max-h-24 overflow-y-auto">
-                        {selectedProjects.map(p => <li key={p.project.projectId}>{p.project.projectId} - {p.students.map(s => s.name).join(', ')}</li>)}
-                    </ul>
-                </div>
-
-                <div className="flex-grow flex flex-col">
-                    <label htmlFor="bulk-message" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('message')}</label>
-                    <textarea
-                        id="bulk-message"
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        fullWidth
+                        multiline
                         rows={6}
+                        id="bulk-message"
+                        label={t('message')}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                         placeholder={t('typeYourMessage')}
                     />
-                    <div className="mt-2 flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('aiTemplates')}</span>
-                        <button onClick={() => handleGenerateMessage('reminder')} disabled={isGenerating} className="flex items-center text-xs font-semibold text-purple-600 hover:underline disabled:opacity-50"><SparklesIcon className="w-4 h-4 mr-1"/>{t('deadlineReminder')}</button>
-                        <button onClick={() => handleGenerateMessage('overdue')} disabled={isGenerating} className="flex items-center text-xs font-semibold text-purple-600 hover:underline disabled:opacity-50"><SparklesIcon className="w-4 h-4 mr-1"/>{t('overdueNotice')}</button>
-                    </div>
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-4 border-t dark:border-slate-700 mt-4">
-                    <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white font-bold py-2 px-4 rounded-lg">{t('cancel')}</button>
-                    <button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
-                        <PaperAirplaneIcon className="w-5 h-5"/> {t('sendMessage')}
-                    </button>
-                </div>
-            </div>
-        </div>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="body2" fontWeight="medium">
+                            {t('aiTemplates')}:
+                        </Typography>
+                        <Button
+                            size="small"
+                            startIcon={isGenerating ? <CircularProgress size={14} /> : <SparklesIcon />}
+                            onClick={() => handleGenerateMessage('reminder')}
+                            disabled={isGenerating}
+                            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                        >
+                            {t('deadlineReminder')}
+                        </Button>
+                        <Button
+                            size="small"
+                            startIcon={isGenerating ? <CircularProgress size={14} /> : <SparklesIcon />}
+                            onClick={() => handleGenerateMessage('overdue')}
+                            disabled={isGenerating}
+                            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                        >
+                            {t('overdueNotice')}
+                        </Button>
+                    </Box>
+                </Box>
+            </DialogContent>
+            <Divider />
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={onClose} variant="outlined">
+                    {t('cancel')}
+                </Button>
+                <Button 
+                    onClick={handleSend} 
+                    variant="contained"
+                    startIcon={<PaperAirplaneIcon />}
+                >
+                    {t('sendMessage')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

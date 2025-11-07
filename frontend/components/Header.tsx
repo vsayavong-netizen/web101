@@ -1,5 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { PlusIcon, ArrowRightOnRectangleIcon, BuildingLibraryIcon, ArrowDownTrayIcon, SunIcon, MoonIcon, AcademicCapIcon, UserGroupIcon, BookOpenIcon, BuildingOfficeIcon, CalendarPlusIcon, BellIcon, TableCellsIcon, ClipboardDocumentCheckIcon, ChartBarIcon, ChartPieIcon, MegaphoneIcon, InboxStackIcon, UserCircleIcon, UserIcon as ProfileIcon, ClipboardDocumentListIcon, DocumentCheckIcon, PencilSquareIcon, Cog6ToothIcon, CalendarDaysIcon, DocumentChartBarIcon, KeyIcon, SparklesIcon, CheckIcon } from './icons';
+import { 
+  Box, Paper, Button, IconButton, Badge, Menu, MenuItem, Select, 
+  Typography, Divider, Stack,
+  FormControl, Tooltip, Chip
+} from '@mui/material';
+import { 
+  School as SchoolIcon, 
+  LightMode as LightModeIcon, 
+  DarkMode as DarkModeIcon, 
+  Check as CheckIcon,
+  AccountCircle as AccountCircleIcon
+} from '@mui/icons-material';
+import { ArrowRightOnRectangleIcon, BuildingLibraryIcon, ArrowDownTrayIcon, AcademicCapIcon, UserGroupIcon, BookOpenIcon, BuildingOfficeIcon, CalendarPlusIcon, BellIcon, TableCellsIcon, ClipboardDocumentCheckIcon, ChartBarIcon, ChartPieIcon, MegaphoneIcon, InboxStackIcon, UserIcon as ProfileIcon, ClipboardDocumentListIcon, DocumentCheckIcon, PencilSquareIcon, Cog6ToothIcon, CalendarDaysIcon, DocumentChartBarIcon, KeyIcon, SparklesIcon, PlusIcon } from './icons';
 import { useTheme } from '../hooks/useTheme';
 import { User, Notification, Role, Student, Advisor } from '../types';
 import NotificationPanel from './NotificationPanel';
@@ -40,17 +52,21 @@ const NavButton: React.FC<{
 }> = ({ currentView, activeView, onClick, children, icon }) => {
   const isActive = activeView === currentView;
   return (
-     <button
-        onClick={onClick}
-        className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          isActive
-            ? 'bg-blue-600 text-white'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-        }`}
-      >
-        {icon}
-        <span>{children}</span>
-      </button>
+    <Button
+      onClick={onClick}
+      variant={isActive ? 'contained' : 'text'}
+      color={isActive ? 'primary' : 'inherit'}
+      startIcon={icon}
+      sx={{
+        textTransform: 'none',
+        fontWeight: isActive ? 600 : 400,
+        minWidth: 'auto',
+        px: 2,
+        py: 1,
+      }}
+    >
+      {children}
+    </Button>
   )
 }
 
@@ -65,21 +81,24 @@ interface RoleSwitchButtonProps {
 const RoleSwitchButton: React.FC<RoleSwitchButtonProps> = ({ role, label, icon, activeRole, onSwitch }) => {
     const isActive = role === activeRole;
     return (
-        <button
+        <MenuItem
             onClick={onSwitch}
-            className={`w-full text-left flex items-center justify-between gap-2 px-4 py-2 text-sm ${
-                isActive 
-                    ? 'font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
-            }`}
-            role="menuitem"
+            selected={isActive}
+            sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 1,
+                fontWeight: isActive ? 600 : 400,
+                bgcolor: isActive ? 'action.selected' : 'transparent',
+            }}
         >
-            <div className="flex items-center gap-2">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {icon}
                 {label}
-            </div>
-            {isActive && <CheckIcon className="w-4 h-4" />}
-        </button>
+            </Box>
+            {isActive && <CheckIcon sx={{ width: 16, height: 16 }} />}
+        </MenuItem>
     );
 };
 
@@ -118,98 +137,164 @@ const Header: React.FC<HeaderProps> = (props) => {
   const isFullAdminView = effectiveRole === 'Admin' || effectiveRole === 'DepartmentAdmin';
   const showProjectActions = isFullAdminView && activeView === 'projects';
 
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchor(event.currentTarget);
+    setIsUserMenuOpen(true);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
+    setIsUserMenuOpen(false);
+  };
+
   return (
-    <header className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-slate-300 dark:border-slate-700">
-        <div className="flex items-center">
-          <BuildingLibraryIcon className="w-10 h-10 text-blue-600 mr-3" />
-          <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t('finalProjectDashboard')}</h1>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
-                {t('academicYear')} <span className="font-semibold">{currentAcademicYear}</span>
-              </p>
-          </div>
-        </div>
-        <div className="flex items-center mt-4 sm:mt-0 space-x-2 flex-wrap gap-2">
+    <Box component="header" sx={{ mb: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          pb: 3,
+          borderBottom: 1,
+          borderColor: 'divider',
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <SchoolIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h4" component="h1" fontWeight="bold">
+              {t('finalProjectDashboard')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {t('academicYear')} <Typography component="span" fontWeight={600}>{currentAcademicYear}</Typography>
+            </Typography>
+          </Box>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: { xs: 2, sm: 0 } }}>
            {user.role === 'Admin' && (
-             <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg shadow-md p-1.5 space-x-2">
-                <label htmlFor="academic-year" className="text-sm font-medium text-slate-600 dark:text-slate-300 pl-2">{t('ay')}</label>
-                <select 
-                    id="academic-year"
-                    value={currentAcademicYear} 
-                    onChange={e => onYearChange(e.target.value)}
-                    className="rounded-md border-0 bg-transparent py-1 pl-2 pr-7 text-slate-800 dark:text-slate-100 font-semibold focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
-                >
+             <Paper
+               elevation={2}
+               sx={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: 1,
+                 px: 1.5,
+                 py: 1,
+               }}
+             >
+                <Typography variant="body2" sx={{ pl: 1 }}>{t('ay')}</Typography>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <Select
+                    value={currentAcademicYear}
+                    onChange={(e) => onYearChange(e.target.value)}
+                    sx={{
+                      fontWeight: 600,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: 'none',
+                      },
+                    }}
+                  >
                     {availableYears.map(year => (
-                        <option key={year} value={year}>{year}</option>
+                      <MenuItem key={year} value={year}>{year}</MenuItem>
                     ))}
-                </select>
-                <button
+                  </Select>
+                </FormControl>
+                <Tooltip title={t('startNewYear')}>
+                  <IconButton
                     onClick={onStartNewYear}
-                    className="flex items-center justify-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold p-2 rounded-md transition-colors"
-                    title={t('startNewYear')}
-                >
-                    <CalendarPlusIcon className="w-5 h-5"/>
-                </button>
-             </div>
+                    size="small"
+                    sx={{ bgcolor: 'action.hover' }}
+                  >
+                    <CalendarPlusIcon sx={{ width: 20, height: 20 }} />
+                  </IconButton>
+                </Tooltip>
+             </Paper>
            )}
            {effectiveRole === 'Advisor' && onToggleReviewFilter && (
-                <button
+                <Button
                     id="needs-review-btn"
                     onClick={onToggleReviewFilter}
-                    className={`relative flex items-center justify-center font-bold py-2 px-4 rounded-lg shadow-md transition-colors ${
-                        isReviewFilterActive 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white'
-                    }`}
+                    variant={isReviewFilterActive ? 'contained' : 'outlined'}
+                    color={isReviewFilterActive ? 'primary' : 'inherit'}
+                    startIcon={<InboxStackIcon sx={{ width: 20, height: 20 }} />}
+                    sx={{
+                      fontWeight: 'bold',
+                      position: 'relative',
+                    }}
                 >
-                    <InboxStackIcon className="w-5 h-5 mr-2" />
                     {t('needsReview')}
                     {projectsToReviewCount && projectsToReviewCount > 0 && (
-                        <span className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium text-white ring-2 ring-slate-100 dark:ring-slate-900 ${isReviewFilterActive ? 'bg-blue-800' : 'bg-red-500'}`}>
-                            {projectsToReviewCount}
-                        </span>
+                        <Chip
+                            label={projectsToReviewCount}
+                            size="small"
+                            color={isReviewFilterActive ? 'primary' : 'error'}
+                            sx={{
+                              position: 'absolute',
+                              top: -8,
+                              right: -8,
+                              height: 20,
+                              minWidth: 20,
+                              fontSize: '0.75rem',
+                            }}
+                        />
                     )}
-                </button>
+                </Button>
            )}
            {showProjectActions && (
              <>
-              <button
+              <Button
                 onClick={onRegisterClick}
-                className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                variant="contained"
+                color="primary"
+                startIcon={<PlusIcon sx={{ width: 20, height: 20 }} />}
+                sx={{ fontWeight: 'bold' }}
               >
-                <PlusIcon className="w-5 h-5 mr-2" />
                 {t('registerProject')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onExportCsv}
-                className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                variant="contained"
+                sx={{ 
+                  bgcolor: 'teal.600',
+                  '&:hover': { bgcolor: 'teal.700' },
+                  fontWeight: 'bold',
+                }}
+                startIcon={<ArrowDownTrayIcon sx={{ width: 20, height: 20 }} />}
               >
-                <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
                 {t('exportCsv')}
-              </button>
-               <button
+              </Button>
+              <Button
                 onClick={onExportExcel}
-                className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                variant="contained"
+                sx={{ 
+                  bgcolor: 'green.600',
+                  '&:hover': { bgcolor: 'green.700' },
+                  fontWeight: 'bold',
+                }}
+                startIcon={<TableCellsIcon sx={{ width: 20, height: 20 }} />}
               >
-                <TableCellsIcon className="w-5 h-5 mr-2" />
                 {t('exportExcel')}
-              </button>
+              </Button>
              </>
            )}
-          <div className="relative" ref={notificationPanelRef}>
-              <button
-                onClick={() => setIsNotificationPanelOpen(p => !p)}
-                className="relative flex items-center justify-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold p-2.5 rounded-lg shadow-md transition-transform transform hover:scale-105"
-                aria-label={t('viewNotifications').replace('${unreadCount}', String(unreadCount))}
-              >
-                  <BellIcon className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white ring-2 ring-slate-100 dark:ring-slate-900">
-                      {unreadCount}
-                    </span>
-                  )}
-              </button>
+          <Box ref={notificationPanelRef} sx={{ position: 'relative' }}>
+              <Tooltip title={t('viewNotifications').replace('${unreadCount}', String(unreadCount))}>
+                <IconButton
+                  onClick={() => setIsNotificationPanelOpen(p => !p)}
+                  sx={{ 
+                    bgcolor: 'action.hover',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  <Badge badgeContent={unreadCount > 0 ? unreadCount : undefined} color="error">
+                    <BellIcon sx={{ width: 20, height: 20 }} />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
               {isNotificationPanelOpen && (
                    <NotificationPanel
                        notifications={notifications}
@@ -218,115 +303,184 @@ const Header: React.FC<HeaderProps> = (props) => {
                        onViewAll={() => { onNavigate('notifications'); setIsNotificationPanelOpen(false); }}
                    />
                )}
-          </div>
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold p-2.5 rounded-lg shadow-md transition-transform transform hover:scale-105"
-            aria-label={theme === 'light' ? t('switchToDarkMode') : t('switchToLightMode')}
-          >
-              {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-          </button>
-          <button
-            onClick={() => setLanguage(language === 'en' ? 'lo' : 'en')}
-            className="flex items-center justify-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold w-10 h-10 rounded-lg shadow-md transition-transform transform hover:scale-105"
-            aria-label={language === 'en' ? t('switchToLao') : t('switchToEnglish')}
-          >
-              <span className="font-semibold text-sm">{language === 'en' ? 'ພາສາລາວ' : 'EN'}</span>
-          </button>
-           <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setIsUserMenuOpen(p => !p)}
-                className="flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg shadow-md p-2 transition-transform transform hover:scale-105"
-                aria-haspopup="true"
-                aria-expanded={isUserMenuOpen}
+          </Box>
+          <Tooltip title={theme === 'light' ? t('switchToDarkMode') : t('switchToLightMode')}>
+            <IconButton
+              onClick={toggleTheme}
+              sx={{ bgcolor: 'action.hover', fontWeight: 'bold' }}
+            >
+              {theme === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={language === 'en' ? t('switchToLao') : t('switchToEnglish')}>
+            <IconButton
+              onClick={() => setLanguage(language === 'en' ? 'lo' : 'en')}
+              sx={{ bgcolor: 'action.hover', fontWeight: 'bold', minWidth: 40, width: 40, height: 40 }}
+            >
+              <Typography variant="body2" fontWeight={600}>
+                {language === 'en' ? 'ພາສາລາວ' : 'EN'}
+              </Typography>
+            </IconButton>
+          </Tooltip>
+          <Box ref={userMenuRef} sx={{ position: 'relative' }}>
+              <Button
+                onClick={handleUserMenuOpen}
+                variant="outlined"
+                startIcon={<AccountCircleIcon />}
+                sx={{
+                  bgcolor: 'background.paper',
+                  '& .MuiButton-startIcon': {
+                    marginRight: { xs: 0, sm: 1 },
+                  },
+                }}
               >
-                <UserCircleIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" />
-                <span className="hidden sm:inline font-semibold text-slate-700 dark:text-slate-200 mx-2">{user.name}</span>
-              </button>
-              {isUserMenuOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 dark:ring-slate-700 z-50">
-                    <div className="py-1" role="menu" aria-orientation="vertical">
-                      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('signedInAs')}</p>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name} ({user.role})</p>
-                      </div>
-                      {user.role === 'DepartmentAdmin' && (
-                        <div className="py-1 border-b border-slate-200 dark:border-slate-700">
-                            <p className="px-4 pt-1 pb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">{t('switchView')}</p>
-                            <RoleSwitchButton
-                                role="DepartmentAdmin"
-                                label={t('deptAdmin')}
-                                icon={<KeyIcon className="w-4 h-4" />}
-                                activeRole={effectiveRole}
-                                onSwitch={() => { onSwitchRole('DepartmentAdmin'); setIsUserMenuOpen(false); }}
-                            />
-                             <RoleSwitchButton
-                                role="Advisor"
-                                label={t('advisor')}
-                                icon={<AcademicCapIcon className="w-4 h-4" />}
-                                activeRole={effectiveRole}
-                                onSwitch={() => { onSwitchRole('Advisor'); setIsUserMenuOpen(false); }}
-                            />
-                        </div>
-                      )}
-                       <button
-                        onClick={() => { onOpenProfile(); setIsUserMenuOpen(false); }}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                        role="menuitem"
-                      >
-                        <ProfileIcon className="w-4 h-4" />
-                        {t('myProfile')}
-                      </button>
-                      <button
-                        onClick={onLogout}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                        role="menuitem"
-                      >
-                        <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                        {t('logout')}
-                      </button>
-                    </div>
-                  </div>
-              )}
-            </div>
-        </div>
-      </div>
-      <nav className="flex items-center bg-slate-200/60 dark:bg-slate-800/60 p-1.5 rounded-lg space-x-1 flex-wrap">
-          {effectiveRole !== 'Student' && <NavButton currentView="dashboard" activeView={activeView} onClick={() => onNavigate('dashboard')} icon={<BuildingLibraryIcon className="w-5 h-5" />}>{t('dashboard')}</NavButton>}
-          {effectiveRole === 'Student' && <NavButton currentView="projects" activeView={activeView} onClick={() => onNavigate('projects')} icon={<BuildingLibraryIcon className="w-5 h-5" />}>{t('myProject')}</NavButton>}
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, fontWeight: 600 }}>
+                  {user.name}
+                </Box>
+              </Button>
+              <Menu
+                anchorEl={userMenuAnchor}
+                open={isUserMenuOpen}
+                onClose={handleUserMenuClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                PaperProps={{
+                  sx: { minWidth: 224, mt: 1 }
+                }}
+              >
+                <Box sx={{ px: 2, py: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('signedInAs')}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500} noWrap>
+                    {user.name} ({user.role})
+                  </Typography>
+                </Box>
+                {user.role === 'DepartmentAdmin' && (
+                  <>
+                    <Divider />
+                    <Box sx={{ py: 0.5 }}>
+                      <Typography variant="caption" sx={{ px: 2, py: 1, display: 'block', fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                        {t('switchView')}
+                      </Typography>
+                      <RoleSwitchButton
+                        role="DepartmentAdmin"
+                        label={t('deptAdmin')}
+                        icon={<KeyIcon sx={{ width: 16, height: 16 }} />}
+                        activeRole={effectiveRole}
+                        onSwitch={() => { onSwitchRole('DepartmentAdmin'); handleUserMenuClose(); }}
+                      />
+                      <RoleSwitchButton
+                        role="Advisor"
+                        label={t('advisor')}
+                        icon={<AcademicCapIcon sx={{ width: 16, height: 16 }} />}
+                        activeRole={effectiveRole}
+                        onSwitch={() => { onSwitchRole('Advisor'); handleUserMenuClose(); }}
+                      />
+                    </Box>
+                  </>
+                )}
+                <Divider />
+                <MenuItem
+                  onClick={() => { onOpenProfile(); handleUserMenuClose(); }}
+                >
+                  <ProfileIcon sx={{ width: 16, height: 16, mr: 1 }} />
+                  {t('myProfile')}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => { onLogout(); handleUserMenuClose(); }}
+                >
+                  <ArrowRightOnRectangleIcon sx={{ width: 16, height: 16, mr: 1 }} />
+                  {t('logout')}
+                </MenuItem>
+              </Menu>
+            </Box>
+        </Stack>
+      </Box>
+      <Paper
+        elevation={0}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.5,
+          p: 1.5,
+          bgcolor: 'action.hover',
+          flexWrap: 'wrap',
+        }}
+      >
+          {effectiveRole !== 'Student' && (
+            <NavButton 
+              currentView="dashboard" 
+              activeView={activeView} 
+              onClick={() => onNavigate('dashboard')} 
+              icon={<BuildingLibraryIcon sx={{ width: 20, height: 20 }} />}
+            >
+              {t('dashboard')}
+            </NavButton>
+          )}
+          {effectiveRole === 'Student' && (
+            <NavButton 
+              currentView="projects" 
+              activeView={activeView} 
+              onClick={() => onNavigate('projects')} 
+              icon={<BuildingLibraryIcon sx={{ width: 20, height: 20 }} />}
+            >
+              {t('myProject')}
+            </NavButton>
+          )}
           
           {isFullAdminView && (
-             <NavButton currentView="projects" activeView={activeView} onClick={() => onNavigate('projects')} icon={<TableCellsIcon className="w-5 h-5" />}>{t('projects')}</NavButton>
+             <NavButton 
+               currentView="projects" 
+               activeView={activeView} 
+               onClick={() => onNavigate('projects')} 
+               icon={<TableCellsIcon sx={{ width: 20, height: 20 }} />}
+             >
+               {t('projects')}
+             </NavButton>
           )}
 
-          <NavButton currentView="calendar" activeView={activeView} onClick={() => onNavigate('calendar')} icon={<CalendarDaysIcon className="w-5 h-5" />}>{t('calendar')}</NavButton>
+          <NavButton 
+            currentView="calendar" 
+            activeView={activeView} 
+            onClick={() => onNavigate('calendar')} 
+            icon={<CalendarDaysIcon sx={{ width: 20, height: 20 }} />}
+          >
+            {t('calendar')}
+          </NavButton>
 
           {isFullAdminView && (
             <>
-                <NavButton currentView="students" activeView={activeView} onClick={() => onNavigate('students')} icon={<UserGroupIcon className="w-5 h-5" />}>{t('students')}</NavButton>
-                <NavButton currentView="advisors" activeView={activeView} onClick={() => onNavigate('advisors')} icon={<AcademicCapIcon className="w-5 h-5" />}>{t('advisors')}</NavButton>
-                {user.role === 'Admin' && <NavButton currentView="deptAdmins" activeView={activeView} onClick={() => onNavigate('deptAdmins')} icon={<KeyIcon className="w-5 h-5" />}>{t('deptAdmins')}</NavButton>}
-                <NavButton currentView="majors" activeView={activeView} onClick={() => onNavigate('majors')} icon={<BookOpenIcon className="w-5 h-5" />}>{t('majors')}</NavButton>
-                <NavButton currentView="classrooms" activeView={activeView} onClick={() => onNavigate('classrooms')} icon={<BuildingOfficeIcon className="w-5 h-5" />}>{t('classrooms')}</NavButton>
-                <NavButton currentView="committees" activeView={activeView} onClick={() => onNavigate('committees')} icon={<ClipboardDocumentListIcon className="w-5 h-5" />}>{t('committees')}</NavButton>
-                <NavButton currentView="scoring" activeView={activeView} onClick={() => onNavigate('scoring')} icon={<PencilSquareIcon className="w-5 h-5" />}>{t('scoringNav')}</NavButton>
-                <NavButton currentView="finalGrades" activeView={activeView} onClick={() => onNavigate('finalGrades')} icon={<DocumentCheckIcon className="w-5 h-5" />}>{t('finalGrades')}</NavButton>
-                <NavButton currentView="milestoneTemplates" activeView={activeView} onClick={() => onNavigate('milestoneTemplates')} icon={<ClipboardDocumentCheckIcon className="w-5 h-5" />}>{t('templates')}</NavButton>
-                <NavButton currentView="submissions" activeView={activeView} onClick={() => onNavigate('submissions')} icon={<InboxStackIcon className="w-5 h-5" />}>{t('submissions')}</NavButton>
-                <NavButton currentView="timeline" activeView={activeView} onClick={() => onNavigate('timeline')} icon={<ChartBarIcon className="w-5 h-5" />}>{t('timeline')}</NavButton>
-                <NavButton currentView="analytics" activeView={activeView} onClick={() => onNavigate('analytics')} icon={<ChartPieIcon className="w-5 h-5" />}>{t('analytics')}</NavButton>
-                <NavButton currentView="announcements" activeView={activeView} onClick={() => onNavigate('announcements')} icon={<MegaphoneIcon className="w-5 h-5" />}>{t('announcements')}</NavButton>
-                <NavButton currentView="reporting" activeView={activeView} onClick={() => onNavigate('reporting')} icon={<DocumentChartBarIcon className="w-5 h-5" />}>{t('reporting')}</NavButton>
-                <NavButton currentView="aiTools" activeView={activeView} onClick={() => onNavigate('aiTools')} icon={<SparklesIcon className="w-5 h-5" />}>{t('aiTools')}</NavButton>
+                <NavButton currentView="students" activeView={activeView} onClick={() => onNavigate('students')} icon={<UserGroupIcon sx={{ width: 20, height: 20 }} />}>{t('students')}</NavButton>
+                <NavButton currentView="advisors" activeView={activeView} onClick={() => onNavigate('advisors')} icon={<AcademicCapIcon sx={{ width: 20, height: 20 }} />}>{t('advisors')}</NavButton>
+                {user.role === 'Admin' && <NavButton currentView="deptAdmins" activeView={activeView} onClick={() => onNavigate('deptAdmins')} icon={<KeyIcon sx={{ width: 20, height: 20 }} />}>{t('deptAdmins')}</NavButton>}
+                <NavButton currentView="majors" activeView={activeView} onClick={() => onNavigate('majors')} icon={<BookOpenIcon sx={{ width: 20, height: 20 }} />}>{t('majors')}</NavButton>
+                <NavButton currentView="classrooms" activeView={activeView} onClick={() => onNavigate('classrooms')} icon={<BuildingOfficeIcon sx={{ width: 20, height: 20 }} />}>{t('classrooms')}</NavButton>
+                <NavButton currentView="committees" activeView={activeView} onClick={() => onNavigate('committees')} icon={<ClipboardDocumentListIcon sx={{ width: 20, height: 20 }} />}>{t('committees')}</NavButton>
+                <NavButton currentView="scoring" activeView={activeView} onClick={() => onNavigate('scoring')} icon={<PencilSquareIcon sx={{ width: 20, height: 20 }} />}>{t('scoringNav')}</NavButton>
+                <NavButton currentView="finalGrades" activeView={activeView} onClick={() => onNavigate('finalGrades')} icon={<DocumentCheckIcon sx={{ width: 20, height: 20 }} />}>{t('finalGrades')}</NavButton>
+                <NavButton currentView="milestoneTemplates" activeView={activeView} onClick={() => onNavigate('milestoneTemplates')} icon={<ClipboardDocumentCheckIcon sx={{ width: 20, height: 20 }} />}>{t('templates')}</NavButton>
+                <NavButton currentView="submissions" activeView={activeView} onClick={() => onNavigate('submissions')} icon={<InboxStackIcon sx={{ width: 20, height: 20 }} />}>{t('submissions')}</NavButton>
+                <NavButton currentView="timeline" activeView={activeView} onClick={() => onNavigate('timeline')} icon={<ChartBarIcon sx={{ width: 20, height: 20 }} />}>{t('timeline')}</NavButton>
+                <NavButton currentView="analytics" activeView={activeView} onClick={() => onNavigate('analytics')} icon={<ChartPieIcon sx={{ width: 20, height: 20 }} />}>{t('analytics')}</NavButton>
+                <NavButton currentView="announcements" activeView={activeView} onClick={() => onNavigate('announcements')} icon={<MegaphoneIcon sx={{ width: 20, height: 20 }} />}>{t('announcements')}</NavButton>
+                <NavButton currentView="reporting" activeView={activeView} onClick={() => onNavigate('reporting')} icon={<DocumentChartBarIcon sx={{ width: 20, height: 20 }} />}>{t('reporting')}</NavButton>
+                <NavButton currentView="aiTools" activeView={activeView} onClick={() => onNavigate('aiTools')} icon={<SparklesIcon sx={{ width: 20, height: 20 }} />}>{t('aiTools')}</NavButton>
             </>
           )}
            {user.role === 'Admin' && (
             <>
-              <NavButton currentView="settings" activeView={activeView} onClick={() => onNavigate('settings')} icon={<Cog6ToothIcon className="w-5 h-5" />}>{t('settings')}</NavButton>
+              <NavButton currentView="settings" activeView={activeView} onClick={() => onNavigate('settings')} icon={<Cog6ToothIcon sx={{ width: 20, height: 20 }} />}>{t('settings')}</NavButton>
             </>
           )}
-      </nav>
-    </header>
+      </Paper>
+    </Box>
   );
 };
 

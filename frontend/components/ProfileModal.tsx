@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, IconButton, Box, Typography, Divider,
+  Avatar, Grid, Paper, Accordion, AccordionSummary, AccordionDetails,
+  CircularProgress, Alert, List, ListItem, ListItemText, Chip
+} from '@mui/material';
+import {
+  Close as CloseIcon,
+  Person as UserCircleIcon,
+  Edit as PencilIcon,
+  Check as CheckIcon,
+  AutoAwesome as SparklesIcon,
+  ExpandMore as ChevronDownIcon,
+  Assignment as ClipboardDocumentListIcon,
+  School as AcademicCapIcon,
+  Favorite as HeartIcon,
+  Lock as KeyIcon
+} from '@mui/icons-material';
 import { User, Student, Advisor, ProjectGroup, StudentSkillsAnalysis, CareerPathSuggestion, AdvisorMentoringAnalysis } from '../types';
-import { XMarkIcon, UserCircleIcon, PencilIcon, CheckIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon, ClipboardDocumentListIcon, AcademicCapIcon, HeartIcon, KeyIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import { GoogleGenAI, Type } from "@google/genai";
 import { useTranslations } from '../hooks/useTranslations';
@@ -21,10 +38,18 @@ interface ProfileModalProps {
 }
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="py-2 sm:grid sm:grid-cols-3 sm:gap-4">
-        <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</dt>
-        <dd className="mt-1 text-sm text-slate-900 dark:text-white sm:col-span-2 sm:mt-0">{value}</dd>
-    </div>
+    <Grid container spacing={2} sx={{ py: 1 }}>
+        <Grid item xs={12} sm={3}>
+            <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                {label}
+            </Typography>
+        </Grid>
+        <Grid item xs={12} sm={9}>
+            <Typography variant="body2">
+                {value}
+            </Typography>
+        </Grid>
+    </Grid>
 );
 
 const EditableField: React.FC<{
@@ -49,48 +74,59 @@ const EditableField: React.FC<{
     };
 
     return (
-        <div className="py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:items-center">
-            <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</dt>
-            <dd className="mt-1 sm:col-span-2 sm:mt-0">
+        <Grid container spacing={2} sx={{ py: 1 }} alignItems="center">
+            <Grid item xs={12} sm={3}>
+                <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                    {label}
+                </Typography>
+            </Grid>
+            <Grid item xs={12} sm={9}>
                 {isEditing ? (
-                    <div className="flex items-center gap-2">
-                        <input
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <TextField
+                            fullWidth
+                            size="small"
                             type={type}
                             value={currentValue}
                             onChange={(e) => setCurrentValue(e.target.value)}
-                            className={`block w-full rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 ${error ? 'ring-red-500' : ''}`}
+                            error={!!error}
+                            helperText={error}
                         />
-                        <button onClick={handleSave} className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-full"><CheckIcon className="w-5 h-5"/></button>
-                        <button onClick={() => { setIsEditing(false); setCurrentValue(value); }} className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><XMarkIcon className="w-5 h-5"/></button>
-                    </div>
+                        <IconButton onClick={handleSave} color="success" size="small">
+                            <CheckIcon />
+                        </IconButton>
+                        <IconButton onClick={() => { setIsEditing(false); setCurrentValue(value); }} color="error" size="small">
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
                 ) : (
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-900 dark:text-white">{value}</span>
-                        <button onClick={() => setIsEditing(true)} className="p-2 text-slate-500 hover:text-blue-600 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><PencilIcon className="w-4 h-4"/></button>
-                    </div>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2">{value}</Typography>
+                        <IconButton onClick={() => setIsEditing(true)} size="small" color="primary">
+                            <PencilIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
                 )}
-                {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-            </dd>
-        </div>
+            </Grid>
+        </Grid>
     );
 };
 
 const CollapsibleSection: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = false }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
-        <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-center p-3 bg-slate-100 dark:bg-slate-900/50 rounded-lg"
-            >
-                <div className="flex items-center gap-2">
+        <Accordion defaultExpanded={defaultOpen}>
+            <AccordionSummary expandIcon={<ChevronDownIcon />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {icon}
-                    <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300">{title}</h4>
-                </div>
-                {isOpen ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
-            </button>
-            {isOpen && <div className="p-4">{children}</div>}
-        </div>
+                    <Typography variant="subtitle2" fontWeight="medium">
+                        {title}
+                    </Typography>
+                </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+                {children}
+            </AccordionDetails>
+        </Accordion>
     );
 };
 
@@ -99,23 +135,31 @@ const CollapsibleAiSection: React.FC<{ title: string; icon: React.ReactNode; chi
     const t = useTranslations();
     return (
         <CollapsibleSection title={title} icon={icon}>
-            <div className="p-0">
+            <Box>
                 {!analysisPerformed && canAnalyze && (
-                    <button onClick={onAnalyze} disabled={isLoading} className="w-full flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                        {isLoading ? (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>) : <SparklesIcon className="w-5 h-5" />}
-                        <span className="ml-2">{isLoading ? t('analyzing') : t('analyzeWithAI')}</span>
-                    </button>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        color="secondary"
+                        onClick={onAnalyze}
+                        disabled={isLoading}
+                        startIcon={isLoading ? <CircularProgress size={20} /> : <SparklesIcon />}
+                    >
+                        {isLoading ? t('analyzing') : t('analyzeWithAI')}
+                    </Button>
                 )}
                 {!canAnalyze && !analysisPerformed && (
-                    <p className="text-sm text-center text-slate-500 dark:text-slate-400">{t('notEnoughData')}</p>
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                        {t('notEnoughData')}
+                    </Typography>
                 )}
                 {isLoading && !analysisPerformed && (
-                    <div className="flex justify-center items-center py-4">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress />
+                    </Box>
                 )}
                 {analysisPerformed && children}
-            </div>
+            </Box>
         </CollapsibleSection>
     );
 };
@@ -264,104 +308,202 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, user
 
     const renderContent = () => {
         if (!userData) {
-            return <div className="text-center text-slate-500 dark:text-slate-400">{t('userDataNotFound')}</div>;
+            return (
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                    {t('userDataNotFound')}
+                </Typography>
+            );
         }
 
         switch (user.role) {
             case 'Student':
                 const student = userData as Student;
                 return (
-                    <div className="space-y-4">
-                        <CollapsibleSection title={t('personalInformation')} icon={<UserCircleIcon className="w-5 h-5"/>} defaultOpen>
-                            <dl className="divide-y divide-slate-200 dark:divide-slate-700">
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <CollapsibleSection title={t('personalInformation')} icon={<UserCircleIcon />} defaultOpen>
+                            <Box>
                                 <InfoRow label={t('studentId')} value={student.studentId} />
+                                <Divider />
                                 <InfoRow label={t('fullName')} value={`${student.name} ${student.surname}`} />
+                                <Divider />
                                 <InfoRow label={t('major')} value={student.major} />
+                                <Divider />
                                 <EditableField label={t('email')} value={student.email} type="email" onSave={(value) => handleUpdateStudentField('email', value)} error={studentErrors.email} />
+                                <Divider />
                                 <EditableField label={t('telephone')} value={student.tel} type="tel" onSave={(value) => handleUpdateStudentField('tel', value)} error={studentErrors.tel} />
-                            </dl>
+                            </Box>
                         </CollapsibleSection>
-                        <CollapsibleSection title={t('security')} icon={<KeyIcon className="w-5 h-5"/>} defaultOpen={isPasswordChangeForced}>
-                             <div className="space-y-3">
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('currentPassword')}</label><input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="input-style mt-1" /></div>
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('newPassword')}</label><input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input-style mt-1" /></div>
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('confirmNewPassword')}</label><input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className="input-style mt-1" /></div>
-                                {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
-                                <button onClick={handlePasswordChange} className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">{t('updatePasswordBtn')}</button>
-                             </div>
+                        <CollapsibleSection title={t('security')} icon={<KeyIcon />} defaultOpen={isPasswordChangeForced}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('currentPassword')}
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('newPassword')}
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('confirmNewPassword')}
+                                    value={confirmNewPassword}
+                                    onChange={e => setConfirmNewPassword(e.target.value)}
+                                    size="small"
+                                    error={!!passwordError}
+                                    helperText={passwordError}
+                                />
+                                <Button onClick={handlePasswordChange} variant="contained" fullWidth>
+                                    {t('updatePasswordBtn')}
+                                </Button>
+                            </Box>
                         </CollapsibleSection>
-                        <CollapsibleAiSection title={t('aiSkillsAnalysis')} icon={<ClipboardDocumentListIcon className="w-5 h-5 text-blue-600"/>} onAnalyze={analyzeSkills} isLoading={isAnalyzingSkills} analysisPerformed={!!skillsAnalysis} canAnalyze={!!studentProjectGroup}>
+                        <CollapsibleAiSection title={t('aiSkillsAnalysis')} icon={<ClipboardDocumentListIcon color="primary" />} onAnalyze={analyzeSkills} isLoading={isAnalyzingSkills} analysisPerformed={!!skillsAnalysis} canAnalyze={!!studentProjectGroup}>
                             {skillsAnalysis && (
-                                <div className="space-y-3 text-sm">
-                                    <p className="italic text-slate-600 dark:text-slate-400">{skillsAnalysis.summary}</p>
-                                    <ul className="space-y-2">
-                                        {skillsAnalysis.skills.map(s => <li key={s.skill} className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md"><strong className="font-semibold text-slate-800 dark:text-slate-100">{s.skill}:</strong> {s.justification}</li>)}
-                                    </ul>
-                                </div>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Typography variant="body2" fontStyle="italic" color="text.secondary">
+                                        {skillsAnalysis.summary}
+                                    </Typography>
+                                    <List dense>
+                                        {skillsAnalysis.skills.map(s => (
+                                            <ListItem key={s.skill} sx={{ bgcolor: 'background.default', borderRadius: 1, mb: 1 }}>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2" fontWeight="medium">{s.skill}:</Typography>}
+                                                    secondary={s.justification}
+                                                />
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                </Box>
                             )}
                         </CollapsibleAiSection>
-                        <CollapsibleAiSection title={t('aiCareerPathSuggestions')} icon={<AcademicCapIcon className="w-5 h-5 text-blue-600"/>} onAnalyze={suggestCareers} isLoading={isSuggestingCareers} analysisPerformed={!!careerPaths} canAnalyze={!!skillsAnalysis}>
-                             {careerPaths && (
-                                <ul className="space-y-2 text-sm">
-                                    {careerPaths.map(p => <li key={p.path} className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md"><strong className="font-semibold text-slate-800 dark:text-slate-100">{p.path}:</strong> {p.reasoning}</li>)}
-                                </ul>
+                        <CollapsibleAiSection title={t('aiCareerPathSuggestions')} icon={<AcademicCapIcon color="primary" />} onAnalyze={suggestCareers} isLoading={isSuggestingCareers} analysisPerformed={!!careerPaths} canAnalyze={!!skillsAnalysis}>
+                            {careerPaths && (
+                                <List dense>
+                                    {careerPaths.map(p => (
+                                        <ListItem key={p.path} sx={{ bgcolor: 'background.default', borderRadius: 1, mb: 1 }}>
+                                            <ListItemText
+                                                primary={<Typography variant="body2" fontWeight="medium">{p.path}:</Typography>}
+                                                secondary={p.reasoning}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
                             )}
                         </CollapsibleAiSection>
-                    </div>
+                    </Box>
                 );
             case 'Advisor':
             case 'DepartmentAdmin':
                 const advisor = userData as Advisor;
                 return (
-                     <div className="space-y-4">
-                        <CollapsibleSection title={t('advisorInformation')} icon={<UserCircleIcon className="w-5 h-5"/>} defaultOpen>
-                            <dl className="divide-y divide-slate-200 dark:border-slate-700">
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <CollapsibleSection title={t('advisorInformation')} icon={<UserCircleIcon />} defaultOpen>
+                            <Box>
                                 <InfoRow label={t('advisorId')} value={advisor.id} />
+                                <Divider />
                                 <EditableField label={t('fullName')} value={advisor.name} onSave={handleUpdateAdvisorName} error={advisorNameError} />
+                                <Divider />
                                 <InfoRow label={t('supervisingQuota')} value={String(advisor.quota)} />
+                                <Divider />
                                 <InfoRow label={t('mainCommitteeQuota')} value={String(advisor.mainCommitteeQuota)} />
+                                <Divider />
                                 <InfoRow label={t('secondCommitteeQuota')} value={String(advisor.secondCommitteeQuota)} />
+                                <Divider />
                                 <InfoRow label={t('thirdCommitteeQuota')} value={String(advisor.thirdCommitteeQuota)} />
-                            </dl>
+                            </Box>
                         </CollapsibleSection>
-                         <CollapsibleSection title={t('security')} icon={<KeyIcon className="w-5 h-5"/>} defaultOpen={isPasswordChangeForced}>
-                             <div className="space-y-3">
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('currentPassword')}</label><input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="input-style mt-1" /></div>
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('newPassword')}</label><input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="input-style mt-1" /></div>
-                                <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('confirmNewPassword')}</label><input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className="input-style mt-1" /></div>
-                                {passwordError && <p className="text-red-500 text-xs">{passwordError}</p>}
-                                <button onClick={handlePasswordChange} className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">{t('updatePasswordBtn')}</button>
-                             </div>
+                        <CollapsibleSection title={t('security')} icon={<KeyIcon />} defaultOpen={isPasswordChangeForced}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('currentPassword')}
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('newPassword')}
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    type="password"
+                                    label={t('confirmNewPassword')}
+                                    value={confirmNewPassword}
+                                    onChange={e => setConfirmNewPassword(e.target.value)}
+                                    size="small"
+                                    error={!!passwordError}
+                                    helperText={passwordError}
+                                />
+                                <Button onClick={handlePasswordChange} variant="contained" fullWidth>
+                                    {t('updatePasswordBtn')}
+                                </Button>
+                            </Box>
                         </CollapsibleSection>
-                         <CollapsibleAiSection title={t('aiMentoringStyleAnalysis')} icon={<HeartIcon className="w-5 h-5 text-blue-600"/>} onAnalyze={handleAnalyzeMentoring} isLoading={isAnalyzingMentoring} analysisPerformed={!!mentoringAnalysis} canAnalyze={true}>
-                           {mentoringAnalysis && (
-                                <div className="space-y-3 text-sm">
-                                    <p><strong className="font-semibold text-slate-800 dark:text-slate-100">{t('identifiedStyle')}:</strong> <span className="font-bold text-blue-600 dark:text-blue-400">{mentoringAnalysis.style}</span></p>
-                                    <p className="italic text-slate-600 dark:text-slate-400">{mentoringAnalysis.summary}</p>
-                                    <div>
-                                        <h5 className="font-semibold">{t('strengths')}:</h5>
-                                        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300">
-                                            {mentoringAnalysis.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h5 className="font-semibold">{t('suggestions')}:</h5>
-                                         <ul className="list-disc list-inside text-slate-600 dark:text-slate-300">
-                                            {mentoringAnalysis.suggestionsForImprovement.map((s, i) => <li key={i}>{s}</li>)}
-                                        </ul>
-                                    </div>
-                                </div>
+                        <CollapsibleAiSection title={t('aiMentoringStyleAnalysis')} icon={<HeartIcon color="primary" />} onAnalyze={handleAnalyzeMentoring} isLoading={isAnalyzingMentoring} analysisPerformed={!!mentoringAnalysis} canAnalyze={true}>
+                            {mentoringAnalysis && (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box>
+                                        <Typography variant="body2" fontWeight="medium" component="span">
+                                            {t('identifiedStyle')}:{' '}
+                                        </Typography>
+                                        <Chip label={mentoringAnalysis.style} color="primary" size="small" />
+                                    </Box>
+                                    <Typography variant="body2" fontStyle="italic" color="text.secondary">
+                                        {mentoringAnalysis.summary}
+                                    </Typography>
+                                    <Box>
+                                        <Typography variant="body2" fontWeight="medium" gutterBottom>
+                                            {t('strengths')}:
+                                        </Typography>
+                                        <List dense>
+                                            {mentoringAnalysis.strengths.map((s, i) => (
+                                                <ListItem key={i} sx={{ py: 0 }}>
+                                                    <ListItemText primary={s} primaryTypographyProps={{ variant: 'body2' }} />
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="body2" fontWeight="medium" gutterBottom>
+                                            {t('suggestions')}:
+                                        </Typography>
+                                        <List dense>
+                                            {mentoringAnalysis.suggestionsForImprovement.map((s, i) => (
+                                                <ListItem key={i} sx={{ py: 0 }}>
+                                                    <ListItemText primary={s} primaryTypographyProps={{ variant: 'body2' }} />
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </Box>
+                                </Box>
                             )}
                         </CollapsibleAiSection>
-                     </div>
+                    </Box>
                 );
             case 'Admin':
                 return (
-                     <dl className="divide-y divide-slate-200 dark:divide-slate-700">
+                    <Box>
                         <InfoRow label={t('userId')} value={user.id} />
+                        <Divider />
                         <InfoRow label={t('fullName')} value={user.name} />
+                        <Divider />
                         <InfoRow label={t('role')} value={user.role} />
-                    </dl>
+                    </Box>
                 );
             default:
                 return null;
@@ -369,47 +511,53 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, user
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" role="dialog" aria-modal="true">
-             <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; }`}</style>
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-start mb-4 flex-shrink-0">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400 rounded-full p-3 mr-4">
-                           <UserCircleIcon className="w-6 h-6"/>
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('smartProfile')}</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{user.name} ({user.role})</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} disabled={isPasswordChangeForced} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                        <XMarkIcon className="w-6 h-6" />
-                    </button>
-                </div>
-                
-                {isPasswordChangeForced && (
-                    <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 rounded-md text-sm font-semibold text-center">
-                        {t('updatePasswordSectionPrompt')}
-                    </div>
+        <Dialog open={isOpen} onClose={isPasswordChangeForced ? undefined : onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main' }}>
+                    <UserCircleIcon />
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" fontWeight="bold">
+                        {t('smartProfile')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {user.name} ({user.role})
+                    </Typography>
+                </Box>
+                {!isPasswordChangeForced && (
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
                 )}
-                
-                <div className="mt-4 flex-grow overflow-y-auto pr-2">
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ pt: 3 }}>
+                {isPasswordChangeForced && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        {t('updatePasswordSectionPrompt')}
+                    </Alert>
+                )}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {renderContent()}
-                     {user.role !== 'Admin' && <p className="text-xs text-center text-slate-400 dark:text-slate-500 mt-6">{t('aiDisclaimer')}</p>}
-                </div>
-
-                <div className="mt-6 flex justify-end flex-shrink-0">
-                     <button
-                        type="button"
-                        className="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 dark:bg-slate-600 dark:text-white dark:border-slate-500 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={onClose}
-                        disabled={isPasswordChangeForced}
-                    >
-                        {t('closeBtn')}
-                    </button>
-                </div>
-            </div>
-        </div>
+                    {user.role !== 'Admin' && (
+                        <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
+                            {t('aiDisclaimer')}
+                        </Typography>
+                    )}
+                </Box>
+            </DialogContent>
+            <Divider />
+            <DialogActions sx={{ p: 2 }}>
+                <Button
+                    onClick={onClose}
+                    variant="outlined"
+                    disabled={isPasswordChangeForced}
+                    fullWidth
+                >
+                    {t('closeBtn')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

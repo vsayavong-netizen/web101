@@ -1,6 +1,17 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField, Select, MenuItem,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Card, CardContent, Grid, Stack, Switch, FormControl, InputLabel,
+  Checkbox, Chip, Tooltip, InputAdornment
+} from '@mui/material';
+import { 
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Search as SearchIcon, UploadFile as UploadFileIcon,
+  Download as DownloadIcon, Groups as GroupsIcon,
+  CheckCircle as CheckCircleIcon, Schedule as ScheduleIcon
+} from '@mui/icons-material';
 import { Student, ProjectGroup, Major, Classroom, Gender, User } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, UserGroupIcon, MagnifyingGlassIcon, DocumentArrowUpIcon, CheckCircleIcon, ClockIcon, TableCellsIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
 import StudentModal from './StudentModal';
@@ -31,31 +42,60 @@ interface StudentManagementProps {
     onFilterConsumed?: () => void;
 }
 
-const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; onClick: () => void; color: string; isActive: boolean }> = ({ title, value, icon, onClick, color, isActive }) => (
-    <button onClick={onClick} className={`p-4 rounded-xl shadow-md flex items-center space-x-4 w-full text-left transition-all transform hover:scale-105 ${isActive ? 'ring-2 ring-offset-2 dark:ring-offset-slate-800' : 'ring-1 ring-transparent'} ${color}`}>
-        <div className="flex-shrink-0 bg-white/20 rounded-full p-3 text-white">
-            {icon}
-        </div>
-        <div>
-            <p className="text-sm font-medium text-white/80">{title}</p>
-            <p className="text-3xl font-bold text-white">{value}</p>
-        </div>
-    </button>
-);
+const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; onClick: () => void; color: string; isActive: boolean }> = ({ title, value, icon, onClick, color, isActive }) => {
+    const colorMap: Record<string, { bg: string; ring: string }> = {
+        'bg-blue-500': { bg: 'primary.main', ring: 'primary.main' },
+        'bg-green-500': { bg: 'success.main', ring: 'success.main' },
+        'bg-yellow-500': { bg: 'warning.main', ring: 'warning.main' },
+    };
+    const muiColor = colorMap[color] || colorMap['bg-blue-500'];
+    
+    return (
+        <Card
+            onClick={onClick}
+            sx={{
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                cursor: 'pointer',
+                bgcolor: muiColor.bg,
+                color: 'white',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'scale(1.05)' },
+                border: isActive ? 2 : 1,
+                borderColor: isActive ? muiColor.ring : 'transparent',
+            }}
+        >
+            <Box sx={{ 
+                flexShrink: 0, 
+                bgcolor: 'rgba(255,255,255,0.2)', 
+                borderRadius: '50%', 
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                {icon}
+            </Box>
+            <Box>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    {title}
+                </Typography>
+                <Typography variant="h4" fontWeight="bold">
+                    {value}
+                </Typography>
+            </Box>
+        </Card>
+    );
+};
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: () => void; }> = ({ enabled, onChange }) => (
-    <button
-        type="button"
-        className={`${enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-        role="switch"
-        aria-checked={enabled}
-        onClick={onChange}
-    >
-        <span
-            aria-hidden="true"
-            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
+    <Switch
+        checked={enabled}
+        onChange={onChange}
+        color="primary"
+    />
 );
 
 
@@ -282,58 +322,283 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                <div className="flex items-center">
-                   <UserGroupIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('manageAllStudents')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('studentsDescription')}</p>
-                   </div>
-                </div>
-                <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx, .xls"/>
-                    <button onClick={handleImportClick} className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"><DocumentArrowUpIcon className="w-5 h-5 mr-2" /> {t('import')}</button>
-                    <button onClick={handleExportExcel} className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                        <TableCellsIcon className="w-5 h-5 mr-2" /> {t('exportExcel')}
-                    </button>
-                    <button onClick={handleAddClick} className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"><PlusIcon className="w-5 h-5 mr-2" /> {t('addStudent')}</button>
-                </div>
-            </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard title={t('totalStudents')} value={studentStats.total} icon={<UserGroupIcon className="w-6 h-6"/>} onClick={() => setStatusFilter('all')} color="bg-blue-500 ring-blue-500" isActive={statusFilter === 'all'} />
-                <StatCard title={t('approvedStudents')} value={studentStats.approved} icon={<CheckCircleIcon className="w-6 h-6"/>} onClick={() => setStatusFilter('Approved')} color="bg-green-500 ring-green-500" isActive={statusFilter === 'Approved'} />
-                <StatCard title={t('pendingStudents')} value={studentStats.pending} icon={<ClockIcon className="w-6 h-6"/>} onClick={() => setStatusFilter('Pending')} color="bg-yellow-500 ring-yellow-500" isActive={statusFilter === 'Pending'} />
-            </div>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <GroupsIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('manageAllStudents')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('studentsDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: { xs: 2, sm: 0 } }}>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx, .xls"/>
+                    <Button
+                        onClick={handleImportClick}
+                        variant="contained"
+                        startIcon={<UploadFileIcon />}
+                        sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('import')}
+                    </Button>
+                    <Button
+                        onClick={handleExportExcel}
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('exportExcel')}
+                    </Button>
+                    <Button
+                        onClick={handleAddClick}
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        {t('addStudent')}
+                    </Button>
+                </Stack>
+            </Box>
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                    <StatCard 
+                        title={t('totalStudents')} 
+                        value={studentStats.total} 
+                        icon={<GroupsIcon sx={{ fontSize: 24 }} />} 
+                        onClick={() => setStatusFilter('all')} 
+                        color="bg-blue-500 ring-blue-500" 
+                        isActive={statusFilter === 'all'} 
+                    />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <StatCard 
+                        title={t('approvedStudents')} 
+                        value={studentStats.approved} 
+                        icon={<CheckCircleIcon sx={{ fontSize: 24 }} />} 
+                        onClick={() => setStatusFilter('Approved')} 
+                        color="bg-green-500 ring-green-500" 
+                        isActive={statusFilter === 'Approved'} 
+                    />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <StatCard 
+                        title={t('pendingStudents')} 
+                        value={studentStats.pending} 
+                        icon={<ScheduleIcon sx={{ fontSize: 24 }} />} 
+                        onClick={() => setStatusFilter('Pending')} 
+                        color="bg-yellow-500 ring-yellow-500" 
+                        isActive={statusFilter === 'Pending'} 
+                    />
+                </Grid>
+            </Grid>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                     <div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><MagnifyingGlassIcon className="h-5 w-5 text-gray-400" /></div><input type="text" className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-slate-700 dark:text-white" placeholder={t('searchByIdNameEmail')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-                    <select value={majorFilter} onChange={e => setMajorFilter(e.target.value)} className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-slate-700 dark:text-white"><option value="all">{t('allMajors')}</option>{majors.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select>
-                </div>
-                {selectedStudentIds.size > 0 && <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-lg flex justify-between items-center mb-4"><span className="font-semibold text-blue-800 dark:text-blue-200">{t('bulkActionsSelected').replace('${count}', String(selectedStudentIds.size))}</span><div className="flex gap-2"><button onClick={() => setIsBulkEditModalOpen(true)} className="text-sm font-medium text-blue-600 dark:text-blue-300 hover:underline">{t('edit')}</button><button onClick={() => setIsBulkDeleteModalOpen(true)} className="text-sm font-medium text-red-600 dark:text-red-400 hover:underline">{t('delete')}</button></div></div>}
-                <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">{paginatedStudents.map(student => <StudentCard key={student.studentId} student={student} user={user} projectId={studentProjectMap.get(student.studentId)} onEdit={() => handleEditClick(student)} onDelete={() => handleDeleteRequest(student)} onApprove={() => handleApproveStudent(student)} onSelect={handleSelect} isSelected={selectedStudentIds.has(student.studentId)} onToggleAiAssistant={() => handleToggleAiAssistant(student)}/>)}</div>
-                <div className="hidden lg:block overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300"><tr><th scope="col" className="p-4"><input type="checkbox" onChange={handleSelectAll} checked={selectedStudentIds.size > 0 && selectedStudentIds.size === sortedAndFilteredStudents.length} className="w-4 h-4 text-blue-600" /></th><SortableHeader sortKey="studentId" title={t('studentId')} sortConfig={sortConfig} requestSort={requestSort} /><SortableHeader sortKey="name" title={t('fullName')} sortConfig={sortConfig} requestSort={requestSort} /><SortableHeader sortKey="major" title={t('major')} sortConfig={sortConfig} requestSort={requestSort} /><SortableHeader sortKey="status" title={t('status')} sortConfig={sortConfig} requestSort={requestSort} />{user.role === 'Admin' && <th scope="col" className="px-6 py-3">{t('aiAssistant')}</th>}<th scope="col" className="px-6 py-3">{t('project')}</th><th scope="col" className="px-6 py-3 text-right">{t('actions')}</th></tr></thead>
-                        <tbody>{paginatedStudents.map(student => <tr key={student.studentId} className={`border-b dark:border-slate-700 ${selectedStudentIds.has(student.studentId) ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700'}`}><td className="w-4 p-4"><input type="checkbox" checked={selectedStudentIds.has(student.studentId)} onChange={() => handleSelect(student.studentId)} className="w-4 h-4 text-blue-600"/></td><td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{student.studentId}</td><td className="px-6 py-4">{student.name} {student.surname}</td><td className="px-6 py-4">{student.major}</td><td className="px-6 py-4"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{student.status}</span></td>{user.role === 'Admin' && <td className="px-6 py-4"><ToggleSwitch enabled={student.isAiAssistantEnabled ?? true} onChange={() => handleToggleAiAssistant(student)} /></td>}<td className="px-6 py-4">{studentProjectMap.get(student.studentId) || 'N/A'}</td><td className="px-6 py-4 text-right space-x-2">{student.status === 'Pending' && <button onClick={() => handleApproveStudent(student)} className="p-2 text-slate-500 hover:text-green-600" title={t('approve')}><CheckCircleIcon className="w-5 h-5"/></button>}<button onClick={() => handleEditClick(student)} className="p-2 text-slate-500 hover:text-blue-600"><PencilIcon className="w-5 h-5" /></button><button onClick={() => handleDeleteRequest(student)} className="p-2 text-slate-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button></td></tr>)}</tbody>
-                    </table>
-                    {sortedAndFilteredStudents.length === 0 && <div className="text-center py-10 text-slate-500 dark:text-slate-400">{searchQuery ? t('noStudentsForQuery').replace('${query}', searchQuery) : t('noStudentsClickToAdd')}</div>}
-                </div>
-                 <Pagination
+            <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            placeholder={t('searchByIdNameEmail')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth>
+                            <InputLabel>{t('major')}</InputLabel>
+                            <Select
+                                value={majorFilter}
+                                onChange={(e) => setMajorFilter(e.target.value)}
+                                label={t('major')}
+                            >
+                                <MenuItem value="all">{t('allMajors')}</MenuItem>
+                                {majors.map(m => (
+                                    <MenuItem key={m.id} value={m.name}>{m.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                </Grid>
+                {selectedStudentIds.size > 0 && (
+                    <Box sx={{ 
+                        bgcolor: 'primary.light', 
+                        p: 2, 
+                        borderRadius: 1, 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        mb: 2
+                    }}>
+                        <Typography variant="body2" fontWeight={600} color="primary.dark">
+                            {t('bulkActionsSelected').replace('${count}', String(selectedStudentIds.size))}
+                        </Typography>
+                        <Stack direction="row" spacing={1}>
+                            <Button
+                                onClick={() => setIsBulkEditModalOpen(true)}
+                                size="small"
+                                color="primary"
+                            >
+                                {t('edit')}
+                            </Button>
+                            <Button
+                                onClick={() => setIsBulkDeleteModalOpen(true)}
+                                size="small"
+                                color="error"
+                            >
+                                {t('delete')}
+                            </Button>
+                        </Stack>
+                    </Box>
+                )}
+                <Box sx={{ display: { lg: 'none' } }}>
+                    <Grid container spacing={2}>
+                        {paginatedStudents.map(student => (
+                            <Grid size={{ xs: 12, sm: 6 }} key={student.studentId}>
+                                <StudentCard 
+                                    student={student} 
+                                    user={user} 
+                                    projectId={studentProjectMap.get(student.studentId)} 
+                                    onEdit={() => handleEditClick(student)} 
+                                    onDelete={() => handleDeleteRequest(student)} 
+                                    onApprove={() => handleApproveStudent(student)} 
+                                    onSelect={handleSelect} 
+                                    isSelected={selectedStudentIds.has(student.studentId)} 
+                                    onToggleAiAssistant={() => handleToggleAiAssistant(student)}
+                                />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+                <TableContainer sx={{ display: { xs: 'none', lg: 'block' } }}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        checked={selectedStudentIds.size > 0 && selectedStudentIds.size === sortedAndFilteredStudents.length}
+                                        indeterminate={selectedStudentIds.size > 0 && selectedStudentIds.size < sortedAndFilteredStudents.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                </TableCell>
+                                <SortableHeader sortKey="studentId" title={t('studentId')} sortConfig={sortConfig} requestSort={requestSort} />
+                                <SortableHeader sortKey="name" title={t('fullName')} sortConfig={sortConfig} requestSort={requestSort} />
+                                <SortableHeader sortKey="major" title={t('major')} sortConfig={sortConfig} requestSort={requestSort} />
+                                <SortableHeader sortKey="status" title={t('status')} sortConfig={sortConfig} requestSort={requestSort} />
+                                {user.role === 'Admin' && (
+                                    <TableCell>{t('aiAssistant')}</TableCell>
+                                )}
+                                <TableCell>{t('project')}</TableCell>
+                                <TableCell align="right">{t('actions')}</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {paginatedStudents.map(student => (
+                                <TableRow 
+                                    key={student.studentId}
+                                    selected={selectedStudentIds.has(student.studentId)}
+                                    sx={{
+                                        '&:hover': { bgcolor: 'action.hover' },
+                                    }}
+                                >
+                                    <TableCell padding="checkbox">
+                                        <Checkbox
+                                            checked={selectedStudentIds.has(student.studentId)}
+                                            onChange={() => handleSelect(student.studentId)}
+                                        />
+                                    </TableCell>
+                                    <TableCell component="th" scope="row" sx={{ fontWeight: 500 }}>
+                                        {student.studentId}
+                                    </TableCell>
+                                    <TableCell>{student.name} {student.surname}</TableCell>
+                                    <TableCell>{student.major}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={student.status}
+                                            size="small"
+                                            color={student.status === 'Approved' ? 'success' : 'warning'}
+                                        />
+                                    </TableCell>
+                                    {user.role === 'Admin' && (
+                                        <TableCell>
+                                            <ToggleSwitch 
+                                                enabled={student.isAiAssistantEnabled ?? true} 
+                                                onChange={() => handleToggleAiAssistant(student)} 
+                                            />
+                                        </TableCell>
+                                    )}
+                                    <TableCell>{studentProjectMap.get(student.studentId) || 'N/A'}</TableCell>
+                                    <TableCell align="right">
+                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                            {student.status === 'Pending' && (
+                                                <Tooltip title={t('approve')}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleApproveStudent(student)}
+                                                        color="success"
+                                                    >
+                                                        <CheckCircleIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleEditClick(student)}
+                                                color="primary"
+                                            >
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteRequest(student)}
+                                                color="error"
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Stack>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {sortedAndFilteredStudents.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 5 }}>
+                            <Typography color="text.secondary">
+                                {searchQuery ? t('noStudentsForQuery').replace('${query}', searchQuery) : t('noStudentsClickToAdd')}
+                            </Typography>
+                        </Box>
+                    )}
+                </TableContainer>
+                <Pagination
                     currentPage={currentPage}
                     totalPages={Math.ceil(sortedAndFilteredStudents.length / ITEMS_PER_PAGE)}
                     totalItems={sortedAndFilteredStudents.length}
                     itemsPerPage={ITEMS_PER_PAGE}
                     onPageChange={setCurrentPage}
                 />
-            </div>
+            </Paper>
             {isModalOpen && <StudentModal onClose={() => setIsModalOpen(false)} onSave={handleSaveStudent} studentToEdit={editingStudent} allStudents={students} majors={majors} classrooms={classrooms} />}
             {studentToDelete && <ConfirmationModal isOpen={!!studentToDelete} onClose={() => setStudentToDelete(null)} onConfirm={confirmDelete} title={t('deleteStudentTitle')} message={t('deleteStudentMessage').replace('${name}', `${studentToDelete.name} ${studentToDelete.surname}`)} />}
             {isBulkEditModalOpen && <BulkEditModal isOpen={isBulkEditModalOpen} onClose={() => setIsBulkEditModalOpen(false)} onSave={handleBulkEdit} majors={majors} classrooms={classrooms} selectedCount={selectedStudentIds.size} />}
             {isBulkDeleteModalOpen && <ConfirmationModal isOpen={isBulkDeleteModalOpen} onClose={() => setIsBulkDeleteModalOpen(false)} onConfirm={handleBulkDelete} title={t('bulkDeleteStudentTitle').replace('${count}', String(selectedStudentIds.size))} message={t('bulkDeleteStudentMessage').replace('${count}', String(selectedStudentIds.size))} />}
             {isReviewModalOpen && <ImportReviewModal<Student> isOpen={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} onConfirm={handleConfirmImport} data={reviewData} columns={[{ key: '_status', header: 'Status' }, { key: 'studentId', header: 'Student ID' }, { key: 'name', header: 'Name' }, { key: 'surname', header: 'Surname' }, { key: 'major', header: 'Major' }, { key: 'classroom', header: 'Classroom' }, { key: '_error', header: 'Error' }]} dataTypeName="Students" />}
-        </div>
+        </Box>
     );
 };
 

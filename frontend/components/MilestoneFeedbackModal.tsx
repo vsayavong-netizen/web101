@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { XMarkIcon, CheckCircleIcon, ArrowPathIcon, SparklesIcon } from './icons';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, IconButton, Box, Typography, Divider,
+  Avatar, CircularProgress
+} from '@mui/material';
+import { 
+  Close as CloseIcon, 
+  CheckCircle as CheckCircleIcon, 
+  Refresh as ArrowPathIcon, 
+  AutoAwesome as SparklesIcon 
+} from '@mui/icons-material';
 import { ProjectGroup } from '../types';
 import { useToast } from '../hooks/useToast';
 import { GoogleGenAI } from "@google/genai";
@@ -25,18 +35,18 @@ const MilestoneFeedbackModal: React.FC<MilestoneFeedbackModalProps> = ({ isOpen,
   const config = {
       approve: {
           title: t('approveMilestone'),
-          icon: <CheckCircleIcon className="h-6 w-6 text-green-600" aria-hidden="true" />,
-          iconBg: 'bg-green-100',
+          icon: CheckCircleIcon,
+          iconColor: 'success' as const,
           buttonText: t('approveButton'),
-          buttonBg: 'bg-green-600 hover:bg-green-700 focus:ring-green-500',
+          buttonColor: 'success' as const,
           prompt: (milestoneName: string) => t('approveFeedbackPrompt').replace('{milestoneName}', milestoneName),
       },
       revise: {
           title: t('requestRevisionTitle'),
-          icon: <ArrowPathIcon className="h-6 w-6 text-orange-600" aria-hidden="true" />,
-          iconBg: 'bg-orange-100',
+          icon: ArrowPathIcon,
+          iconColor: 'warning' as const,
           buttonText: t('requestRevisionButton'),
-          buttonBg: 'bg-orange-500 hover:bg-orange-600 focus:ring-orange-500',
+          buttonColor: 'warning' as const,
           prompt: (milestoneName: string) => t('requestRevisionPrompt').replace('{milestoneName}', milestoneName),
       }
   };
@@ -95,76 +105,73 @@ const MilestoneFeedbackModal: React.FC<MilestoneFeedbackModalProps> = ({ isOpen,
   };
 
 
+  const IconComponent = actionConfig.icon;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" role="dialog" aria-modal="true">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 sm:p-8 w-full max-w-md">
-        <div className="sm:flex sm:items-start">
-          <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${actionConfig.iconBg} sm:mx-0 sm:h-10 sm:w-10`}>
-            {actionConfig.icon}
-          </div>
-          <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-            <h3 className="text-lg leading-6 font-bold text-gray-900 dark:text-white" id="modal-title">
-              {actionConfig.title}
-            </h3>
-            <div className="mt-2">
-              <p className="text-sm text-gray-500 dark:text-slate-400">
-                {actionConfig.prompt(milestoneName)}
-              </p>
-            </div>
-            <div className="mt-4">
-                <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="feedback-textarea" className="block text-sm font-medium text-gray-700 dark:text-slate-300">{t('feedbackLabel')}</label>
-                    {projectGroup && (
-                        <button
-                            type="button"
-                            onClick={handleGenerateFeedback}
-                            disabled={isGenerating}
-                            className="flex items-center text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 dark:border-purple-400 mr-1.5"></div>
-                                    {t('generating')}
-                                </>
-                            ) : (
-                                <>
-                                    <SparklesIcon className="w-4 h-4 mr-1"/>
-                                    {t('suggestWithAI')}
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
-                <textarea
-                    id="feedback-textarea"
-                    rows={4}
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    className="block w-full rounded-md border-0 p-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600"
-                    placeholder={t('feedbackPlaceholder')}
-                    aria-label="Feedback for milestone"
-                />
-            </div>
-          </div>
-        </div>
-        <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse sm:space-x-2 space-y-2 sm:space-y-0">
-          <button
-            type="button"
-            className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto sm:text-sm ${actionConfig.buttonBg}`}
-            onClick={handleConfirm}
-          >
-            {actionConfig.buttonText}
-          </button>
-          <button
-            type="button"
-            className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:w-auto sm:text-sm dark:bg-slate-600 dark:text-white dark:border-slate-500 dark:hover:bg-slate-500"
-            onClick={onClose}
-          >
-            {t('cancel')}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 2 }}>
+        <Avatar sx={{ bgcolor: `${actionConfig.iconColor}.light`, color: `${actionConfig.iconColor}.main` }}>
+          <IconComponent />
+        </Avatar>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h6" fontWeight="bold">
+            {actionConfig.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {actionConfig.prompt(milestoneName)}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <DialogContent sx={{ pt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="body2" fontWeight="medium">
+            {t('feedbackLabel')}
+          </Typography>
+          {projectGroup && (
+            <Button
+              size="small"
+              onClick={handleGenerateFeedback}
+              disabled={isGenerating}
+              startIcon={isGenerating ? <CircularProgress size={16} /> : <SparklesIcon />}
+              sx={{ 
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                minWidth: 'auto'
+              }}
+            >
+              {isGenerating ? t('generating') : t('suggestWithAI')}
+            </Button>
+          )}
+        </Box>
+        <TextField
+          fullWidth
+          multiline
+          rows={4}
+          id="feedback-textarea"
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder={t('feedbackPlaceholder')}
+          aria-label="Feedback for milestone"
+        />
+      </DialogContent>
+      <Divider />
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined">
+          {t('cancel')}
+        </Button>
+        <Button 
+          onClick={handleConfirm} 
+          variant="contained" 
+          color={actionConfig.buttonColor}
+        >
+          {actionConfig.buttonText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

@@ -1,8 +1,18 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField, Select, MenuItem,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Grid, Stack, FormControl, InputLabel, ToggleButton, ToggleButtonGroup,
+  InputAdornment, Card, CardContent
+} from '@mui/material';
+import { 
+  Search as SearchIcon, Download as DownloadIcon, UploadFile as UploadFileIcon,
+  Delete as DeleteIcon, Check as CheckIcon, Settings as SettingsIcon,
+  AutoAwesome as AutoAwesomeIcon, Assignment as AssignmentIcon
+} from '@mui/icons-material';
 import { ProjectGroup, Advisor, DefenseSettings, Major, User } from '../types';
 import { useToast } from '../hooks/useToast';
 import SortableHeader, { SortConfig, SortDirection } from './SortableHeader';
-import { MagnifyingGlassIcon, ClipboardDocumentListIcon, CheckIcon, DocumentArrowUpIcon, TableCellsIcon, ArrowDownTrayIcon, SparklesIcon, Cog6ToothIcon, TrashIcon } from './icons';
 import { ExcelUtils } from '../utils/excelUtils';
 import ImportReviewModal from './ImportReviewModal';
 import ConfirmationModal from './ConfirmationModal';
@@ -246,18 +256,12 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = e.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        try {
+            const json = await ExcelUtils.readExcelFile(file);
 
                 const existingProjectIds = new Set(projectGroups.map(p => p.project.projectId));
 
@@ -298,16 +302,14 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                         return { projectId, date: dateStr || '', time: time || '', room: room || '', _status: 'update' };
                     });
 
-                setReviewData(processedData);
-                setIsReviewModalOpen(true);
-            } catch (error) {
-                addToast({ type: 'error', message: t('fileParseError') });
-                console.error("File parse error:", error);
-            } finally {
-                if (event.target) event.target.value = '';
-            }
-        };
-        reader.readAsBinaryString(file);
+            setReviewData(processedData);
+            setIsReviewModalOpen(true);
+        } catch (error) {
+            addToast({ type: 'error', message: t('fileParseError') });
+            console.error("File parse error:", error);
+        } finally {
+            if (event.target) event.target.value = '';
+        }
     };
 
     const handleConfirmImport = (validData: Omit<ReviewData, '_status' | '_error'>[]) => {
@@ -322,103 +324,67 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
         setIsReviewModalOpen(false);
     };
     
-    const handleExportExcel = useCallback(() => {
-        const headers = [
-            t('defenseDate'), t('defenseTime'), t('defenseRoom'), t('projectId'), t('topicLao'), t('topicEng'),
-            t('mainAdvisor'), t('mainCommittee'), t('secondCommittee'), t('thirdCommittee'),
-            t('studentId'), t('gender'), t('studentName'), t('major')
-        ];
-    
-        const rows: (string | number)[][] = [headers];
-        const merges: XLSX.Range[] = [];
-    
-        let rowIndex = 1; // Start from row 1 (after headers)
-    
-        sortedAndFilteredProjects.forEach(pg => {
+    const handleExportExcel = useCallback(async () => {
+        const dataToExport = sortedAndFilteredProjects.flatMap(pg => {
             const project = pg.project;
             const student1 = pg.students[0];
             const student2 = pg.students[1];
-    
-            const projectData = [
-                project.defenseDate || t('na'),
-                project.defenseTime || t('na'),
-                project.defenseRoom || t('na'),
-                project.projectId,
-                project.topicLao,
-                project.topicEng,
-                project.advisorName,
-                getAdvisorNameById(project.mainCommitteeId),
-                getAdvisorNameById(project.secondCommitteeId),
-                getAdvisorNameById(project.thirdCommitteeId),
-            ];
-    
-            const student1Data = student1 ? [
-                student1.studentId,
-                student1.gender,
-                `${student1.name} ${student1.surname}`,
-                student1.major,
-            ] : Array(4).fill('');
-            rows.push([...projectData, ...student1Data]);
-    
-            const emptyProjectData = Array(projectData.length).fill('');
-            const student2Data = student2 ? [
-                student2.studentId,
-                student2.gender,
-                `${student2.name} ${student2.surname}`,
-                student2.major,
-            ] : Array(4).fill('');
-            rows.push([...emptyProjectData, ...student2Data]);
-    
-            // Define merges for the 10 project-related columns
-            for (let colIndex = 0; colIndex < 10; colIndex++) {
-                merges.push({
-                    s: { r: rowIndex, c: colIndex },
-                    e: { r: rowIndex + 1, c: colIndex }
+            
+            const baseData = {
+                [t('defenseDate')]: project.defenseDate || t('na'),
+                [t('defenseTime')]: project.defenseTime || t('na'),
+                [t('defenseRoom')]: project.defenseRoom || t('na'),
+                [t('projectId')]: project.projectId,
+                [t('topicLao')]: project.topicLao,
+                [t('topicEng')]: project.topicEng,
+                [t('mainAdvisor')]: project.advisorName,
+                [t('mainCommittee')]: getAdvisorNameById(project.mainCommitteeId),
+                [t('secondCommittee')]: getAdvisorNameById(project.secondCommitteeId),
+                [t('thirdCommittee')]: getAdvisorNameById(project.thirdCommitteeId),
+            };
+            
+            const result = [];
+            if (student1) {
+                result.push({
+                    ...baseData,
+                    [t('studentId')]: student1.studentId,
+                    [t('gender')]: student1.gender,
+                    [t('studentName')]: `${student1.name} ${student1.surname}`,
+                    [t('major')]: student1.major,
                 });
             }
-    
-            rowIndex += 2;
+            if (student2) {
+                result.push({
+                    ...baseData,
+                    [t('studentId')]: student2.studentId,
+                    [t('gender')]: student2.gender,
+                    [t('studentName')]: `${student2.name} ${student2.surname}`,
+                    [t('major')]: student2.major,
+                });
+            }
+            return result;
         });
     
-        if (rows.length <= 1) {
+        if (dataToExport.length === 0) {
             addToast({ type: 'info', message: t('noDataToExport') });
             return;
         }
     
-        const worksheet = XLSX.utils.aoa_to_sheet(rows);
-        worksheet['!merges'] = merges;
-    
-        const columnWidths = [
-            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 40 },
-            { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 },
-            { wch: 20 }, { wch: 10 }, { wch: 25 }, { wch: 25 }
-        ];
-        worksheet['!cols'] = columnWidths;
-    
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Committee Schedules');
-    
-        XLSX.writeFile(workbook, 'committee_schedules_merged.xlsx');
+        await ExcelUtils.exportToExcel(dataToExport, 'committee_schedules.xlsx');
         addToast({ type: 'success', message: t('exportMergedSuccessToast') });
     }, [sortedAndFilteredProjects, getAdvisorNameById, addToast, t]);
     
-    const handleDownloadTemplate = useCallback(() => {
-        const headers = [t('projectId'), t('defenseDate'), t('defenseTime'), t('defenseRoom')];
-        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
-        const notes = [
-            [t('noteScheduleFormat')],
-            [t('availableTimes').replace('${timeSlots}', timeSlots.join(', '))],
-            [t('availableRooms').replace('${roomOptions}', roomOptions.join(', '))],
+    const handleDownloadTemplate = useCallback(async () => {
+        const templateData = [
+            {
+                [t('projectId')]: 'EXAMPLE-001',
+                [t('defenseDate')]: '2024-12-15',
+                [t('defenseTime')]: timeSlots[0] || '',
+                [t('defenseRoom')]: roomOptions[0] || '',
+            },
         ];
-        XLSX.utils.sheet_add_aoa(worksheet, notes, { origin: "A2" });
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Schedule Template');
-
-        const columnWidths = [ { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 } ];
-        worksheet['!cols'] = columnWidths;
         
-        XLSX.writeFile(workbook, 'committee_schedule_template.xlsx');
+        await ExcelUtils.exportToExcel(templateData, 'committee_schedule_template.xlsx');
         addToast({ type: 'success', message: t('scheduleTemplateDownloaded') });
     }, [addToast, timeSlots, roomOptions, t]);
 
@@ -450,124 +416,176 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
         const projectMajor = majors.find(m => m.name === students[0]?.major);
 
         return (
-            <select
-                value={project[committeeKey] || ''}
-                onChange={(e) => handleCommitteeChange(project.projectId, committeeType, e.target.value || null)}
-                className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600"
-            >
-                <option value="">-- {t('selectAnAdvisor')} --</option>
-                {advisors.map(adv => {
-                    const currentCount = committeeCounts[adv.id]?.[committeeType] || 0;
-                    const quota = adv[committeeQuotaKey];
-                    const isFull = currentCount >= quota;
-                    
-                    const isMainAdvisor = adv.name === project.advisorName;
+            <FormControl fullWidth size="small">
+                <Select
+                    value={project[committeeKey] || ''}
+                    onChange={(e) => handleCommitteeChange(project.projectId, committeeType, e.target.value || null)}
+                >
+                    <MenuItem value="">-- {t('selectAnAdvisor')} --</MenuItem>
+                    {advisors.map(adv => {
+                        const currentCount = committeeCounts[adv.id]?.[committeeType] || 0;
+                        const quota = adv[committeeQuotaKey];
+                        const isFull = currentCount >= quota;
+                        
+                        const isMainAdvisor = adv.name === project.advisorName;
 
-                    const isAssignedElsewhere = (adv.id === project.mainCommitteeId && committeeType !== 'main') ||
-                                              (adv.id === project.secondCommitteeId && committeeType !== 'second') ||
-                                              (adv.id === project.thirdCommitteeId && committeeType !== 'third');
-                    
-                    const isSpecialized = projectMajor && adv.specializedMajorIds?.includes(projectMajor.id);
+                        const isAssignedElsewhere = (adv.id === project.mainCommitteeId && committeeType !== 'main') ||
+                                                  (adv.id === project.secondCommitteeId && committeeType !== 'second') ||
+                                                  (adv.id === project.thirdCommitteeId && committeeType !== 'third');
+                        
+                        const isSpecialized = projectMajor && adv.specializedMajorIds?.includes(projectMajor.id);
 
-                    const isDisabled = (!isSpecialized || isFull || isAssignedElsewhere || isMainAdvisor) && adv.id !== project[committeeKey];
+                        const isDisabled = (!isSpecialized || isFull || isAssignedElsewhere || isMainAdvisor) && adv.id !== project[committeeKey];
 
-                    let label = `${adv.name} (${currentCount}/${quota})`;
-                    if (isDisabled && adv.id !== project[committeeKey]) {
-                        const reasons = [];
-                        if (!isSpecialized) reasons.push(t('notSpecialized'));
-                        if (isFull) reasons.push(t('quotaFull'));
-                        if (isAssignedElsewhere) reasons.push(t('assigned'));
-                        if (isMainAdvisor) reasons.push(t('mainAdvisor'));
-                        if (reasons.length > 0) {
-                            label += ` - ${reasons.join(', ')}`;
+                        let label = `${adv.name} (${currentCount}/${quota})`;
+                        if (isDisabled && adv.id !== project[committeeKey]) {
+                            const reasons = [];
+                            if (!isSpecialized) reasons.push(t('notSpecialized'));
+                            if (isFull) reasons.push(t('quotaFull'));
+                            if (isAssignedElsewhere) reasons.push(t('assigned'));
+                            if (isMainAdvisor) reasons.push(t('mainAdvisor'));
+                            if (reasons.length > 0) {
+                                label += ` - ${reasons.join(', ')}`;
+                            }
                         }
-                    }
 
-                    return (
-                        <option key={adv.id} value={adv.id} disabled={isDisabled}>
-                            {label}
-                        </option>
-                    );
-                })}
-            </select>
+                        return (
+                            <MenuItem key={adv.id} value={adv.id} disabled={isDisabled}>
+                                {label}
+                            </MenuItem>
+                        );
+                    })}
+                </Select>
+            </FormControl>
         );
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <ClipboardDocumentListIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('committeeManagement')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('committeeManagementDescription')}</p>
-                   </div>
-                </div>
-                 <div className="flex items-center flex-wrap gap-2 mt-4 sm:mt-0">
-                    <button onClick={() => setIsClearAllModalOpen(true)} className="flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <TrashIcon className="w-5 h-5 mr-2" />
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('committeeManagement')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('committeeManagementDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: { xs: 2, sm: 0 } }}>
+                    <Button
+                        onClick={() => setIsClearAllModalOpen(true)}
+                        variant="contained"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        sx={{ fontWeight: 'bold' }}
+                    >
                         {t('clearAll')}
-                    </button>
-                    <button onClick={handleRunAutoSchedule} className="flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <SparklesIcon className="w-5 h-5 mr-2" />
+                    </Button>
+                    <Button
+                        onClick={handleRunAutoSchedule}
+                        variant="contained"
+                        sx={{ bgcolor: 'purple.600', '&:hover': { bgcolor: 'purple.700' }, fontWeight: 'bold' }}
+                        startIcon={<AutoAwesomeIcon />}
+                    >
                         {t('autoSchedule')}
-                    </button>
-                     <button onClick={() => onNavigate('settings')} className="flex items-center justify-center bg-slate-500 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <Cog6ToothIcon className="w-5 h-5 mr-2" />
+                    </Button>
+                    <Button
+                        onClick={() => onNavigate('settings')}
+                        variant="outlined"
+                        startIcon={<SettingsIcon />}
+                        sx={{ fontWeight: 'bold' }}
+                    >
                         {t('settings')}
-                    </button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx, .xls" />
-                    <button onClick={handleDownloadTemplate} className="flex items-center justify-center bg-slate-500 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" /> {t('template')}
-                    </button>
-                    <button onClick={handleImportClick} className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <DocumentArrowUpIcon className="w-5 h-5 mr-2" /> {t('import')}
-                    </button>
-                    <button onClick={handleExportExcel} className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                        <TableCellsIcon className="w-5 h-5 mr-2" /> {t('export')}
-                    </button>
-                </div>
-            </div>
+                    </Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx, .xls" />
+                    <Button
+                        onClick={handleDownloadTemplate}
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        {t('template')}
+                    </Button>
+                    <Button
+                        onClick={handleImportClick}
+                        variant="contained"
+                        startIcon={<UploadFileIcon />}
+                        sx={{ bgcolor: 'teal.600', '&:hover': { bgcolor: 'teal.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('import')}
+                    </Button>
+                    <Button
+                        onClick={handleExportExcel}
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
+                        sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold' }}
+                    >
+                        {t('export')}
+                    </Button>
+                </Stack>
+            </Box>
             
-             <div className="flex items-center gap-2 mb-4">
-                <button onClick={() => setViewMode('edit')} className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${viewMode === 'edit' ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                    {t('editView')}
-                </button>
-                <button onClick={() => setViewMode('view')} className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${viewMode === 'view' ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                    {t('detailView')}
-                </button>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
-                 <div className="relative w-full sm:w-auto sm:flex-grow">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    <input
-                        type="text"
-                        className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400"
-                        placeholder={t('searchByIdTopicAdvisor')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <div className="w-full sm:w-auto">
-                    <label htmlFor="schedule-filter" className="sr-only">{t('allSchedules')}</label>
-                    <select id="schedule-filter" value={scheduleFilter} onChange={e => setScheduleFilter(e.target.value as any)} className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600">
-                        <option value="all">{t('allSchedules')}</option>
-                        <option value="scheduled">{t('scheduled')}</option>
-                        <option value="unscheduled">{t('unscheduled')}</option>
-                    </select>
-                </div>
-                 <div className="w-full sm:w-auto">
-                    <label htmlFor="committee-filter" className="sr-only">{t('committees')}</label>
-                    <select id="committee-filter" value={committeeFilter} onChange={e => setCommitteeFilter(e.target.value as any)} className="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600">
-                        <option value="all">{t('allCommittees')}</option>
-                        <option value="full">{t('fullyAssigned')}</option>
-                        <option value="partial">{t('partiallyAssigned')}</option>
-                        <option value="unassigned">{t('unassigned')}</option>
-                    </select>
-                </div>
-            </div>
+            <Box sx={{ mb: 2, display: 'flex', gap: 1 }}>
+                <ToggleButtonGroup
+                    value={viewMode}
+                    exclusive
+                    onChange={(_, newMode) => newMode && setViewMode(newMode)}
+                    size="small"
+                >
+                    <ToggleButton value="edit">{t('editView')}</ToggleButton>
+                    <ToggleButton value="view">{t('detailView')}</ToggleButton>
+                </ToggleButtonGroup>
+            </Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchByIdTopicAdvisor')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ flexGrow: 1 }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+                <FormControl sx={{ minWidth: 150 }}>
+                    <InputLabel>{t('schedule')}</InputLabel>
+                    <Select
+                        value={scheduleFilter}
+                        onChange={(e) => setScheduleFilter(e.target.value as any)}
+                        label={t('schedule')}
+                    >
+                        <MenuItem value="all">{t('allSchedules')}</MenuItem>
+                        <MenuItem value="scheduled">{t('scheduled')}</MenuItem>
+                        <MenuItem value="unscheduled">{t('unscheduled')}</MenuItem>
+                    </Select>
+                </FormControl>
+                <FormControl sx={{ minWidth: 150 }}>
+                    <InputLabel>{t('committees')}</InputLabel>
+                    <Select
+                        value={committeeFilter}
+                        onChange={(e) => setCommitteeFilter(e.target.value as any)}
+                        label={t('committees')}
+                    >
+                        <MenuItem value="all">{t('allCommittees')}</MenuItem>
+                        <MenuItem value="full">{t('fullyAssigned')}</MenuItem>
+                        <MenuItem value="partial">{t('partiallyAssigned')}</MenuItem>
+                        <MenuItem value="unassigned">{t('unassigned')}</MenuItem>
+                    </Select>
+                </FormControl>
+            </Stack>
             
             {viewMode === 'edit' ? (
                 <>
@@ -828,7 +846,7 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                     confirmButtonClass="bg-red-600 hover:bg-red-700 focus:ring-red-500"
                 />
             )}
-        </div>
+        </Paper>
     );
 };
 

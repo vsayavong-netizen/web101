@@ -1,5 +1,8 @@
 import React from 'react';
-import { ChartPieIcon } from './icons';
+import {
+  Paper, Typography, Box, LinearProgress
+} from '@mui/material';
+import { PieChart as ChartPieIcon } from '@mui/icons-material';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface ProgressComparisonCardProps {
@@ -7,16 +10,23 @@ interface ProgressComparisonCardProps {
     majorAverageProgress: number | null;
 }
 
-const ProgressBar: React.FC<{ progress: number; label: string; color: string; bgColor: string; }> = ({ progress, label, color, bgColor }) => (
-    <div>
-        <div className="flex justify-between items-baseline mb-1">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
-            <p className={`text-sm font-bold ${color}`}>{progress.toFixed(1)}%</p>
-        </div>
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-            <div className={`${bgColor} h-2.5 rounded-full`} style={{ width: `${progress}%` }}></div>
-        </div>
-    </div>
+const ProgressBar: React.FC<{ progress: number; label: string; color: 'primary' | 'success' | 'warning' | 'error' | 'info' }> = ({ progress, label, color }) => (
+    <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+            <Typography variant="body2" fontWeight="medium">
+                {label}
+            </Typography>
+            <Typography variant="body2" fontWeight="bold" color={`${color}.main`}>
+                {progress.toFixed(1)}%
+            </Typography>
+        </Box>
+        <LinearProgress 
+            variant="determinate" 
+            value={Math.min(progress, 100)} 
+            color={color}
+            sx={{ height: 10, borderRadius: 1 }}
+        />
+    </Box>
 );
 
 
@@ -24,20 +34,24 @@ const ProgressComparisonCard: React.FC<ProgressComparisonCardProps> = ({ userPro
     const t = useTranslations();
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                <ChartPieIcon className="w-6 h-6 text-blue-500" />
-                {t('progressComparison')}
-            </h3>
-            <div className="space-y-4">
-                <ProgressBar progress={userProgress} label={t('yourProgress')} color="text-blue-500" bgColor="bg-blue-500" />
+        <Paper elevation={3} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <ChartPieIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+                <Typography variant="h6" fontWeight="medium">
+                    {t('progressComparison')}
+                </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <ProgressBar progress={userProgress} label={t('yourProgress')} color="primary" />
                 {majorAverageProgress !== null ? (
-                    <ProgressBar progress={majorAverageProgress} label={t('majorAverage')} color="text-green-500" bgColor="bg-green-500" />
+                    <ProgressBar progress={majorAverageProgress} label={t('majorAverage')} color="success" />
                 ) : (
-                    <p className="text-xs text-center text-slate-500 dark:text-slate-400 pt-2">{t('noDataForMajorComparison')}</p>
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', pt: 1 }}>
+                        {t('noDataForMajorComparison')}
+                    </Typography>
                 )}
-            </div>
-        </div>
+            </Box>
+        </Paper>
     );
 };
 

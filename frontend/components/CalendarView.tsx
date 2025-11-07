@@ -1,7 +1,18 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import {
+    Box, Paper, Typography, Button, IconButton, Grid, Stack,
+    Popover as MuiPopover, List, ListItem, ListItemButton, ListItemText,
+    Chip, Divider
+} from '@mui/material';
+import {
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+    CalendarToday as CalendarTodayIcon
+} from '@mui/icons-material';
+import { CalendarDaysIcon } from './icons';
 import { ProjectGroup, User, Advisor, MilestoneStatus } from '../types';
-import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
+import { useTheme } from '@mui/material/styles';
 
 interface CalendarViewProps {
     projectGroups: ProjectGroup[];
@@ -19,66 +30,82 @@ interface CalendarEvent {
     date: Date;
 }
 
-const Popover: React.FC<{ date: Date; events: CalendarEvent[]; onSelectEvent: (event: CalendarEvent) => void; onClose: () => void; target: HTMLElement; t: (key: any) => string }> = ({ date, events, onSelectEvent, onClose, target, t }) => {
-    const popoverRef = useRef<HTMLDivElement>(null);
-    const [style, setStyle] = useState<any>({});
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [onClose]);
-
-    useEffect(() => {
-        if (popoverRef.current && target) {
-            const rect = target.getBoundingClientRect();
-            const popoverRect = popoverRef.current.getBoundingClientRect();
-            const newStyle: any = {
-                position: 'fixed',
-                top: `${rect.bottom + 8}px`,
-                left: `${rect.left + rect.width / 2 - popoverRect.width / 2}px`,
-            };
-            if (rect.left + rect.width / 2 + popoverRect.width / 2 > window.innerWidth) {
-                newStyle.left = `${window.innerWidth - popoverRect.width - 8}px`;
-            }
-            if (rect.left + rect.width / 2 - popoverRect.width / 2 < 0) {
-                newStyle.left = '8px';
-            }
-            setStyle(newStyle);
-        }
-    }, [target]);
+const Popover: React.FC<{ 
+    date: Date; 
+    events: CalendarEvent[]; 
+    onSelectEvent: (event: CalendarEvent) => void; 
+    onClose: () => void; 
+    anchorEl: HTMLElement | null;
+    t: (key: any) => string 
+}> = ({ date, events, onSelectEvent, onClose, anchorEl, t }) => {
+    const open = Boolean(anchorEl);
 
     return (
-        <div ref={popoverRef} className="z-20 w-64 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl" style={style}>
-            <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-2">{date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h4>
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-                {events.map(event => (
-                    <li key={event.id}>
-                         <button onClick={() => onSelectEvent(event)} className="w-full text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
-                            <div className="flex items-center">
-                                <span className={`w-2 h-2 rounded-full mr-2 flex-shrink-0 ${event.type === 'milestone' ? (event.isOverdue ? 'bg-red-500' : 'bg-blue-500') : 'bg-green-500'}`}></span>
-                                <div>
-                                    <p className="text-sm font-semibold truncate">{event.title}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{event.project.project.projectId}</p>
-                                </div>
-                            </div>
-                         </button>
-                    </li>
-                ))}
-            </ul>
-        </div>
+        <MuiPopover
+            open={open}
+            anchorEl={anchorEl}
+            onClose={onClose}
+            anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'center',
+            }}
+            transformOrigin={{
+                vertical: 'top',
+                horizontal: 'center',
+            }}
+            sx={{ mt: 1 }}
+        >
+            <Box sx={{ width: 256, p: 2 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                    {date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </Typography>
+                <List sx={{ maxHeight: 192, overflow: 'auto', p: 0 }}>
+                    {events.map((event, index) => (
+                        <React.Fragment key={event.id}>
+                            <ListItem disablePadding>
+                                <ListItemButton 
+                                    onClick={() => onSelectEvent(event)}
+                                    sx={{ borderRadius: 1, mb: 0.5 }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        <Box
+                                            sx={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: '50%',
+                                                mr: 1.5,
+                                                flexShrink: 0,
+                                                bgcolor: event.type === 'milestone' 
+                                                    ? (event.isOverdue ? 'error.main' : 'primary.main') 
+                                                    : 'success.main'
+                                            }}
+                                        />
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography variant="body2" fontWeight="semibold" noWrap>
+                                                {event.title}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" noWrap>
+                                                {event.project.project.projectId}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                </ListItemButton>
+                            </ListItem>
+                            {index < events.length - 1 && <Divider />}
+                        </React.Fragment>
+                    ))}
+                </List>
+            </Box>
+        </MuiPopover>
     );
 };
 
-
 const CalendarView: React.FC<CalendarViewProps> = ({ projectGroups, user, advisors, onSelectProject }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [popoverState, setPopoverState] = useState<{ date: Date; target: HTMLElement } | null>(null);
+    const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
+    const [popoverDate, setPopoverDate] = useState<Date | null>(null);
     const t = useTranslations();
+    const theme = useTheme();
 
     const goToPreviousMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const goToNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -158,78 +185,251 @@ const CalendarView: React.FC<CalendarViewProps> = ({ projectGroups, user, adviso
 
     const handleDayClick = (e: React.MouseEvent<HTMLDivElement>, events: CalendarEvent[], date: Date) => {
         if (events.length > 2) {
-            setPopoverState({ date, target: e.currentTarget });
+            setPopoverAnchor(e.currentTarget);
+            setPopoverDate(date);
         } else if (events.length > 0) {
             onSelectProject(events[0].project);
         }
     };
+
+    const handlePopoverClose = () => {
+        setPopoverAnchor(null);
+        setPopoverDate(null);
+    };
+
+    const handleSelectEvent = (event: CalendarEvent) => {
+        onSelectProject(event.project);
+        handlePopoverClose();
+    };
+
+    const popoverEvents = popoverDate 
+        ? (eventsByDate.get(popoverDate.toISOString().split('T')[0]) || [])
+        : [];
+
+    const weekDays = [t('sun'), t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat')];
     
     return (
-        <>
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                     <div className="flex items-center">
-                       <CalendarDaysIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                       <div>
-                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('calendar')}</h2>
-                         <p className="text-slate-500 dark:text-slate-400 mt-1">{t('calendarDescription')}</p>
-                       </div>
-                    </div>
-                </div>
+        <Box>
+            <Paper elevation={1} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    justifyContent: 'space-between',
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    mb: 3
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 0 } }}>
+                        <CalendarDaysIcon sx={{ width: 32, height: 32, color: 'primary.main', mr: 1.5 }} />
+                        <Box>
+                            <Typography variant="h5" component="h2" fontWeight="bold">
+                                {t('calendar')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                {t('calendarDescription')}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
                 
-                <div className="flex justify-between items-center mb-4">
-                    <button onClick={goToPreviousMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronLeftIcon className="w-6 h-6"/></button>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                    <button onClick={goToNextMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronRightIcon className="w-6 h-6"/></button>
-                </div>
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 2 
+                }}>
+                    <IconButton 
+                        onClick={goToPreviousMonth}
+                        sx={{ 
+                            borderRadius: '50%',
+                            '&:hover': { bgcolor: 'action.hover' }
+                        }}
+                    >
+                        <ChevronLeftIcon />
+                    </IconButton>
+                    <Typography variant="h6" fontWeight="bold">
+                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </Typography>
+                    <IconButton 
+                        onClick={goToNextMonth}
+                        sx={{ 
+                            borderRadius: '50%',
+                            '&:hover': { bgcolor: 'action.hover' }
+                        }}
+                    >
+                        <ChevronRightIcon />
+                    </IconButton>
+                </Box>
                 
-                <div className="grid grid-cols-7 text-center font-semibold text-sm text-slate-600 dark:text-slate-300 mb-2">
-                    {[t('sun'), t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat')].map(day => <div key={day} className="py-2">{day}</div>)}
-                </div>
-                
-                <div className="grid grid-cols-7 gap-1">
-                    {calendarGrid.map(({ date, isCurrentMonth, isToday, events }, index) => (
-                        <div 
-                            key={index}
-                            className={`relative h-28 p-2 border border-slate-200 dark:border-slate-700 rounded-md transition-colors ${isCurrentMonth ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'}`}
-                            onClick={(e) => handleDayClick(e, events, date)}
-                        >
-                            <span className={`text-sm font-semibold ${isToday ? 'bg-blue-600 text-white rounded-full flex items-center justify-center w-6 h-6' : (isCurrentMonth ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500')}`}>
-                                {date.getDate()}
-                            </span>
-                            <div className="mt-1 space-y-1 overflow-hidden">
-                                {events.slice(0, 2).map(event => (
-                                    <div key={event.id} className="text-xs font-semibold text-white px-1.5 py-0.5 rounded truncate cursor-pointer" style={{ backgroundColor: event.type === 'milestone' ? (event.isOverdue ? '#ef4444' : '#3b82f6') : '#10b981' }}>
-                                        {event.title}
-                                    </div>
-                                ))}
-                                {events.length > 2 && (
-                                    <div className="text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
-                                        +{events.length - 2} {t('more')}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                <Grid container spacing={0.5} sx={{ mb: 1 }}>
+                    {weekDays.map(day => (
+                        <Grid size={{ xs: 12/7 }} key={day}>
+                            <Box sx={{ 
+                                textAlign: 'center', 
+                                py: 1,
+                                fontWeight: 'semibold',
+                                fontSize: '0.875rem',
+                                color: 'text.secondary'
+                            }}>
+                                {day}
+                            </Box>
+                        </Grid>
                     ))}
-                </div>
+                </Grid>
+                
+                <Grid container spacing={0.5}>
+                    {calendarGrid.map(({ date, isCurrentMonth, isToday, events }, index) => (
+                        <Grid size={{ xs: 12/7 }} key={index}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    height: 112,
+                                    p: 1,
+                                    border: 1,
+                                    borderColor: 'divider',
+                                    borderRadius: 1,
+                                    cursor: events.length > 0 ? 'pointer' : 'default',
+                                    bgcolor: isCurrentMonth 
+                                        ? 'background.paper' 
+                                        : 'action.hover',
+                                    transition: 'all 0.2s',
+                                    '&:hover': events.length > 0 ? {
+                                        bgcolor: 'action.hover',
+                                        transform: 'scale(1.02)'
+                                    } : {},
+                                    position: 'relative'
+                                }}
+                                onClick={(e) => handleDayClick(e, events, date)}
+                            >
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    mb: 0.5
+                                }}>
+                                    {isToday ? (
+                                        <Box
+                                            sx={{
+                                                bgcolor: 'primary.main',
+                                                color: 'primary.contrastText',
+                                                borderRadius: '50%',
+                                                width: 24,
+                                                height: 24,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 'semibold'
+                                            }}
+                                        >
+                                            {date.getDate()}
+                                        </Box>
+                                    ) : (
+                                        <Typography
+                                            variant="body2"
+                                            fontWeight="semibold"
+                                            sx={{
+                                                color: isCurrentMonth 
+                                                    ? 'text.primary' 
+                                                    : 'text.disabled'
+                                            }}
+                                        >
+                                            {date.getDate()}
+                                        </Typography>
+                                    )}
+                                </Box>
+                                <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.5, overflow: 'hidden' }}>
+                                    {events.slice(0, 2).map(event => (
+                                        <Chip
+                                            key={event.id}
+                                            label={event.title}
+                                            size="small"
+                                            sx={{
+                                                height: 18,
+                                                fontSize: '0.625rem',
+                                                fontWeight: 'semibold',
+                                                bgcolor: event.type === 'milestone' 
+                                                    ? (event.isOverdue ? 'error.main' : 'primary.main') 
+                                                    : 'success.main',
+                                                color: 'white',
+                                                '& .MuiChip-label': {
+                                                    px: 1,
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                    {events.length > 2 && (
+                                        <Typography 
+                                            variant="caption" 
+                                            color="primary.main"
+                                            fontWeight="bold"
+                                            sx={{ 
+                                                cursor: 'pointer',
+                                                '&:hover': { textDecoration: 'underline' }
+                                            }}
+                                        >
+                                            +{events.length - 2} {t('more')}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    ))}
+                </Grid>
 
-                 <div className="flex flex-wrap gap-x-4 gap-y-1 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700 text-xs">
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-blue-500"></span><span className="text-slate-600 dark:text-slate-400">{t('milestone')}</span></div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-red-500"></span><span className="text-slate-600 dark:text-slate-400">{t('overdueMilestone')}</span></div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-green-500"></span><span className="text-slate-600 dark:text-slate-400">{t('defense')}</span></div>
-                </div>
-            </div>
-            {popoverState && (
-                <Popover 
-                    date={popoverState.date} 
-                    events={eventsByDate.get(popoverState.date.toISOString().split('T')[0]) || []}
-                    onSelectEvent={(e) => { onSelectProject(e.project); setPopoverState(null); }} 
-                    onClose={() => setPopoverState(null)}
-                    target={popoverState.target}
-                    t={t}
-                />
-            )}
-        </>
+                <Divider sx={{ my: 2 }} />
+                <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                            sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: 'primary.main'
+                            }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                            {t('milestone')}
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                            sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: 'error.main'
+                            }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                            {t('overdueMilestone')}
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                            sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: 'success.main'
+                            }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                            {t('defense')}
+                        </Typography>
+                    </Box>
+                </Stack>
+            </Paper>
+            <Popover 
+                date={popoverDate || new Date()} 
+                events={popoverEvents}
+                onSelectEvent={handleSelectEvent} 
+                onClose={handlePopoverClose}
+                anchorEl={popoverAnchor}
+                t={t}
+            />
+        </Box>
     );
 };
 

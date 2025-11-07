@@ -1,6 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+  Box, Paper, Typography, Button, IconButton, TextField,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Grid, Stack, InputAdornment, Card, CardContent, Divider
+} from '@mui/material';
+import { 
+  Search as SearchIcon, Download as DownloadIcon, Check as CheckIcon,
+  Assignment as AssignmentIcon
+} from '@mui/icons-material';
 import { ProjectGroup, Advisor, FinalSubmissionStatus } from '../types';
-import { MagnifyingGlassIcon, DocumentCheckIcon, ArrowDownTrayIcon, CheckIcon, TableCellsIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import SortableHeader, { SortConfig, SortDirection } from './SortableHeader';
 import { ExcelUtils } from '../utils/excelUtils';
@@ -119,13 +127,13 @@ export const FinalProjectManagement: React.FC<FinalProjectManagementProps> = ({ 
         }
     };
 
-    const handleExportExcel = useCallback(() => {
+    const handleExportExcel = useCallback(async () => {
         const dataToExport = sortedAndFilteredProjects.map(pg => ({
-            'Project ID': pg.project.projectId,
-            'Topic': pg.project.topicEng,
-            'Students': pg.students.map(s => `${s.name} ${s.surname} (${s.studentId})`).join(', '),
-            'Advisor': pg.project.advisorName,
-            'Final Grade': pg.project.finalGrade || 'Not Graded'
+            [t('projectId')]: pg.project.projectId,
+            [t('topicEng')]: pg.project.topicEng,
+            [t('students')]: pg.students.map(s => `${s.name} ${s.surname} (${s.studentId})`).join(', '),
+            [t('advisor')]: pg.project.advisorName,
+            [t('finalGrades')]: pg.project.finalGrade || t('notGraded')
         }));
         
         if (dataToExport.length === 0) {
@@ -133,117 +141,189 @@ export const FinalProjectManagement: React.FC<FinalProjectManagementProps> = ({ 
             return;
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Final Grades');
-
-        worksheet['!cols'] = [{ wch: 15 }, { wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 15 }];
-
-        XLSX.writeFile(workbook, 'final_project_grades.xlsx');
+        await ExcelUtils.exportToExcel(dataToExport, 'final_project_grades.xlsx');
         addToast({ type: 'success', message: t('exportGradesSuccessToast') });
     }, [sortedAndFilteredProjects, addToast, t]);
 
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <div className="flex items-center">
-                   <DocumentCheckIcon className="w-8 h-8 text-blue-600 mr-3"/>
-                   <div>
-                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('finalGradesReports')}</h2>
-                     <p className="text-slate-500 dark:text-slate-400 mt-1">{t('finalGradesDescription')}</p>
-                   </div>
-                </div>
-                <button
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 3,
+                gap: 2
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                   <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                   <Box>
+                     <Typography variant="h5" component="h2" fontWeight="bold">
+                       {t('finalGradesReports')}
+                     </Typography>
+                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                       {t('finalGradesDescription')}
+                     </Typography>
+                   </Box>
+                </Box>
+                <Button
                     onClick={handleExportExcel}
-                    className="mt-4 sm:mt-0 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    sx={{ bgcolor: 'green.600', '&:hover': { bgcolor: 'green.700' }, fontWeight: 'bold', mt: { xs: 2, sm: 0 } }}
                 >
-                    <TableCellsIcon className="w-5 h-5 mr-2" />
                     {t('exportGrades')}
-                </button>
-            </div>
-            <div className="mb-4">
-                 <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" /></div>
-                    <input type="text" className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 dark:placeholder:text-gray-400" placeholder={t('searchByIdTopicStudent')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                </div>
-            </div>
+                </Button>
+            </Box>
+            <Box sx={{ mb: 2 }}>
+                <TextField
+                    placeholder={t('searchByIdTopicStudent')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{ width: { xs: '100%', sm: '50%', lg: '33%' } }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Box>
             
-            {/* Mobile Card View */}
-            <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {sortedAndFilteredProjects.map(pg => (
-                    <div key={pg.project.projectId} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg shadow-md p-4 space-y-3">
-                        <div className="pb-3 border-b border-slate-200 dark:border-slate-700">
-                            <p className="font-bold text-slate-800 dark:text-slate-100">{pg.project.projectId}</p>
-                            <p className="text-sm text-slate-600 dark:text-slate-300 truncate">{pg.project.topicEng}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('advisor')}: {pg.project.advisorName}</p>
-                        </div>
-                        <div className="text-sm">
-                            <strong>{t('students')}:</strong> {pg.students.map(s => `${s.name} ${s.surname}`).join(', ')}
-                        </div>
-                        <div className="text-sm">
-                             <strong>{t('finalReport')}:</strong> <button onClick={() => handleDownload(pg)} className="inline-flex items-center text-blue-600 hover:underline dark:text-blue-400">{t('download')} <ArrowDownTrayIcon className="w-4 h-4 ml-1"/></button>
-                        </div>
-                        <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-                             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('finalGrades')}</label>
-                             <div className="flex items-center gap-2 mt-1">
-                                <input type="text" value={edits[pg.project.projectId] ?? pg.project.finalGrade ?? ''} onChange={e => handleGradeChange(pg.project.projectId, e.target.value)} className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"/>
-                                {edits[pg.project.projectId] !== undefined && (
-                                    <button onClick={() => handleSaveGrade(pg.project.projectId)} className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                                        <CheckIcon className="w-5 h-5"/>
-                                    </button>
-                                )}
-                             </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <Box sx={{ display: { lg: 'none' } }}>
+                <Grid container spacing={2}>
+                    {sortedAndFilteredProjects.map(pg => (
+                        <Grid size={{ xs: 12, sm: 6 }} key={pg.project.projectId}>
+                            <Card variant="outlined">
+                                <CardContent sx={{ p: 2 }}>
+                                    <Box sx={{ pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+                                        <Typography variant="h6" fontWeight="bold">
+                                            {pg.project.projectId}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {pg.project.topicEng}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {t('advisor')}: {pg.project.advisorName}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2">
+                                            <strong>{t('students')}:</strong> {pg.students.map(s => `${s.name} ${s.surname}`).join(', ')}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="body2">
+                                            <strong>{t('finalReport')}:</strong>{' '}
+                                            <Button
+                                                size="small"
+                                                startIcon={<DownloadIcon />}
+                                                onClick={() => handleDownload(pg)}
+                                                sx={{ textTransform: 'none', minWidth: 'auto', p: 0 }}
+                                            >
+                                                {t('download')}
+                                            </Button>
+                                        </Typography>
+                                    </Box>
+                                    <Divider sx={{ my: 2 }} />
+                                    <Box>
+                                        <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
+                                            {t('finalGrades')}
+                                        </Typography>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <TextField
+                                                size="small"
+                                                value={edits[pg.project.projectId] ?? pg.project.finalGrade ?? ''}
+                                                onChange={(e) => handleGradeChange(pg.project.projectId, e.target.value)}
+                                                sx={{ flexGrow: 1 }}
+                                            />
+                                            {edits[pg.project.projectId] !== undefined && (
+                                                <IconButton
+                                                    color="primary"
+                                                    onClick={() => handleSaveGrade(pg.project.projectId)}
+                                                    size="small"
+                                                >
+                                                    <CheckIcon />
+                                                </IconButton>
+                                            )}
+                                        </Stack>
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Box>
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-slate-700 dark:text-gray-300">
-                        <tr>
+            <TableContainer sx={{ display: { xs: 'none', lg: 'block' } }}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
                             <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="studentNames" title={t('students')} sortConfig={sortConfig} requestSort={requestSort} />
                             <SortableHeader sortKey="advisorName" title={t('advisor')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3">{t('finalReport')}</th>
+                            <TableCell>{t('finalReport')}</TableCell>
                             <SortableHeader sortKey="finalGrade" title={t('finalGrades')} sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="px-6 py-3 text-right">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                            <TableCell align="right">{t('actions')}</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {sortedAndFilteredProjects.map(pg => (
-                            <tr key={pg.project.projectId} className="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pg.project.projectId}</td>
-                                <td className="px-6 py-4">{pg.students.map(s => `${s.name} ${s.surname}`).join(', ')}</td>
-                                <td className="px-6 py-4">{pg.project.advisorName}</td>
-                                <td className="px-6 py-4">
-                                    <button onClick={() => handleDownload(pg)} className="inline-flex items-center text-blue-600 hover:underline dark:text-blue-400">
-                                        <ArrowDownTrayIcon className="w-4 h-4 mr-1"/>
+                            <TableRow 
+                                key={pg.project.projectId}
+                                sx={{
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <TableCell component="th" scope="row" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                    {pg.project.projectId}
+                                </TableCell>
+                                <TableCell>{pg.students.map(s => `${s.name} ${s.surname}`).join(', ')}</TableCell>
+                                <TableCell>{pg.project.advisorName}</TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="small"
+                                        startIcon={<DownloadIcon />}
+                                        onClick={() => handleDownload(pg)}
+                                        sx={{ textTransform: 'none' }}
+                                    >
                                         {t('download')}
-                                    </button>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <input type="text" value={edits[pg.project.projectId] ?? pg.project.finalGrade ?? ''} onChange={e => handleGradeChange(pg.project.projectId, e.target.value)} className="block w-24 text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"/>
-                                </td>
-                                <td className="px-6 py-4 text-right">
+                                    </Button>
+                                </TableCell>
+                                <TableCell>
+                                    <TextField
+                                        size="small"
+                                        value={edits[pg.project.projectId] ?? pg.project.finalGrade ?? ''}
+                                        onChange={(e) => handleGradeChange(pg.project.projectId, e.target.value)}
+                                        sx={{ width: 100 }}
+                                    />
+                                </TableCell>
+                                <TableCell align="right">
                                     {edits[pg.project.projectId] !== undefined && (
-                                        <button onClick={() => handleSaveGrade(pg.project.projectId)} className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg" aria-label={t('saveChanges')}>
-                                            <CheckIcon className="w-5 h-5"/>
-                                        </button>
+                                        <IconButton
+                                            size="small"
+                                            color="primary"
+                                            onClick={() => handleSaveGrade(pg.project.projectId)}
+                                            aria-label={t('saveChanges')}
+                                        >
+                                            <CheckIcon />
+                                        </IconButton>
                                     )}
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
-                 {sortedAndFilteredProjects.length === 0 && (
-                    <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-                        {searchQuery ? `${t('noProjectsForQuery').replace('${query}', searchQuery)}` : t('noProjectsToDisplay')}
-                    </div>
+                    </TableBody>
+                </Table>
+                {sortedAndFilteredProjects.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery ? `${t('noProjectsForQuery').replace('${query}', searchQuery)}` : t('noProjectsToDisplay')}
+                        </Typography>
+                    </Box>
                 )}
-            </div>
-        </div>
+            </TableContainer>
+        </Paper>
     );
 };

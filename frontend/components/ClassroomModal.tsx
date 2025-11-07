@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Select, MenuItem, FormControl,
+  InputLabel, FormHelperText, IconButton, Box, Typography, Divider
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Classroom, Major, User, Advisor } from '../types';
-import { XMarkIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface ClassroomModalProps {
@@ -83,41 +88,57 @@ const ClassroomModal: React.FC<ClassroomModalProps> = ({ onClose, onSave, classr
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <style>{`.input-style { transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; } .dark .input-style { background-color: #334155; border-color: #475569; color: #f8fafc; }`}</style>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-slate-700">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{isEditMode ? t('editClassroom') : t('addClassroom')}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('classroomName')}</label>
-              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className={`input-style mt-1 ${errors.name ? 'border-red-500' : ''}`} />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-            </div>
-             <div>
-              <label htmlFor="major" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('major')}</label>
-              <select id="major" value={majorId} onChange={e => setMajorId(e.target.value)} className={`input-style mt-1 ${errors.majorId ? 'border-red-500' : ''}`}>
-                {availableMajors.length === 0 ? (
-                    <option disabled>{t('pleaseAddMajorFirst')}</option>
-                ) : (
-                    availableMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)
-                )}
-              </select>
-              {errors.majorId && <p className="text-red-500 text-xs mt-1">{errors.majorId}</p>}
-            </div>
-          </div>
-          <div className="flex justify-end space-x-4 pt-6 border-t dark:border-slate-700 mt-6">
-            <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white font-bold py-2 px-4 rounded-lg">{t('cancel')}</button>
-            <button type="submit" disabled={availableMajors.length === 0} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed">{t('saveClassroom')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
+        <Typography variant="h6" fontWeight="bold">
+          {isEditMode ? t('editClassroom') : t('addClassroom')}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <Divider />
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+          <TextField
+            fullWidth
+            label={t('classroomName')}
+            id="name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            error={!!errors.name}
+            helperText={errors.name}
+          />
+          <FormControl fullWidth error={!!errors.majorId} disabled={availableMajors.length === 0}>
+            <InputLabel>{t('major')}</InputLabel>
+            <Select
+              id="major"
+              value={majorId}
+              onChange={e => setMajorId(e.target.value)}
+              label={t('major')}
+            >
+              {availableMajors.length === 0 ? (
+                <MenuItem disabled>{t('pleaseAddMajorFirst')}</MenuItem>
+              ) : (
+                availableMajors.map(m => (
+                  <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+                ))
+              )}
+            </Select>
+            {errors.majorId && <FormHelperText>{errors.majorId}</FormHelperText>}
+          </FormControl>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} variant="outlined">
+            {t('cancel')}
+          </Button>
+          <Button type="submit" variant="contained" disabled={availableMajors.length === 0}>
+            {t('saveClassroom')}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

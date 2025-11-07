@@ -1,6 +1,14 @@
 import React from 'react';
+import {
+  Card, CardContent, CardActions, Typography, Box,
+  IconButton, Chip, Divider
+} from '@mui/material';
+import { 
+  Edit as PencilIcon, Delete as TrashIcon,
+  Groups as UserGroupIcon, Business as BuildingOfficeIcon,
+  Assignment as ClipboardDocumentListIcon
+} from '@mui/icons-material';
 import { Major } from '../types';
-import { PencilIcon, TrashIcon, UserGroupIcon, BuildingOfficeIcon, ClipboardDocumentListIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface MajorCardProps {
@@ -24,58 +32,91 @@ const MajorCard: React.FC<MajorCardProps> = ({ major, studentCount, classroomCou
     const t = useTranslations();
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg shadow-md p-4 flex flex-col justify-between">
-            <div>
-                 <div className="flex justify-between items-start">
-                    <p className="font-bold text-slate-800 dark:text-slate-100 pr-4">{major.name}</p>
-                    <span className="text-sm flex-shrink-0 font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2.5 py-1 rounded-full">{major.abbreviation}</span>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold mt-1">{major.id}</p>
-                <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center text-slate-500 dark:text-slate-400">
-                            <UserGroupIcon className="w-4 h-4 mr-2" />
-                            <span>{t('students')}</span>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {studentCount} <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">({t('male').charAt(0)}:{maleCount} {t('female').charAt(0)}:{femaleCount} {t('monk')}:{monkCount})</span>
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center text-slate-500 dark:text-slate-400">
-                            <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
-                            <span>{t('projects')}</span>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">
+        <Card variant="outlined" sx={{ bgcolor: 'action.hover', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" fontWeight="bold" sx={{ pr: 2, flex: 1 }}>
+                        {major.name}
+                    </Typography>
+                    <Chip 
+                        label={major.abbreviation} 
+                        size="small" 
+                        color="primary" 
+                        sx={{ flexShrink: 0 }}
+                    />
+                </Box>
+                <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                    {major.id}
+                </Typography>
+                <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+                            <UserGroupIcon sx={{ fontSize: 16, mr: 1 }} />
+                            <Typography variant="body2">{t('students')}</Typography>
+                        </Box>
+                        <Typography variant="body2" fontWeight="medium">
+                            {studentCount}{' '}
+                            <Typography component="span" variant="caption" color="text.secondary" fontWeight="normal">
+                                ({t('male').charAt(0)}:{maleCount} {t('female').charAt(0)}:{femaleCount} {t('monk')}:{monkCount})
+                            </Typography>
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+                            <ClipboardDocumentListIcon sx={{ fontSize: 16, mr: 1 }} />
+                            <Typography variant="body2">{t('projects')}</Typography>
+                        </Box>
+                        <Typography variant="body2" fontWeight="medium">
                             {projectCount}{' '}
-                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                            <Typography component="span" variant="caption" color="text.secondary" fontWeight="normal">
                                 (1P:{soloProjectCount}, 2P:{duoProjectCount})
-                            </span>
-                        </span>
-                    </div>
-                     <div className="pl-6 text-xs text-slate-500 dark:text-slate-400">
-                        <span className="font-semibold text-green-600 dark:text-green-400">{t('approved')}: {approvedCount}</span>,{' '}
-                        <span className="font-semibold text-yellow-600 dark:text-yellow-400">{t('pending')}: {pendingCount}</span>,{' '}
-                        <span className="font-semibold text-red-600 dark:text-red-400">{t('rejected')}: {rejectedCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center text-slate-500 dark:text-slate-400">
-                            <BuildingOfficeIcon className="w-4 h-4 mr-2" />
-                            <span>{t('classrooms')}</span>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">{classroomCount}</span>
-                    </div>
-                </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2">
-                <button onClick={onEdit} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-                <button onClick={onDelete} className="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-                    <TrashIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
+                            </Typography>
+                        </Typography>
+                    </Box>
+                    <Box sx={{ pl: 4 }}>
+                        <Typography variant="caption" color="text.secondary">
+                            <Box component="span" fontWeight="bold" color="success.main">
+                                {t('approved')}: {approvedCount}
+                            </Box>
+                            ,{' '}
+                            <Box component="span" fontWeight="bold" color="warning.main">
+                                {t('pending')}: {pendingCount}
+                            </Box>
+                            ,{' '}
+                            <Box component="span" fontWeight="bold" color="error.main">
+                                {t('rejected')}: {rejectedCount}
+                            </Box>
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+                            <BuildingOfficeIcon sx={{ fontSize: 16, mr: 1 }} />
+                            <Typography variant="body2">{t('classrooms')}</Typography>
+                        </Box>
+                        <Typography variant="body2" fontWeight="medium">
+                            {classroomCount}
+                        </Typography>
+                    </Box>
+                </Box>
+            </CardContent>
+            <Divider />
+            <CardActions sx={{ justifyContent: 'flex-end', gap: 0.5 }}>
+                <IconButton
+                    onClick={onEdit}
+                    size="small"
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}
+                >
+                    <PencilIcon />
+                </IconButton>
+                <IconButton
+                    onClick={onDelete}
+                    size="small"
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'action.hover' } }}
+                >
+                    <TrashIcon />
+                </IconButton>
+            </CardActions>
+        </Card>
     );
 };
 

@@ -1,5 +1,8 @@
 import React from 'react';
-import { BookOpenIcon, LinkIcon } from './icons';
+import {
+  Paper, Typography, Box, List, ListItem, Link
+} from '@mui/material';
+import { MenuBook as BookOpenIcon, Link as LinkIcon } from '@mui/icons-material';
 import { useTranslations } from '../hooks/useTranslations';
 
 const ResourceHubCard: React.FC = () => {
@@ -11,22 +14,39 @@ const ResourceHubCard: React.FC = () => {
     ];
     
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                <BookOpenIcon className="w-6 h-6 text-blue-500" />
-                {t('resourceHub')}
-            </h3>
-            <ul className="space-y-2">
+        <Paper elevation={3} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <BookOpenIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+                <Typography variant="h6" fontWeight="medium">
+                    {t('resourceHub')}
+                </Typography>
+            </Box>
+            <List>
                 {resources.map((res, index) => (
-                    <li key={index}>
-                        <a href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                            <LinkIcon className="w-4 h-4" />
-                            <span>{res.title}</span>
-                        </a>
-                    </li>
+                    <ListItem key={index} disablePadding>
+                        <Link
+                            href={res.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                color: 'primary.main',
+                                textDecoration: 'none',
+                                '&:hover': { textDecoration: 'underline' },
+                                width: '100%'
+                            }}
+                        >
+                            <LinkIcon sx={{ fontSize: 16 }} />
+                            <Typography variant="body2" fontWeight="medium">
+                                {res.title}
+                            </Typography>
+                        </Link>
+                    </ListItem>
                 ))}
-            </ul>
-        </div>
+            </List>
+        </Paper>
     );
 };
 

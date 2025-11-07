@@ -1,6 +1,10 @@
 import React from 'react';
+import {
+  Card, CardContent, CardActions, Typography, Box,
+  IconButton, Checkbox, Switch, Divider
+} from '@mui/material';
+import { Edit as PencilIcon, Delete as TrashIcon } from '@mui/icons-material';
 import { Advisor, User } from '../types';
-import { PencilIcon, TrashIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface AdvisorCardProps {
@@ -15,20 +19,6 @@ interface AdvisorCardProps {
     onToggleAiAssistant: () => void;
 }
 
-const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (e: React.MouseEvent) => void; }> = ({ enabled, onChange }) => (
-    <button
-        type="button"
-        className={`${enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-        role="switch"
-        aria-checked={enabled}
-        onClick={onChange}
-    >
-        <span
-            aria-hidden="true"
-            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
-);
 
 
 const AdvisorCard: React.FC<AdvisorCardProps> = ({ advisor, user, projectCount, getMajorNames, onEdit, onDelete, onSelect, isSelected, onToggleAiAssistant }) => {
@@ -41,40 +31,82 @@ const AdvisorCard: React.FC<AdvisorCardProps> = ({ advisor, user, projectCount, 
     };
 
     return (
-        <div className={`relative bg-slate-50 dark:bg-slate-800/50 rounded-lg shadow-md p-4 flex flex-col justify-between ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
-             <div>
-                <div className="flex justify-between items-start">
-                    <div className="pr-10">
-                        <p className="font-bold text-slate-800 dark:text-slate-100">{advisor.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold">{advisor.id}</p>
-                    </div>
-                     <input
-                        type="checkbox"
-                        className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+        <Card 
+            variant="outlined" 
+            sx={{ 
+                bgcolor: 'action.hover', 
+                position: 'relative',
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'space-between',
+                border: isSelected ? 2 : 0,
+                borderColor: isSelected ? 'primary.main' : 'transparent'
+            }}
+        >
+            <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ pr: 2, flex: 1 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                            {advisor.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                            {advisor.id}
+                        </Typography>
+                    </Box>
+                    <Checkbox
                         checked={isSelected}
                         onChange={() => onSelect(advisor.id)}
+                        color="primary"
                     />
-                </div>
-                <div className="mt-4 space-y-2 text-sm">
-                    <p><strong>{t('projects')}:</strong> <span className={isOverloaded ? 'text-red-500 dark:text-red-400 font-bold' : ''}>{projectCount} / {advisor.quota}</span></p>
-                    <p><strong>{t('majors')}:</strong> {getMajorNames(advisor.specializedMajorIds)}</p>
+                </Box>
+                <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2">
+                        <Box component="strong">{t('projects')}:</Box>{' '}
+                        <Box 
+                            component="span" 
+                            sx={{ 
+                                color: isOverloaded ? 'error.main' : 'text.primary',
+                                fontWeight: isOverloaded ? 'bold' : 'normal'
+                            }}
+                        >
+                            {projectCount} / {advisor.quota}
+                        </Box>
+                    </Typography>
+                    <Typography variant="body2">
+                        <Box component="strong">{t('majors')}:</Box> {getMajorNames(advisor.specializedMajorIds)}
+                    </Typography>
                     {user.role === 'Admin' && (
-                        <div className="flex items-center justify-between">
-                            <strong>{t('aiAssistant')}:</strong>
-                            <ToggleSwitch enabled={advisor.isAiAssistantEnabled ?? true} onChange={handleToggleAiAssistant} />
-                        </div>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="body2" component="strong">
+                                {t('aiAssistant')}:
+                            </Typography>
+                            <Switch
+                                checked={advisor.isAiAssistantEnabled ?? true}
+                                onChange={handleToggleAiAssistant}
+                                color="primary"
+                            />
+                        </Box>
                     )}
-                </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2">
-                <button onClick={onEdit} className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-                <button onClick={onDelete} className="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-                    <TrashIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
+                </Box>
+            </CardContent>
+            <Divider />
+            <CardActions sx={{ justifyContent: 'flex-end', gap: 0.5 }}>
+                <IconButton
+                    onClick={onEdit}
+                    size="small"
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}
+                >
+                    <PencilIcon />
+                </IconButton>
+                <IconButton
+                    onClick={onDelete}
+                    size="small"
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'action.hover' } }}
+                >
+                    <TrashIcon />
+                </IconButton>
+            </CardActions>
+        </Card>
     );
 };
 
