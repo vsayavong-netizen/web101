@@ -1,6 +1,13 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import {
+  Box, Paper, Typography, TextField, Button, IconButton, Stack, Divider, Chip, MenuList, MenuItem, ListItemText
+} from '@mui/material';
+import {
+  Send as PaperAirplaneIcon, AttachFile as PaperClipIcon, Close as XMarkIcon,
+  AutoAwesome as SparklesIcon, SwapHoriz as ArrowsRightLeftIcon, Schedule as ClockIcon,
+  Upload as DocumentArrowUpIcon, Edit as PencilIcon, Info as InformationCircleIcon
+} from '@mui/icons-material';
 import { ProjectGroup, User, Advisor, LogEntry, FileUploadPayload } from '../types';
-import { PaperAirplaneIcon, PaperClipIcon, XMarkIcon, SparklesIcon, ArrowsRightLeftIcon, ClockIcon, DocumentArrowUpIcon, PencilIcon, InformationCircleIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import { formatTimeAgo } from '../utils/timeUtils';
 import { useTranslations } from '../hooks/useTranslations';
@@ -39,18 +46,18 @@ const CommunicationLog: React.FC<CommunicationLogProps> = ({ projectGroup, user,
     const getEventIcon = (message: string) => {
         const lowerMessage = message.toLowerCase();
         if (lowerMessage.includes('status changed') || lowerMessage.includes('approved') || lowerMessage.includes('rejected') || lowerMessage.includes('transferred')) {
-            return <ArrowsRightLeftIcon className="w-3 h-3 mr-1.5 inline-block" />;
+            return <ArrowsRightLeftIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />;
         }
         if (lowerMessage.includes('submitted')) {
-            return <DocumentArrowUpIcon className="w-3 h-3 mr-1.5 inline-block" />;
+            return <DocumentArrowUpIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />;
         }
         if (lowerMessage.includes('due date')) {
-            return <ClockIcon className="w-3 h-3 mr-1.5 inline-block" />;
+            return <ClockIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />;
         }
         if (lowerMessage.includes('updated') || lowerMessage.includes('registered')) {
-            return <PencilIcon className="w-3 h-3 mr-1.5 inline-block" />;
+            return <PencilIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />;
         }
-        return <InformationCircleIcon className="w-3 h-3 mr-1.5 inline-block" />;
+        return <InformationCircleIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />;
     };
 
     const projectMembers = useMemo(() => {
@@ -175,127 +182,189 @@ const CommunicationLog: React.FC<CommunicationLogProps> = ({ projectGroup, user,
                     if (i % 2 === 1) { // This is a mentioned name
                         const isCurrentUserMentioned = part === user.name;
                         return (
-                            <strong key={i} className={isCurrentUserMentioned ? 'text-blue-400 bg-blue-900/50 px-1 rounded' : 'text-blue-400'}>
-                                @{part}
-                            </strong>
+                            <Chip
+                                key={i}
+                                label={`@${part}`}
+                                size="small"
+                                sx={{
+                                    height: 20,
+                                    fontSize: '0.75rem',
+                                    bgcolor: isCurrentUserMentioned ? 'primary.dark' : 'primary.light',
+                                    color: 'primary.contrastText',
+                                    fontWeight: 600,
+                                    mx: 0.25
+                                }}
+                            />
                         );
                     }
-                    return part;
+                    return <span key={i}>{part}</span>;
                 })}
             </>
         );
     };
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 flex flex-col h-[70vh]">
-            <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">{t('communicationLog')}</h3>
-                 <button onClick={onAnalyze} disabled={isAnalyzing} className="flex items-center text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 disabled:opacity-50">
-                    <SparklesIcon className="w-5 h-5 mr-1.5" />
+        <Paper elevation={3} sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '70vh' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
+                <Typography variant="h6" fontWeight="bold">
+                    {t('communicationLog')}
+                </Typography>
+                <Button
+                    onClick={onAnalyze}
+                    disabled={isAnalyzing}
+                    startIcon={<SparklesIcon />}
+                    size="small"
+                    color="secondary"
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
                     {t('aiSummary')}
-                </button>
-            </div>
-            <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                {(projectGroup.project.log || []).map(entry => {
-                    if (entry.type === 'event') {
-                        return (
-                            <div key={entry.id} className="py-2">
-                                <div className="flex items-center">
-                                    <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-                                    <div className="flex-shrink-0 mx-4 text-xs text-slate-500 dark:text-slate-400 flex items-center">
-                                        {getEventIcon(entry.message)}
-                                        <span>
-                                            <span className="italic">{entry.message}</span>
-                                            <span className="font-semibold"> by {entry.authorName}</span>
-                                            <span className="ml-1 text-slate-400">({formatTimeAgo(entry.timestamp, t)})</span>
-                                        </span>
-                                    </div>
-                                    <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
-                                </div>
-                            </div>
-                        )
-                    }
+                </Button>
+            </Box>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1, mb: 2 }}>
+                <Stack spacing={2}>
+                    {(projectGroup.project.log || []).map(entry => {
+                        if (entry.type === 'event') {
+                            return (
+                                <Box key={entry.id} sx={{ py: 1 }}>
+                                    <Divider sx={{ display: 'flex', alignItems: 'center', '&::before, &::after': { flex: 1 } }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2 }}>
+                                            {getEventIcon(entry.message)}
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                                {entry.message}
+                                            </Typography>
+                                            <Typography variant="caption" fontWeight="semibold" color="text.secondary">
+                                                {' by '}{entry.authorName}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.disabled">
+                                                ({formatTimeAgo(entry.timestamp, t)})
+                                            </Typography>
+                                        </Box>
+                                    </Divider>
+                                </Box>
+                            );
+                        }
 
-                    const isCurrentUser = entry.authorId === user.id;
-                    const alignClass = isCurrentUser ? 'items-end' : 'items-start';
-                    const bubbleClass = isCurrentUser 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
-                    
-                    return (
-                        <div key={entry.id} className={`flex flex-col ${alignClass}`}>
-                            <div className="flex items-baseline gap-2">
-                                <span className={`text-xs font-semibold ${isCurrentUser ? 'order-2' : ''}`}>{entry.authorName} ({entry.authorRole})</span>
-                                <span className="text-xs text-slate-400 dark:text-slate-500">{new Date(entry.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short'})}</span>
-                            </div>
-                            <div className={`mt-1 p-3 rounded-lg max-w-lg ${bubbleClass}`}>
-                                <p className="text-sm whitespace-pre-wrap">{renderMessage(entry.message)}</p>
-                                {entry.file && (
-                                    <div className="mt-2 pt-2 border-t border-white/20 dark:border-slate-600/50">
-                                        <a 
-                                            href={getFileDataUrl(entry.file.fileId)} 
+                        const isCurrentUser = entry.authorId === user.id;
+                        
+                        return (
+                            <Box key={entry.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
+                                <Stack direction="row" spacing={1} alignItems="baseline" sx={{ order: isCurrentUser ? 2 : 1 }}>
+                                    <Typography variant="caption" fontWeight="semibold" sx={{ order: isCurrentUser ? 2 : 1 }}>
+                                        {entry.authorName} ({entry.authorRole})
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {new Date(entry.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                                    </Typography>
+                                </Stack>
+                                <Paper
+                                    elevation={1}
+                                    sx={{
+                                        mt: 0.5,
+                                        p: 1.5,
+                                        maxWidth: '28rem',
+                                        bgcolor: isCurrentUser ? 'primary.main' : 'action.hover',
+                                        color: isCurrentUser ? 'primary.contrastText' : 'text.primary'
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                                        {renderMessage(entry.message)}
+                                    </Typography>
+                                    {entry.file && (
+                                        <Divider sx={{ my: 1, borderColor: isCurrentUser ? 'rgba(255,255,255,0.2)' : 'divider' }} />
+                                        <Button
+                                            component="a"
+                                            href={getFileDataUrl(entry.file.fileId)}
                                             download={entry.file.name}
-                                            className="flex items-center gap-2 text-sm font-medium hover:underline"
+                                            startIcon={<PaperClipIcon />}
+                                            size="small"
+                                            sx={{
+                                                textTransform: 'none',
+                                                color: isCurrentUser ? 'inherit' : 'primary.main'
+                                            }}
                                         >
-                                            <PaperClipIcon className="w-4 h-4" />
                                             {entry.file.name}
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                                        </Button>
+                                    )}
+                                </Paper>
+                            </Box>
+                        );
+                    })}
+                </Stack>
                 <div ref={messagesEndRef} />
-            </div>
-            <div className="relative mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
-                 {showMentions && filteredMembers.length > 0 && (
-                    <div className="absolute bottom-full mb-2 w-full max-w-xs bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
-                        <ul>
-                            {filteredMembers.map((member, index) => (
-                                <li key={member.id}>
-                                    <button 
-                                        onClick={() => insertMention(member.name)}
-                                        className={`w-full text-left px-3 py-2 text-sm ${index === mentionIndex ? 'bg-blue-100 dark:bg-blue-900/50' : ''}`}
-                                    >
-                                        {member.name}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                 )}
-                {attachment && (
-                    <div className="mb-2 p-2 bg-slate-100 dark:bg-slate-700 rounded-md flex justify-between items-center text-sm">
-                        <span className="truncate">{attachment.name}</span>
-                        <button onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value = ''; }} className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">
-                            <XMarkIcon className="w-4 h-4"/>
-                        </button>
-                    </div>
-                )}
-                <div className="flex items-center gap-2">
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+            </Box>
+            <Box sx={{ position: 'relative', mt: 2, pt: 2, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
+                {showMentions && filteredMembers.length > 0 && (
+                    <Paper
+                        elevation={8}
+                        sx={{
+                            position: 'absolute',
+                            bottom: '100%',
+                            mb: 1,
+                            width: '100%',
+                            maxWidth: 320,
+                            maxHeight: 160,
+                            overflowY: 'auto',
+                            zIndex: 10
+                        }}
                     >
-                        <PaperClipIcon className="w-5 h-5"/>
-                    </button>
-                    <textarea
-                        ref={textareaRef}
+                        <MenuList>
+                            {filteredMembers.map((member, index) => (
+                                <MenuItem
+                                    key={member.id}
+                                    onClick={() => insertMention(member.name)}
+                                    selected={index === mentionIndex}
+                                >
+                                    <ListItemText primary={member.name} />
+                                </MenuItem>
+                            ))}
+                        </MenuList>
+                    </Paper>
+                )}
+                {attachment && (
+                    <Box sx={{ mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" noWrap sx={{ flexGrow: 1, mr: 1 }}>
+                            {attachment.name}
+                        </Typography>
+                        <IconButton
+                            onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}
+                            size="small"
+                            color="error"
+                        >
+                            <XMarkIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+                )}
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+                    <IconButton
+                        onClick={() => fileInputRef.current?.click()}
+                        size="small"
+                    >
+                        <PaperClipIcon />
+                    </IconButton>
+                    <TextField
+                        inputRef={textareaRef}
+                        multiline
                         rows={1}
                         value={message}
                         onChange={handleMessageChange}
                         onKeyDown={handleKeyDown}
                         placeholder="Type your message... Use @ to mention someone."
-                        className="block w-full rounded-md border-0 p-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 resize-none"
+                        fullWidth
+                        size="small"
+                        sx={{ flexGrow: 1 }}
                     />
-                    <button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-lg">
-                        <PaperAirplaneIcon className="w-5 h-5"/>
-                    </button>
-                </div>
-            </div>
-        </div>
+                    <IconButton
+                        onClick={handleSend}
+                        color="primary"
+                        disabled={!message.trim() && !attachment}
+                        sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }}
+                    >
+                        <PaperAirplaneIcon />
+                    </IconButton>
+                </Stack>
+            </Box>
+        </Paper>
     )
 };
 

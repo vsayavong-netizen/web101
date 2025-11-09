@@ -77,7 +77,7 @@ const MajorModal: React.FC<MajorModalProps> = ({ onClose, onSave, majorToEdit, a
       <form onSubmit={handleSubmit} noValidate>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <TextField
                 fullWidth
                 label={t('majorName')}
@@ -88,7 +88,7 @@ const MajorModal: React.FC<MajorModalProps> = ({ onClose, onSave, majorToEdit, a
                 helperText={errors.name}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label={t('abbreviation')}

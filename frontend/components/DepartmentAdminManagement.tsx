@@ -222,7 +222,7 @@ const DepartmentAdminManagement: React.FC<DepartmentAdminManagementProps> = ({ u
                 title={t('demoteDeptAdminTitle')} 
                 message={t('demoteDeptAdminMessage').replace('${name}', advisorToDemote.name)}
                 confirmText={t('confirmDemotion')}
-                confirmButtonClass="bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+                confirmButtonColor="warning"
             />)}
         </Paper>
     );

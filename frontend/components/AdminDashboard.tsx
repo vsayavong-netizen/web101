@@ -39,16 +39,8 @@ interface AdminDashboardProps {
     classrooms: Classroom[];
 }
 
-const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; onClick?: () => void; color: string; }> = ({ title, value, icon, onClick, color }) => {
-    const getColorFromClass = (colorClass: string) => {
-        if (colorClass.includes('blue')) return 'primary';
-        if (colorClass.includes('green')) return 'success';
-        if (colorClass.includes('indigo')) return 'info';
-        if (colorClass.includes('yellow')) return 'warning';
-        return 'default';
-    };
-    
-    const muiColor = getColorFromClass(color);
+const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; onClick?: () => void; color: 'primary' | 'success' | 'warning' | 'info' | 'default'; }> = ({ title, value, icon, onClick, color = 'primary' }) => {
+    const muiColor = color;
     
     return (
         <Card 
@@ -124,46 +116,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 </Box>
 
                 <Grid container spacing={3} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <StatCard 
                             title={t('totalProjects')} 
                             value={projectGroups.length} 
                             icon={<AssignmentIcon />} 
                             onClick={() => onNavigate('projects')} 
-                            color="bg-blue-100 dark:bg-blue-900/50" 
+                            color="primary" 
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <StatCard 
                             title={t('totalStudents')} 
                             value={students.length} 
                             icon={<GroupsIcon />} 
                             onClick={() => onNavigate('students')} 
-                            color="bg-green-100 dark:bg-green-900/50" 
+                            color="success" 
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <StatCard 
                             title={t('totalAdvisors')} 
                             value={advisors.length} 
                             icon={<SchoolIcon />} 
                             onClick={() => onNavigate('advisors')} 
-                            color="bg-indigo-100 dark:bg-indigo-900/50" 
+                            color="info" 
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <StatCard 
                             title={t('pendingProjects')} 
                             value={pendingProjects.length} 
                             icon={<AccessTimeIcon />} 
                             onClick={() => onViewProjects('pending')} 
-                            color="bg-yellow-100 dark:bg-yellow-900/50" 
+                            color="warning" 
                         />
                     </Grid>
                 </Grid>
                 
                 <Grid container spacing={3}>
-                    <Grid item xs={12} lg={4}>
+                    <Grid size={{ xs: 12, lg: 4 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <Paper elevation={3} sx={{ p: 3 }}>
                                 <Typography variant="h6" fontWeight="medium" gutterBottom>
@@ -252,7 +244,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} lg={4}>
+                    <Grid size={{ xs: 12, lg: 4 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <Paper elevation={3} sx={{ p: 3 }}>
                                 <Typography variant="h6" fontWeight="medium" gutterBottom>
@@ -302,7 +294,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         </Box>
                     </Grid>
 
-                    <Grid item xs={12} lg={4}>
+                    <Grid size={{ xs: 12, lg: 4 }}>
                         <AnnouncementsFeed announcements={announcements} user={user} />
                     </Grid>
                 </Grid>

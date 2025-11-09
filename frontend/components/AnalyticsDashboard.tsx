@@ -178,24 +178,26 @@ const ProjectStatusDoughnut: React.FC<{ projectGroups: ProjectGroup[] }> = ({ pr
     const circumference = 2 * Math.PI * radius;
 
     const segments = [
-        { value: data.approved, color: 'stroke-green-500' },
-        { value: data.pending, color: 'stroke-yellow-500' },
-        { value: data.rejected, color: 'stroke-red-500' },
+        { value: data.approved, color: 'success' as const },
+        { value: data.pending, color: 'warning' as const },
+        { value: data.rejected, color: 'error' as const },
     ];
     
     const legend = [
-        { label: t('approved'), color: 'bg-green-500', value: data.approved },
-        { label: t('pending'), color: 'bg-yellow-500', value: data.pending },
-        { label: t('rejected'), color: 'bg-red-500', value: data.rejected },
+        { label: t('approved'), color: 'success' as const, value: data.approved },
+        { label: t('pending'), color: 'warning' as const, value: data.pending },
+        { label: t('rejected'), color: 'error' as const, value: data.rejected },
     ];
 
     let accumulatedOffset = 0;
 
-    const getColor = (colorClass: string) => {
-        if (colorClass.includes('green')) return '#22c55e';
-        if (colorClass.includes('yellow')) return '#eab308';
-        if (colorClass.includes('red')) return '#ef4444';
-        return '#64748b';
+    const getColor = (color: 'success' | 'warning' | 'error') => {
+        const colorMap = {
+            'success': '#22c55e',
+            'warning': '#eab308',
+            'error': '#ef4444',
+        };
+        return colorMap[color];
     };
 
     return (

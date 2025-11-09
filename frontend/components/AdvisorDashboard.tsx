@@ -47,17 +47,9 @@ const StatCard: React.FC<{
     value: number; 
     icon: React.ReactNode; 
     onClick?: () => void; 
-    color: string; 
-}> = ({ title, value, icon, onClick, color }) => {
-    const getColorFromClass = (colorClass: string): 'primary' | 'success' | 'warning' | 'info' | 'default' => {
-        if (colorClass.includes('orange')) return 'warning';
-        if (colorClass.includes('blue')) return 'primary';
-        if (colorClass.includes('green')) return 'success';
-        if (colorClass.includes('indigo')) return 'info';
-        return 'default';
-    };
-    
-    const muiColor = getColorFromClass(color);
+    color: 'primary' | 'success' | 'warning' | 'info' | 'default'; 
+}> = ({ title, value, icon, onClick, color = 'primary' }) => {
+    const muiColor = color;
     
     return (
         <Card 
@@ -97,20 +89,12 @@ const StatCard: React.FC<{
     );
 };
 
-const WorkloadItem: React.FC<{ title: string; count: number; quota: number; colorClass: string }> = ({ title, count, quota, colorClass }) => {
+const WorkloadItem: React.FC<{ title: string; count: number; quota: number; color: 'primary' | 'success' | 'warning' | 'secondary' | 'error' }> = ({ title, count, quota, color = 'primary' }) => {
     const percentage = quota > 0 ? (count / quota) * 100 : 0;
     const isOverloaded = count > quota;
     const displayPercentage = Math.min(isOverloaded ? 100 : percentage, 100);
     
-    const getColorFromClass = (colorClass: string): 'primary' | 'success' | 'warning' | 'secondary' | 'error' => {
-        if (colorClass.includes('blue')) return 'primary';
-        if (colorClass.includes('green')) return 'success';
-        if (colorClass.includes('yellow')) return 'warning';
-        if (colorClass.includes('purple')) return 'secondary';
-        return 'error';
-    };
-    
-    const muiColor = getColorFromClass(colorClass);
+    const muiColor = color;
 
     return (
         <Box>
@@ -314,7 +298,7 @@ export const AdvisorDashboard: React.FC<AdvisorDashboardProps> = (props) => {
                         title={t('projectsToReview')} 
                         value={projectsToReview.length} 
                         icon={<AssignmentIcon />} 
-                        color="bg-orange-100 dark:bg-orange-900/50" 
+                        color="warning" 
                     />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -322,7 +306,7 @@ export const AdvisorDashboard: React.FC<AdvisorDashboardProps> = (props) => {
                         title={t('milestonesToReview')} 
                         value={milestonesToReview.length} 
                         icon={<InboxIcon />} 
-                        color="bg-blue-100 dark:bg-blue-900/50" 
+                        color="primary" 
                     />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -331,7 +315,7 @@ export const AdvisorDashboard: React.FC<AdvisorDashboardProps> = (props) => {
                         value={projectCount} 
                         icon={<SchoolIcon />} 
                         onClick={() => onNavigate('projects')} 
-                        color="bg-green-100 dark:bg-green-900/50" 
+                        color="success" 
                     />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -339,7 +323,7 @@ export const AdvisorDashboard: React.FC<AdvisorDashboardProps> = (props) => {
                         title={t('totalStudents')} 
                         value={studentCount} 
                         icon={<GroupsIcon />} 
-                        color="bg-indigo-100 dark:bg-indigo-900/50" 
+                        color="info" 
                     />
                 </Grid>
             </Grid>
@@ -536,17 +520,17 @@ export const AdvisorDashboard: React.FC<AdvisorDashboardProps> = (props) => {
                         </Paper>
                     </Box>
                 </Grid>
-                <Grid item xs={12} lg={4}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <Paper elevation={3} sx={{ p: 3 }}>
                             <Typography variant="h6" fontWeight="medium" gutterBottom>
                                 {t('yourWorkload')}
                             </Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                                <WorkloadItem title={t('projectSupervision')} count={projectCount} quota={advisorData.quota} colorClass="bg-blue-600" />
-                                <WorkloadItem title={t('mainCommittee')} count={committeeCounts[user.id]?.main || 0} quota={advisorData.mainCommitteeQuota} colorClass="bg-green-600" />
-                                <WorkloadItem title={t('secondCommittee')} count={committeeCounts[user.id]?.second || 0} quota={advisorData.secondCommitteeQuota} colorClass="bg-yellow-500" />
-                                <WorkloadItem title={t('thirdCommittee')} count={committeeCounts[user.id]?.third || 0} quota={advisorData.thirdCommitteeQuota} colorClass="bg-purple-500" />
+                                <WorkloadItem title={t('projectSupervision')} count={projectCount} quota={advisorData.quota} color="primary" />
+                                <WorkloadItem title={t('mainCommittee')} count={committeeCounts[user.id]?.main || 0} quota={advisorData.mainCommitteeQuota} color="success" />
+                                <WorkloadItem title={t('secondCommittee')} count={committeeCounts[user.id]?.second || 0} quota={advisorData.secondCommitteeQuota} color="warning" />
+                                <WorkloadItem title={t('thirdCommittee')} count={committeeCounts[user.id]?.third || 0} quota={advisorData.thirdCommitteeQuota} color="secondary" />
                             </Box>
                         </Paper>
                         

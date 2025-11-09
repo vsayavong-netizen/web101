@@ -8,7 +8,7 @@ import { PlusIcon, BuildingLibraryIcon, AcademicCapIcon, QuestionMarkCircleIcon,
 import { Advisor, ProjectGroup, Announcement, User, ProjectStatus, Major, Gender } from '../types';
 import { getAdvisorColor } from '../utils/colorUtils';
 import AnnouncementsFeed from './AnnouncementsFeed';
-import ProjectTable from './ProjectTable';
+import ProjectTableEnhanced from './ProjectTableEnhanced';
 import ProjectFilters from './ProjectFilters';
 import { SortConfig } from './SortableHeader';
 import { useTranslations } from '../hooks/useTranslations';
@@ -122,37 +122,8 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({ onRegisterClick,
     });
   }, [allProjects, searchQuery, genderFilter, majorFilter, statusFilter, scheduleFilter, similarityFilter]);
 
-  const sortedProjects = useMemo(() => {
-    if (!sortConfig) return filteredProjects;
-    
-    const sorted = [...filteredProjects].sort((a, b) => {
-      let aValue, bValue;
-      switch (sortConfig.key) {
-        case 'studentId':
-          aValue = a.students[0]?.studentId || '';
-          bValue = b.students[0]?.studentId || '';
-          break;
-        case 'projectId':
-          aValue = a.project.projectId;
-          bValue = b.project.projectId;
-          break;
-        case 'advisorName':
-          aValue = a.project.advisorName;
-          bValue = b.project.advisorName;
-          break;
-        default:
-          return 0;
-      }
-      if (aValue < bValue) {
-        return sortConfig.direction === 'ascending' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'ascending' ? 1 : -1;
-      }
-      return 0;
-    });
-    return sorted;
-  }, [filteredProjects, sortConfig]);
+  // Sorting is now handled by DataGrid internally
+  const sortedProjects = filteredProjects;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -322,14 +293,13 @@ export const StudentWelcome: React.FC<StudentWelcomeProps> = ({ onRegisterClick,
                     similarityFilter={similarityFilter}
                     setSimilarityFilter={setSimilarityFilter}
                 />
-                <ProjectTable
+                <ProjectTableEnhanced
                     user={user}
                     projectGroups={sortedProjects}
                     onSelectProject={onSelectProject}
                     onRegisterClick={onRegisterClick}
-                    sortConfig={sortConfig}
-                    requestSort={requestSort}
                     onUpdateStatus={(projectId: string, status: ProjectStatus) => {}}
+                    loading={false}
                 />
             </Box>
         )}

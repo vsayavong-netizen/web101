@@ -1,7 +1,15 @@
 import React from 'react';
+import {
+  Box, Paper, Typography, Button, List, ListItem, ListItemButton, ListItemText, Divider, Badge, Stack
+} from '@mui/material';
+import {
+  Notifications as BellIcon, Inbox as InboxStackIcon,
+  CheckCircle as CheckCircleIcon, Edit as PencilIcon,
+  Chat as ChatBubbleBottomCenterTextIcon, Settings as Cog6ToothIcon,
+  ChevronRight as ChevronRightIcon
+} from '@mui/icons-material';
 import { Notification, NotificationType } from '../types';
 import { formatTimeAgo } from '../utils/timeUtils';
-import { BellIcon, InboxStackIcon, CheckCircleIcon, PencilIcon, ChatBubbleBottomCenterTextIcon, Cog6ToothIcon, ChevronRightIcon } from './icons';
 import { useTranslations, TranslationKey } from '../hooks/useTranslations';
 
 interface NotificationPanelProps {
@@ -11,13 +19,13 @@ interface NotificationPanelProps {
   onViewAll: () => void;
 }
 
-const notificationTypeConfig: Record<NotificationType, { icon: React.FC<any>, color: string }> = {
-    Submission: { icon: InboxStackIcon, color: 'text-blue-500' },
-    Approval: { icon: CheckCircleIcon, color: 'text-green-500' },
-    Feedback: { icon: PencilIcon, color: 'text-purple-500' },
-    Mention: { icon: ChatBubbleBottomCenterTextIcon, color: 'text-indigo-500' },
-    Message: { icon: ChatBubbleBottomCenterTextIcon, color: 'text-slate-500' },
-    System: { icon: Cog6ToothIcon, color: 'text-orange-500' },
+const notificationTypeConfig: Record<NotificationType, { icon: React.ElementType, color: 'primary' | 'success' | 'secondary' | 'info' | 'warning' }> = {
+    Submission: { icon: InboxStackIcon, color: 'primary' },
+    Approval: { icon: CheckCircleIcon, color: 'success' },
+    Feedback: { icon: PencilIcon, color: 'secondary' },
+    Mention: { icon: ChatBubbleBottomCenterTextIcon, color: 'info' },
+    Message: { icon: ChatBubbleBottomCenterTextIcon, color: 'info' },
+    System: { icon: Cog6ToothIcon, color: 'warning' },
 };
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, onMarkAllRead, onSelectNotification, onViewAll }) => {
@@ -26,56 +34,113 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ notifications, on
     const notificationsToShow = notifications.slice(0, 7); // Show up to 7 recent notifications
 
     return (
-        <div className="origin-top-right absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 z-50 animate-fade-in-down">
-            <div className="flex justify-between items-center p-3 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-800 dark:text-white">{t('notifications')}</h3>
+        <Paper
+            elevation={24}
+            sx={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                mt: 1,
+                width: { xs: 320, sm: 384 },
+                zIndex: 1300,
+                border: 1,
+                borderColor: 'divider'
+            }}
+        >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+                <Typography variant="subtitle2" fontWeight="semibold">
+                    {t('notifications')}
+                </Typography>
                 {unreadCount > 0 && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onMarkAllRead(); }} 
-                      className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    <Button
+                        onClick={(e) => { e.stopPropagation(); onMarkAllRead(); }}
+                        size="small"
+                        sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            textTransform: 'none',
+                            minWidth: 'auto'
+                        }}
                     >
-                      {t('markAllAsRead')}
-                    </button>
+                        {t('markAllAsRead')}
+                    </Button>
                 )}
-            </div>
-            <ul className="max-h-80 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+            </Box>
+            <List sx={{ maxHeight: 320, overflowY: 'auto' }}>
                 {notificationsToShow.length > 0 ? (
-                    notificationsToShow.map(n => {
+                    notificationsToShow.map((n, index) => {
                         const config = notificationTypeConfig[n.type] || notificationTypeConfig.System;
                         const Icon = config.icon;
                         return (
-                            <li key={n.id}>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onSelectNotification(n); }}
-                                    className={`w-full text-left p-3 transition-colors ${!n.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''} hover:bg-slate-100 dark:hover:bg-slate-700`}
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${config.color}`} />
-                                        <div className="flex-grow">
-                                            {n.title && <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{n.title}</p>}
-                                            <p className={`text-sm ${n.title ? 'text-slate-600 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>{n.message}</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatTimeAgo(n.timestamp, t)}</p>
-                                        </div>
-                                        {!n.read && <span className="mt-1.5 block h-2 w-2 flex-shrink-0 rounded-full bg-blue-500"></span>}
-                                    </div>
-                                </button>
-                            </li>
+                            <React.Fragment key={n.id}>
+                                {index > 0 && <Divider />}
+                                <ListItem disablePadding>
+                                    <ListItemButton
+                                        onClick={(e) => { e.stopPropagation(); onSelectNotification(n); }}
+                                        sx={{
+                                            bgcolor: !n.read ? 'primary.light' : 'transparent',
+                                            '&:hover': { bgcolor: 'action.hover' }
+                                        }}
+                                    >
+                                        <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ width: '100%' }}>
+                                            <Icon sx={{ fontSize: 20, color: `${config.color}.main`, mt: 0.5, flexShrink: 0 }} />
+                                            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                                {n.title && (
+                                                    <Typography variant="body2" fontWeight="semibold" sx={{ mb: 0.5 }}>
+                                                        {n.title}
+                                                    </Typography>
+                                                )}
+                                                <Typography
+                                                    variant="body2"
+                                                    color={n.title ? 'text.secondary' : 'text.primary'}
+                                                    sx={{ mb: 0.5 }}
+                                                >
+                                                    {n.message}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {formatTimeAgo(n.timestamp, t)}
+                                                </Typography>
+                                            </Box>
+                                            {!n.read && (
+                                                <Badge
+                                                    variant="dot"
+                                                    color="primary"
+                                                    sx={{ mt: 1, flexShrink: 0 }}
+                                                />
+                                            )}
+                                        </Stack>
+                                    </ListItemButton>
+                                </ListItem>
+                            </React.Fragment>
                         );
                     })
                 ) : (
-                    <li className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                        <BellIcon className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                        {t('noNotifications')}
-                    </li>
+                    <ListItem>
+                        <Box sx={{ textAlign: 'center', py: 3, width: '100%' }}>
+                            <BellIcon sx={{ fontSize: 32, color: 'text.secondary', mx: 'auto', display: 'block', mb: 1 }} />
+                            <Typography variant="body2" color="text.secondary">
+                                {t('noNotifications')}
+                            </Typography>
+                        </Box>
+                    </ListItem>
                 )}
-            </ul>
-            <div className="p-2 border-t border-slate-200 dark:border-slate-700">
-                <button onClick={(e) => {e.stopPropagation(); onViewAll();}} className="w-full flex items-center justify-center gap-2 text-center text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md py-2 transition-colors">
-                    <span>{t('viewAllNotifications')}</span>
-                    <ChevronRightIcon className="w-4 h-4" />
-                </button>
-            </div>
-        </div>
+            </List>
+            <Divider />
+            <Box sx={{ p: 1 }}>
+                <Button
+                    onClick={(e) => { e.stopPropagation(); onViewAll(); }}
+                    fullWidth
+                    endIcon={<ChevronRightIcon />}
+                    sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        justifyContent: 'center'
+                    }}
+                >
+                    {t('viewAllNotifications')}
+                </Button>
+            </Box>
+        </Paper>
     );
 };
 

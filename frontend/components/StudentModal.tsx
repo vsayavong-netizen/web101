@@ -86,7 +86,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
       <form onSubmit={handleSubmit} noValidate>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('studentId')}
@@ -98,7 +98,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 helperText={errors.studentId}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('gender')}</InputLabel>
                 <Select
@@ -113,7 +113,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('name')}
@@ -124,7 +124,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 helperText={errors.name}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('surname')}
@@ -135,7 +135,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 helperText={errors.surname}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth error={!!errors.major}>
                 <InputLabel>{t('major')}</InputLabel>
                 <Select
@@ -151,7 +151,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 {errors.major && <FormHelperText>{errors.major}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth error={!!errors.classroom} disabled={filteredClassrooms.length === 0}>
                 <InputLabel>{t('classroom')}</InputLabel>
                 <Select
@@ -167,7 +167,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 {errors.classroom && <FormHelperText>{errors.classroom}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label={t('email')}
@@ -179,7 +179,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 helperText={errors.email}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label={t('telephone')}
@@ -191,7 +191,7 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                 helperText={errors.tel}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('status')}</InputLabel>
                 <Select

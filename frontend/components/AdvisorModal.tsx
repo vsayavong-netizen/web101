@@ -69,7 +69,7 @@ const AdvisorModal: React.FC<AdvisorModalProps> = ({ onClose, onSave, advisorToE
             helperText={errors.name}
           />
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('supervisingQuota')}
@@ -79,7 +79,7 @@ const AdvisorModal: React.FC<AdvisorModalProps> = ({ onClose, onSave, advisorToE
                 onChange={e => setAdvisor(prev => ({...prev, quota: Number(e.target.value)}))}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('mainCommitteeQuota')}
@@ -89,7 +89,7 @@ const AdvisorModal: React.FC<AdvisorModalProps> = ({ onClose, onSave, advisorToE
                 onChange={e => setAdvisor(prev => ({...prev, mainCommitteeQuota: Number(e.target.value)}))}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('secondCommitteeQuota')}
@@ -99,7 +99,7 @@ const AdvisorModal: React.FC<AdvisorModalProps> = ({ onClose, onSave, advisorToE
                 onChange={e => setAdvisor(prev => ({...prev, secondCommitteeQuota: Number(e.target.value)}))}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('thirdCommitteeQuota')}
@@ -116,7 +116,7 @@ const AdvisorModal: React.FC<AdvisorModalProps> = ({ onClose, onSave, advisorToE
             </Typography>
             <Grid container spacing={1}>
               {majors.map(major => (
-                <Grid item xs={12} sm={6} key={major.id}>
+                <Grid size={{ xs: 12, sm: 6 }} key={major.id}>
                   <FormControlLabel
                     control={
                       <Checkbox

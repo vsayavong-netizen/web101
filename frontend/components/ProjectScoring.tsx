@@ -1,4 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import {
+  Box, Paper, Typography, Button, Grid, Stack, Divider
+} from '@mui/material';
 import { ProjectGroup, User, ScoringSettings, Advisor, ScoringRubricItem } from '../types';
 import { useToast } from '../hooks/useToast';
 import ScoreEntryModal from './ScoreEntryModal';
@@ -21,25 +24,36 @@ const ScoreDisplayRow: React.FC<{
     onEdit: () => void;
     t: (key: any) => string;
 }> = ({ label, evaluatorName, score, total, canEdit, onEdit, t }) => (
-    <div className="py-3 sm:grid sm:grid-cols-3 sm:gap-4 items-center">
-        <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            {label}
-            <span className="block text-xs font-normal text-slate-400 dark:text-slate-500">{evaluatorName}</span>
-        </dt>
-        <dd className="mt-1 text-sm text-slate-900 dark:text-white sm:col-span-2 sm:mt-0 flex justify-between items-center">
-            <span>
-                {score !== null ? `${score.toFixed(2)} / ${total}` : t('pending')}
-            </span>
-            {canEdit && (
-                <button
-                    onClick={onEdit}
-                    className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                    {score !== null ? t('editScore') : t('enterScore')}
-                </button>
-            )}
-        </dd>
-    </div>
+    <Grid container spacing={2} sx={{ py: 1.5 }} alignItems="center">
+        <Grid size={{ xs: 12, sm: 4 }}>
+            <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                {label}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {evaluatorName}
+            </Typography>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 8 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.primary">
+                    {score !== null ? `${score.toFixed(2)} / ${total}` : t('pending')}
+                </Typography>
+                {canEdit && (
+                    <Button
+                        onClick={onEdit}
+                        size="small"
+                        sx={{ 
+                            fontWeight: 500,
+                            textTransform: 'none',
+                            minWidth: 'auto'
+                        }}
+                    >
+                        {score !== null ? t('editScore') : t('enterScore')}
+                    </Button>
+                )}
+            </Box>
+        </Grid>
+    </Grid>
 );
 
 
@@ -113,13 +127,19 @@ const ProjectScoring: React.FC<ProjectScoringProps> = ({ projectGroup, user, sco
     // Role-based privacy logic
     if (user.role === 'Student') {
         return (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{t('scoringDetails')}</h3>
-                <div className="text-center py-4">
-                    <p className="text-slate-600 dark:text-slate-400">{t('scoresConfidential')}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">{t('consultOffice')}</p>
-                </div>
-            </div>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                    {t('scoringDetails')}
+                </Typography>
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body1" color="text.secondary">
+                        {t('scoresConfidential')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {t('consultOffice')}
+                    </Typography>
+                </Box>
+            </Paper>
         );
     }
 
@@ -130,20 +150,26 @@ const ProjectScoring: React.FC<ProjectScoringProps> = ({ projectGroup, user, sco
 
     if (user.role === 'Advisor' && !isUserInvolved && !canSeeAllScores) {
         return (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{t('scoringDetails')}</h3>
-                <div className="text-center py-4">
-                    <p className="text-slate-600 dark:text-slate-400">{t('noScoreViewPermission')}</p>
-                </div>
-            </div>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                    {t('scoringDetails')}
+                </Typography>
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body1" color="text.secondary">
+                        {t('noScoreViewPermission')}
+                    </Typography>
+                </Box>
+            </Paper>
         );
     }
 
     return (
         <>
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{t('scoringDetails')}</h3>
-                <dl className="divide-y divide-slate-200 dark:divide-slate-700">
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                    {t('scoringDetails')}
+                </Typography>
+                <Stack divider={<Divider />}>
                     {evaluators.map(e => {
                         // Render logic for different roles
                         const shouldRender = canSeeAllScores ||
@@ -167,16 +193,26 @@ const ProjectScoring: React.FC<ProjectScoringProps> = ({ projectGroup, user, sco
                         return null;
                     })}
                     {canSeeAllScores && (
-                        <div className="py-3 sm:grid sm:grid-cols-3 sm:gap-4 items-center font-bold">
-                            <dt className="text-sm text-slate-600 dark:text-slate-300">{t('finalScoreAndGrade')}</dt>
-                            <dd className="mt-1 text-lg text-slate-900 dark:text-white sm:col-span-2 sm:mt-0 flex justify-between items-center">
-                               <span>{finalScore !== null ? finalScore.toFixed(2) : t('na')}</span>
-                               <span className="text-blue-600 dark:text-blue-400">{finalGrade}</span>
-                            </dd>
-                        </div>
+                        <Grid container spacing={2} sx={{ py: 1.5 }} alignItems="center">
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <Typography variant="body2" fontWeight="bold" color="text.secondary">
+                                    {t('finalScoreAndGrade')}
+                                </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 8 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="h6" color="text.primary">
+                                        {finalScore !== null ? finalScore.toFixed(2) : t('na')}
+                                    </Typography>
+                                    <Typography variant="h6" color="primary.main" fontWeight="bold">
+                                        {finalGrade}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+                        </Grid>
                     )}
-                </dl>
-            </div>
+                </Stack>
+            </Paper>
             {isModalOpen && modalData && (
                 <ScoreEntryModal
                     isOpen={isModalOpen}

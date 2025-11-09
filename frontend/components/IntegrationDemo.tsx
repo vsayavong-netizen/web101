@@ -4,6 +4,9 @@
  */
 
 import React, { useState } from 'react';
+import {
+  Box, Paper, Typography, Button, Stack, Chip, Tabs, Tab, CircularProgress, Alert
+} from '@mui/material';
 import { useApiIntegration, useAuth, useProjects, useStudents, useAdvisors } from '../hooks/useApiIntegration';
 import { apiClient } from '../utils/apiClient';
 import { useToast } from '../hooks/useToast';
@@ -127,240 +130,253 @@ export const IntegrationDemo: React.FC<IntegrationDemoProps> = ({ className = ''
   ];
 
   return (
-    <div className={`integration-demo ${className}`}>
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+    <Box className={`integration-demo ${className}`}>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
           🚀 Frontend-Backend Integration Demo
-        </h2>
+        </Typography>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ mb: 3 }}
+        >
           {tabs.map((tab) => (
-            <button
+            <Tab
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
+              value={tab.id}
+              label={`${tab.icon} ${tab.label}`}
+              sx={{ textTransform: 'none' }}
+            />
           ))}
-        </div>
+        </Tabs>
 
         {/* Tab Content */}
-        <div className="tab-content">
+        <Box>
           {/* Authentication Tab */}
           {activeTab === 'auth' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">🔐 Authentication Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                🔐 Authentication Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test authentication flow with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">Status:</span>
-                    <span className={`px-2 py-1 rounded text-sm ${
-                      isAuthenticated ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-                    </span>
-                  </div>
+                </Typography>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" fontWeight="medium">Status:</Typography>
+                    <Chip
+                      label={isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+                      color={isAuthenticated ? 'success' : 'error'}
+                      size="small"
+                    />
+                  </Stack>
                   {user && (
-                    <div className="text-sm text-gray-600">
+                    <Typography variant="body2" color="text.secondary">
                       <strong>User:</strong> {user.email || 'Unknown'}
-                    </div>
+                    </Typography>
                   )}
-                  <div className="flex gap-2">
-                    <button
+                  <Stack direction="row" spacing={1}>
+                    <Button
                       onClick={testLogin}
                       disabled={authLoading || isAuthenticated}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                      variant="contained"
+                      color="primary"
                     >
                       {authLoading ? 'Logging in...' : 'Test Login'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={testLogout}
                       disabled={authLoading || !isAuthenticated}
-                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                      variant="contained"
+                      color="error"
                     >
                       {authLoading ? 'Logging out...' : 'Test Logout'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Paper>
+            </Stack>
           )}
 
           {/* Projects Tab */}
           {activeTab === 'projects' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">📁 Project Management Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                📁 Project Management Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test project CRUD operations with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">Projects:</span>
-                    <span className="text-sm text-gray-600">
-                      {projectsLoading ? 'Loading...' : `${Array.isArray(projects) ? projects.length : 0} projects`}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={testCreateProject}
-                      disabled={projectsLoading}
-                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-                    >
-                      {projectsLoading ? 'Creating...' : 'Create Test Project'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" fontWeight="medium">Projects:</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {projectsLoading ? <CircularProgress size={16} /> : `${Array.isArray(projects) ? projects.length : 0} projects`}
+                    </Typography>
+                  </Stack>
+                  <Button
+                    onClick={testCreateProject}
+                    disabled={projectsLoading}
+                    variant="contained"
+                    color="success"
+                  >
+                    {projectsLoading ? 'Creating...' : 'Create Test Project'}
+                  </Button>
+                </Stack>
+              </Paper>
+            </Stack>
           )}
 
           {/* Students Tab */}
           {activeTab === 'students' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">👥 Student Management Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                👥 Student Management Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test student management with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">Students:</span>
-                    <span className="text-sm text-gray-600">
-                      {studentsLoading ? 'Loading...' : `${Array.isArray(students) ? students.length : 0} students`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Typography variant="body2" fontWeight="medium">Students:</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {studentsLoading ? <CircularProgress size={16} /> : `${Array.isArray(students) ? students.length : 0} students`}
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Stack>
           )}
 
           {/* Advisors Tab */}
           {activeTab === 'advisors' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">👨‍🏫 Advisor Management Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                👨‍🏫 Advisor Management Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test advisor management with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">Advisors:</span>
-                    <span className="text-sm text-gray-600">
-                      {advisorsLoading ? 'Loading...' : `${Array.isArray(advisors) ? advisors.length : 0} advisors`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Typography variant="body2" fontWeight="medium">Advisors:</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {advisorsLoading ? <CircularProgress size={16} /> : `${Array.isArray(advisors) ? advisors.length : 0} advisors`}
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Stack>
           )}
 
           {/* File Management Tab */}
           {activeTab === 'files' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">📄 File Management Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                📄 File Management Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test file upload and management with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Test File Upload
-                    </label>
-                    <input
-                      type="file"
-                      onChange={testFileUpload}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Button
+                  component="label"
+                  variant="contained"
+                  color="primary"
+                >
+                  Test File Upload
+                  <input
+                    type="file"
+                    hidden
+                    onChange={testFileUpload}
+                  />
+                </Button>
+              </Paper>
+            </Stack>
           )}
 
           {/* Communication Tab */}
           {activeTab === 'communication' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">💬 Communication Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                💬 Communication Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test communication features with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={testCommunication}
-                    className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-                  >
-                    Test Communication APIs
-                  </button>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Button
+                  onClick={testCommunication}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Test Communication APIs
+                </Button>
+              </Paper>
+            </Stack>
           )}
 
           {/* AI Enhancement Tab */}
           {activeTab === 'ai' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">🤖 AI Enhancement Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                🤖 AI Enhancement Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test AI-powered features with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={testAIEnhancement}
-                    className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                  >
-                    Test AI Enhancement APIs
-                  </button>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Button
+                  onClick={testAIEnhancement}
+                  variant="contained"
+                  sx={{ bgcolor: 'indigo.500', '&:hover': { bgcolor: 'indigo.600' } }}
+                >
+                  Test AI Enhancement APIs
+                </Button>
+              </Paper>
+            </Stack>
           )}
 
           {/* Defense Management Tab */}
           {activeTab === 'defense' && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">🎓 Defense Management Integration</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-4">
+            <Stack spacing={2}>
+              <Typography variant="h6" fontWeight="semibold">
+                🎓 Defense Management Integration
+              </Typography>
+              <Paper elevation={1} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Test defense management with backend APIs
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={testDefenseManagement}
-                    className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                  >
-                    Test Defense Management APIs
-                  </button>
-                </div>
-              </div>
-            </div>
+                </Typography>
+                <Button
+                  onClick={testDefenseManagement}
+                  variant="contained"
+                  sx={{ bgcolor: 'orange.500', '&:hover': { bgcolor: 'orange.600' } }}
+                >
+                  Test Defense Management APIs
+                </Button>
+              </Paper>
+            </Stack>
           )}
-        </div>
+        </Box>
 
         {/* Integration Status */}
-        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">✅ Integration Status</h4>
-          <div className="text-sm text-green-700">
-            <p>• Frontend-Backend API integration is fully functional</p>
-            <p>• All major endpoints are accessible and responding</p>
-            <p>• Authentication, CRUD operations, and specialized features are working</p>
-            <p>• Real-time data synchronization is enabled</p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Alert severity="success" sx={{ mt: 3 }}>
+          <Typography variant="subtitle2" fontWeight="semibold" sx={{ mb: 1 }}>
+            ✅ Integration Status
+          </Typography>
+          <Stack component="ul" sx={{ m: 0, pl: 2 }}>
+            <Typography component="li" variant="body2">Frontend-Backend API integration is fully functional</Typography>
+            <Typography component="li" variant="body2">All major endpoints are accessible and responding</Typography>
+            <Typography component="li" variant="body2">Authentication, CRUD operations, and specialized features are working</Typography>
+            <Typography component="li" variant="body2">Real-time data synchronization is enabled</Typography>
+          </Stack>
+        </Alert>
+      </Paper>
+    </Box>
   );
 };
 

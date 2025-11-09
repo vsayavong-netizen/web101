@@ -1,7 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Box, Paper, Typography, TextField, Button, IconButton, Grid, Stack, Alert, Divider
+} from '@mui/material';
+import { Add as PlusIcon, Delete as TrashIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { ScoringSettings, ScoringRubricItem, GradeBoundary } from '../types';
-import { PlusIcon, TrashIcon, SparklesIcon } from './icons';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslations } from '../hooks/useTranslations';
 import RubricGeneratorModal from './RubricGeneratorModal';
@@ -29,31 +32,79 @@ const RubricEditor: React.FC<RubricEditorProps> = ({ rubrics, setRubrics, onGene
     };
     
     return (
-        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-                <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{title} ({t('totalPoints')}: {totalScore})</h4>
-                <div className="flex items-center gap-4">
-                    <button type="button" onClick={onGenerate} className="flex items-center text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300">
-                        <SparklesIcon className="w-4 h-4 mr-1"/>
+        <Paper sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                <Typography variant="h6" fontWeight="medium">
+                    {title} ({t('totalPoints')}: {totalScore})
+                </Typography>
+                <Stack direction="row" spacing={2} alignItems="center">
+                    <Button
+                        type="button"
+                        onClick={onGenerate}
+                        size="small"
+                        startIcon={<SparklesIcon />}
+                        sx={{ 
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'secondary.main',
+                            textTransform: 'none',
+                            '&:hover': { color: 'secondary.dark' }
+                        }}
+                    >
                         {t('generateWithAI')}
-                    </button>
-                    <button type="button" onClick={handleAdd} className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"><PlusIcon className="w-4 h-4 mr-1"/> {t('addItem')}</button>
-                </div>
-            </div>
-            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto pr-2">
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleAdd}
+                        size="small"
+                        startIcon={<PlusIcon />}
+                        color="primary"
+                        sx={{ textTransform: 'none' }}
+                    >
+                        {t('addItem')}
+                    </Button>
+                </Stack>
+            </Box>
+            <Stack spacing={1.5} sx={{ maxHeight: 240, overflowY: 'auto', pr: 1 }}>
                 {rubrics.map(item => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                        <input type="text" value={item.name} onChange={e => handleUpdate(item.id, 'name', e.target.value)} placeholder="Criterion Name" className="col-span-7 block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
-                        <input type="number" value={item.maxScore} onChange={e => handleUpdate(item.id, 'maxScore', Number(e.target.value))} min="1" className="col-span-3 block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white" />
-                        <div className="col-span-2 flex justify-end">
-                            <button type="button" onClick={() => handleRemove(item.id)} className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400" aria-label="Remove item">
-                                <TrashIcon className="w-5 h-5"/>
-                            </button>
-                        </div>
-                    </div>
+                    <Grid container spacing={1} alignItems="center" key={item.id}>
+                        <Grid size={{ xs: 7 }}>
+                            <TextField
+                                type="text"
+                                size="small"
+                                fullWidth
+                                value={item.name}
+                                onChange={e => handleUpdate(item.id, 'name', e.target.value)}
+                                placeholder="Criterion Name"
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 3 }}>
+                            <TextField
+                                type="number"
+                                size="small"
+                                fullWidth
+                                value={item.maxScore}
+                                onChange={e => handleUpdate(item.id, 'maxScore', Number(e.target.value))}
+                                inputProps={{ min: 1 }}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <IconButton
+                                    type="button"
+                                    onClick={() => handleRemove(item.id)}
+                                    size="small"
+                                    color="error"
+                                    aria-label="Remove item"
+                                >
+                                    <TrashIcon />
+                                </IconButton>
+                            </Box>
+                        </Grid>
+                    </Grid>
                 ))}
-            </div>
-        </div>
+            </Stack>
+        </Paper>
     );
 };
 
@@ -136,42 +187,96 @@ export const ScoringSettingsEditor: React.FC<ScoringSettingsEditorProps> = ({ sc
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 space-y-4">
-                <RubricEditor title={t('advisorRubric')} rubrics={localAdvisorRubrics} setRubrics={setLocalAdvisorRubrics} onGenerate={() => openGenerator('advisor')} />
-                <RubricEditor title={t('committeeRubric')} rubrics={localCommitteeRubrics} setRubrics={setLocalCommitteeRubrics} onGenerate={() => openGenerator('committee')} />
-                {errors.total && <p className="text-red-500 text-sm font-semibold text-center">{errors.total}</p>}
-            </div>
+        <Stack spacing={3}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Stack spacing={3}>
+                    <RubricEditor title={t('advisorRubric')} rubrics={localAdvisorRubrics} setRubrics={setLocalAdvisorRubrics} onGenerate={() => openGenerator('advisor')} />
+                    <RubricEditor title={t('committeeRubric')} rubrics={localCommitteeRubrics} setRubrics={setLocalCommitteeRubrics} onGenerate={() => openGenerator('committee')} />
+                    {errors.total && (
+                        <Alert severity="error" sx={{ fontWeight: 600 }}>
+                            {errors.total}
+                        </Alert>
+                    )}
+                </Stack>
+            </Paper>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">{t('gradeBoundaries')}</h3>
-                    <button type="button" onClick={handleAddBoundary} className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                        <PlusIcon className="w-4 h-4 mr-1"/> {t('addItem')}
-                    </button>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('gradeBoundariesDescription')}</p>
-                <div className="mt-4 space-y-2">
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" fontWeight="bold">
+                        {t('gradeBoundaries')}
+                    </Typography>
+                    <Button
+                        type="button"
+                        onClick={handleAddBoundary}
+                        size="small"
+                        startIcon={<PlusIcon />}
+                        color="primary"
+                        sx={{ textTransform: 'none' }}
+                    >
+                        {t('addItem')}
+                    </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {t('gradeBoundariesDescription')}
+                </Typography>
+                <Stack spacing={1.5}>
                     {gradeBoundaries.map((boundary, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-2 items-start">
-                            <div className="col-span-5"><input type="text" value={boundary.grade} onChange={e => handleBoundaryChange(index, 'grade', e.target.value)} placeholder="Grade" className="block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white" /></div>
-                            <div className="col-span-5"><input type="number" value={boundary.minScore} onChange={e => handleBoundaryChange(index, 'minScore', Number(e.target.value))} placeholder="Min Score" className="block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white" /></div>
-                            <div className="col-span-2 flex items-center pt-2"><button type="button" onClick={() => handleRemoveBoundary(index)} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button></div>
-                            {errors[`boundary_${index}`] && <p className="text-red-500 text-xs col-span-12">{errors[`boundary_${index}`]}</p>}
-                        </div>
+                        <Box key={index}>
+                            <Grid container spacing={1} alignItems="flex-start">
+                                <Grid size={{ xs: 5 }}>
+                                    <TextField
+                                        type="text"
+                                        size="small"
+                                        fullWidth
+                                        value={boundary.grade}
+                                        onChange={e => handleBoundaryChange(index, 'grade', e.target.value)}
+                                        placeholder="Grade"
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 5 }}>
+                                    <TextField
+                                        type="number"
+                                        size="small"
+                                        fullWidth
+                                        value={boundary.minScore}
+                                        onChange={e => handleBoundaryChange(index, 'minScore', Number(e.target.value))}
+                                        placeholder="Min Score"
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', pt: 0.5 }}>
+                                        <IconButton
+                                            type="button"
+                                            onClick={() => handleRemoveBoundary(index)}
+                                            size="small"
+                                            color="error"
+                                        >
+                                            <TrashIcon />
+                                        </IconButton>
+                                    </Box>
+                                </Grid>
+                            </Grid>
+                            {errors[`boundary_${index}`] && (
+                                <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                                    {errors[`boundary_${index}`]}
+                                </Typography>
+                            )}
+                        </Box>
                     ))}
-                </div>
-            </div>
+                </Stack>
+            </Paper>
             
-            <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                <Button
                     type="button"
-                    className="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-6 py-2 text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
+                    variant="contained"
+                    color="primary"
                     onClick={validateAndSave}
+                    sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
                 >
                     {t('saveSettings')}
-                </button>
-            </div>
+                </Button>
+            </Box>
             {isGeneratorOpen && (
                 <RubricGeneratorModal 
                     rubricType={generatorType}
@@ -180,6 +285,6 @@ export const ScoringSettingsEditor: React.FC<ScoringSettingsEditorProps> = ({ sc
                     onSave={handleGeneratedRubric}
                 />
             )}
-        </div>
+        </Stack>
     );
 };

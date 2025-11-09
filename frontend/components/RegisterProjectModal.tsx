@@ -224,7 +224,7 @@ export const RegisterProjectModal: React.FC<RegisterProjectModalProps> = (props)
   return (
     <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Typography component="span" variant="subtitle1" fontWeight="bold">
           {isEditMode ? t('editProject') : t('registerProject')}
         </Typography>
         <IconButton onClick={onClose} size="small">

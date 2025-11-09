@@ -137,7 +137,7 @@ const MilestoneTemplateModal: React.FC<MilestoneTemplateModalProps> = ({ onClose
               {tasks.map((task, index) => (
                 <Paper key={task.id} elevation={1} sx={{ p: 2, bgcolor: 'background.default' }}>
                   <Grid container spacing={2} alignItems="flex-start">
-                    <Grid item xs={12} sm={8}>
+                    <Grid size={{ xs: 12, sm: 8 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -149,7 +149,7 @@ const MilestoneTemplateModal: React.FC<MilestoneTemplateModalProps> = ({ onClose
                         helperText={errors.tasks?.[index]?.name}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={3}>
+                    <Grid size={{ xs: 12, sm: 3 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -169,7 +169,7 @@ const MilestoneTemplateModal: React.FC<MilestoneTemplateModalProps> = ({ onClose
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={1} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Grid size={{ xs: 12, sm: 1 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveTask(index)}

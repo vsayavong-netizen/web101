@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
-import { XMarkIcon, PaperAirplaneIcon, SparklesIcon } from './icons';
+import {
+  Box, Paper, Typography, TextField, IconButton, Stack, Alert, CircularProgress
+} from '@mui/material';
+import { Close as CloseIcon, Send as SendIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { User, ProjectGroup, Advisor, Student } from '../types';
 
 interface AiChatWidgetProps {
@@ -115,62 +118,219 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ user, onClose, studentProje
   };
 
   return (
-    <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-[calc(100%-3rem)] sm:w-96 h-[70vh] sm:h-[600px] flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 animate-fade-in-up">
+    <Paper
+      elevation={24}
+      sx={{
+        position: 'fixed',
+        bottom: { xs: 24, sm: 32 },
+        right: { xs: 24, sm: 32 },
+        zIndex: 1300,
+        width: { xs: 'calc(100% - 3rem)', sm: 384 },
+        height: { xs: '70vh', sm: 600 },
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 3,
+        border: 1,
+        borderColor: 'divider',
+        overflow: 'hidden'
+      }}
+    >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-            <div className="flex items-center gap-3">
-                <SparklesIcon className="w-6 h-6 text-purple-500"/>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white">AI Assistant</h3>
-            </div>
-            <button onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white" aria-label="Close chat">
-                <XMarkIcon className="w-6 h-6"/>
-            </button>
-        </div>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          p: 2, 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          flexShrink: 0
+        }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+                <SparklesIcon sx={{ fontSize: 24, color: 'secondary.main' }} />
+                <Typography variant="h6" fontWeight="bold">
+                    AI Assistant
+                </Typography>
+            </Stack>
+            <IconButton 
+              onClick={onClose} 
+              size="small"
+              aria-label="Close chat"
+            >
+                <CloseIcon />
+            </IconButton>
+        </Box>
 
         {/* Messages */}
-        <div className="flex-grow p-4 overflow-y-auto space-y-4">
+        <Box sx={{ 
+          flexGrow: 1, 
+          p: 2, 
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}>
             {messages.map((msg, index) => (
-                <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <Box 
+                  key={index} 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' 
+                  }}
+                >
                     {msg.role === 'system' ? (
-                         <div className="text-center w-full text-xs text-red-500 dark:text-red-400 bg-red-100 dark:bg-red-900/50 p-2 rounded-md">{msg.text}</div>
+                         <Alert severity="error" sx={{ width: '100%', fontSize: '0.75rem', py: 0.5 }}>
+                           {msg.text}
+                         </Alert>
                     ) : (
-                        <div className={`p-3 rounded-2xl max-w-[85%] text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
-                           <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br />') }}></div>
-                        </div>
+                        <Paper
+                          elevation={2}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 3,
+                            maxWidth: '85%',
+                            fontSize: '0.875rem',
+                            ...(msg.role === 'user' 
+                              ? { 
+                                  bgcolor: 'primary.main', 
+                                  color: 'primary.contrastText',
+                                  borderBottomRightRadius: 0
+                                }
+                              : { 
+                                  bgcolor: 'action.hover', 
+                                  color: 'text.primary',
+                                  borderBottomLeftRadius: 0
+                                }
+                            )
+                          }}
+                        >
+                           <Typography 
+                             variant="body2"
+                             component="div"
+                             dangerouslySetInnerHTML={{ 
+                               __html: msg.text
+                                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                 .replace(/\n/g, '<br />') 
+                             }} 
+                           />
+                        </Paper>
                     )}
-                </div>
+                </Box>
             ))}
             {isLoading && (
-                <div className="flex justify-start">
-                    <div className="p-3 rounded-2xl bg-slate-200 dark:bg-slate-700 rounded-bl-none flex items-center gap-2">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                    </div>
-                </div>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <Paper
+                      elevation={2}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 3,
+                        borderBottomLeftRadius: 0,
+                        bgcolor: 'action.hover',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                      }}
+                    >
+                        <Box sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          bgcolor: 'text.secondary',
+                          animation: 'pulse 1.4s ease-in-out infinite',
+                          '@keyframes pulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.3 }
+                          }
+                        }} />
+                        <Box sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          bgcolor: 'text.secondary',
+                          animation: 'pulse 1.4s ease-in-out infinite 0.2s',
+                          '@keyframes pulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.3 }
+                          }
+                        }} />
+                        <Box sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          bgcolor: 'text.secondary',
+                          animation: 'pulse 1.4s ease-in-out infinite 0.4s',
+                          '@keyframes pulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.3 }
+                          }
+                        }} />
+                    </Paper>
+                </Box>
             )}
             <div ref={messagesEndRef} />
-        </div>
+        </Box>
 
         {/* Input Form */}
-        <form onSubmit={handleSend} className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
-            <div className="flex items-center gap-2">
-                <textarea
-                    ref={inputRef}
+        <Box 
+          component="form" 
+          onSubmit={handleSend}
+          sx={{ 
+            p: 2, 
+            borderTop: 1, 
+            borderColor: 'divider',
+            flexShrink: 0
+          }}
+        >
+            <Stack direction="row" spacing={1} alignItems="center">
+                <TextField
+                    inputRef={inputRef}
+                    fullWidth
+                    multiline
+                    maxRows={4}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) handleSend(e); }}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      if (inputRef.current) {
+                        inputRef.current.style.height = 'auto';
+                        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+                      }
+                    }}
+                    onKeyDown={(e) => { 
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
                     placeholder="Ask me anything..."
                     disabled={!chat || isLoading}
-                    rows={1}
-                    className="block w-full rounded-lg border-0 p-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-slate-700 dark:text-white dark:ring-slate-600 resize-none"
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '0.875rem'
+                      }
+                    }}
                 />
-                <button type="submit" disabled={!chat || isLoading || !input.trim()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed">
-                    <PaperAirplaneIcon className="w-5 h-5"/>
-                </button>
-            </div>
-        </form>
-    </div>
+                <IconButton
+                    type="submit"
+                    color="primary"
+                    disabled={!chat || isLoading || !input.trim()}
+                    sx={{ 
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      '&:hover': {
+                        bgcolor: 'primary.dark'
+                      },
+                      '&.Mui-disabled': {
+                        bgcolor: 'action.disabledBackground',
+                        color: 'action.disabled'
+                      }
+                    }}
+                >
+                    <SendIcon />
+                </IconButton>
+            </Stack>
+        </Box>
+    </Paper>
   );
 };
 

@@ -65,7 +65,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose, onSave, 
       <form onSubmit={handleSubmit} noValidate>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <TextField
                 fullWidth
                 label={t('title')}
@@ -76,7 +76,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose, onSave, 
                 helperText={errors.title}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('audience')}</InputLabel>
                 <Select
@@ -94,7 +94,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose, onSave, 
           </Grid>
 
           <Grid container spacing={2} sx={{ flexGrow: 1, minHeight: 0 }}>
-            <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
                 {t('contentMarkdown')}
               </Typography>
@@ -111,7 +111,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose, onSave, 
                 inputProps={{ style: { height: '100%', overflow: 'auto' } }}
               />
             </Grid>
-            <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Typography variant="body2" fontWeight="medium" sx={{ mb: 1 }}>
                 {t('preview')}
               </Typography>

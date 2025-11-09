@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Stack, IconButton, Divider, Paper
+} from '@mui/material';
+import {
+  Close as XMarkIcon, CheckCircle as CheckCircleIcon, Warning as ExclamationTriangleIcon,
+  Info as InformationCircleIcon, Refresh as ArrowPathIcon
+} from '@mui/icons-material';
 import { Advisor, Major, Classroom, DefenseSettings, ScoringSettings, MilestoneTemplate, ProjectGroup, Student, ProjectStatus } from '../types';
-import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, ArrowPathIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface AppReadinessModalProps {
@@ -25,22 +31,36 @@ interface CheckResult {
 
 const StatusItem: React.FC<CheckResult> = ({ title, status, message }) => {
     const config = {
-        success: { icon: <CheckCircleIcon className="w-6 h-6 text-green-500" />, color: 'border-green-500' },
-        warning: { icon: <ExclamationTriangleIcon className="w-6 h-6 text-yellow-500" />, color: 'border-yellow-500' },
-        error: { icon: <ExclamationTriangleIcon className="w-6 h-6 text-red-500" />, color: 'border-red-500' },
-        info: { icon: <InformationCircleIcon className="w-6 h-6 text-blue-500" />, color: 'border-blue-500' },
+        success: { icon: <CheckCircleIcon sx={{ fontSize: 24, color: 'success.main' }} />, color: 'success.main' as const },
+        warning: { icon: <ExclamationTriangleIcon sx={{ fontSize: 24, color: 'warning.main' }} />, color: 'warning.main' as const },
+        error: { icon: <ExclamationTriangleIcon sx={{ fontSize: 24, color: 'error.main' }} />, color: 'error.main' as const },
+        info: { icon: <InformationCircleIcon sx={{ fontSize: 24, color: 'info.main' }} />, color: 'info.main' as const },
     };
     
     const { icon, color } = config[status];
 
     return (
-        <div className={`flex items-start gap-4 p-3 border-l-4 ${color}`}>
-            <div className="flex-shrink-0 mt-1">{icon}</div>
-            <div>
-                <h4 className="font-semibold text-slate-800 dark:text-slate-100">{title}</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{message}</p>
-            </div>
-        </div>
+        <Paper
+            elevation={1}
+            sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                p: 1.5,
+                borderLeft: 4,
+                borderColor: color
+            }}
+        >
+            <Box sx={{ flexShrink: 0, mt: 0.5 }}>{icon}</Box>
+            <Box>
+                <Typography variant="subtitle2" fontWeight="semibold">
+                    {title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    {message}
+                </Typography>
+            </Box>
+        </Paper>
     );
 };
 
@@ -150,37 +170,63 @@ const AppReadinessModal: React.FC<AppReadinessModalProps> = ({ onClose, advisors
     }, [key, advisors, majors, classrooms, defenseSettings, scoringSettings, milestoneTemplates, projectGroups, students, t]);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center pb-4 border-b dark:border-slate-700">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('appReadinessStatus')}</h2>
-                    <button onClick={onClose}><XMarkIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="my-4 text-sm text-slate-600 dark:text-slate-400">
-                    <p>{t('readinessCheckDescription')}</p>
-                </div>
-                <div className="flex-grow overflow-y-auto pr-2 space-y-6">
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-200">{t('readinessConfiguration')}</h3>
-                        <div className="space-y-3">{checks.configuration.map(check => <StatusItem key={check.title} {...check} />)}</div>
-                    </div>
-                     <div>
-                        <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-200">{t('readinessCoreData')}</h3>
-                        <div className="space-y-3">{checks.coreData.map(check => <StatusItem key={check.title} {...check} />)}</div>
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2 text-slate-700 dark:text-slate-200">{t('readinessDataIntegrity')}</h3>
-                        <div className="space-y-3">{checks.dataIntegrity.map(check => <StatusItem key={check.title} {...check} />)}</div>
-                    </div>
-                </div>
-                <div className="flex justify-end space-x-4 pt-4 mt-4 border-t border-slate-700">
-                    <button onClick={() => setKey(k => k + 1)} className="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 font-bold py-2 px-4 rounded-lg">
-                        <ArrowPathIcon className="w-5 h-5"/> {t('rerunChecks')}
-                    </button>
-                    <button onClick={onClose} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">{t('closeBtn')}</button>
-                </div>
-            </div>
-        </div>
+        <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogTitle>
+                <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+                    <Typography variant="h6" fontWeight="bold">
+                        {t('appReadinessStatus')}
+                    </Typography>
+                    <IconButton onClick={onClose} size="small">
+                        <XMarkIcon />
+                    </IconButton>
+                </Stack>
+            </DialogTitle>
+            <Divider />
+            <DialogContent>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    {t('readinessCheckDescription')}
+                </Typography>
+                <Stack spacing={3} sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
+                    <Box>
+                        <Typography variant="h6" fontWeight="semibold" sx={{ mb: 1.5 }}>
+                            {t('readinessConfiguration')}
+                        </Typography>
+                        <Stack spacing={1.5}>
+                            {checks.configuration.map(check => <StatusItem key={check.title} {...check} />)}
+                        </Stack>
+                    </Box>
+                    <Box>
+                        <Typography variant="h6" fontWeight="semibold" sx={{ mb: 1.5 }}>
+                            {t('readinessCoreData')}
+                        </Typography>
+                        <Stack spacing={1.5}>
+                            {checks.coreData.map(check => <StatusItem key={check.title} {...check} />)}
+                        </Stack>
+                    </Box>
+                    <Box>
+                        <Typography variant="h6" fontWeight="semibold" sx={{ mb: 1.5 }}>
+                            {t('readinessDataIntegrity')}
+                        </Typography>
+                        <Stack spacing={1.5}>
+                            {checks.dataIntegrity.map(check => <StatusItem key={check.title} {...check} />)}
+                        </Stack>
+                    </Box>
+                </Stack>
+            </DialogContent>
+            <Divider />
+            <DialogActions sx={{ p: 2 }}>
+                <Button
+                    onClick={() => setKey(k => k + 1)}
+                    startIcon={<ArrowPathIcon />}
+                    variant="outlined"
+                >
+                    {t('rerunChecks')}
+                </Button>
+                <Button onClick={onClose} variant="contained" color="primary">
+                    {t('closeBtn')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

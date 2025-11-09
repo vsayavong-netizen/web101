@@ -1,5 +1,12 @@
 import React, { useMemo } from 'react';
-import { ChartBarIcon, UserGroupIcon, AcademicCapIcon, ClipboardDocumentListIcon, InboxStackIcon, CheckCircleIcon } from './icons';
+import {
+  Box, Paper, Typography, Grid, Stack, LinearProgress, Avatar
+} from '@mui/material';
+import {
+  BarChart as ChartBarIcon, Groups as UserGroupIcon,
+  School as AcademicCapIcon, Assignment as ClipboardDocumentListIcon,
+  Inbox as InboxStackIcon, CheckCircle as CheckCircleIcon
+} from '@mui/icons-material';
 import { Advisor, User, ProjectGroup, ProjectStatus } from '../types';
 import { MilestoneReviewItem } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
@@ -16,54 +23,74 @@ interface DashboardStatsProps {
 }
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string | number; }> = ({ icon, title, value }) => (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md flex items-center space-x-4">
-        <div className="flex-shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400 rounded-full p-3">
+    <Paper elevation={2} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main', width: 56, height: 56 }}>
             {icon}
-        </div>
-        <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
-        </div>
-    </div>
+        </Avatar>
+        <Box>
+            <Typography variant="body2" color="text.secondary" fontWeight="medium">
+                {title}
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="text.primary">
+                {value}
+            </Typography>
+        </Box>
+    </Paper>
 );
 
-const WorkloadItem: React.FC<{ title: string; count: number; quota: number; colorClass: string }> = ({ title, count, quota, colorClass }) => {
+const WorkloadItem: React.FC<{ title: string; count: number; quota: number; color: 'primary' | 'success' | 'warning' | 'secondary' }> = ({ title, count, quota, color }) => {
     const percentage = quota > 0 ? (count / quota) * 100 : 0;
     const isOverloaded = count > quota;
     const displayPercentage = isOverloaded ? 100 : percentage;
-    const barColor = isOverloaded ? 'bg-red-500' : colorClass;
 
     return (
-        <div>
-            <div className="flex justify-between items-baseline mb-1">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{title}</p>
-                <p className={`text-sm font-semibold ${isOverloaded ? 'text-red-500 dark:text-red-400' : 'text-slate-800 dark:text-slate-100'}`}>{count} / {quota}</p>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2">
-                <div className={`${barColor} h-2 rounded-full transition-all duration-500`} style={{width: `${displayPercentage}%`}}></div>
-            </div>
-        </div>
+        <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                <Typography variant="caption" fontWeight="medium" color="text.secondary">
+                    {title}
+                </Typography>
+                <Typography variant="caption" fontWeight="semibold" color={isOverloaded ? 'error.main' : 'text.primary'}>
+                    {count} / {quota}
+                </Typography>
+            </Box>
+            <LinearProgress
+                variant="determinate"
+                value={displayPercentage}
+                color={isOverloaded ? 'error' : color}
+                sx={{ height: 8, borderRadius: 1 }}
+            />
+        </Box>
     );
 };
 
 const AdvisorWorkloadCard: React.FC<{ advisor: Advisor; projectCount: number; committeeCounts: { main: number; second: number; third: number }; t: (key: any) => string }> = ({ advisor, projectCount, committeeCounts, t }) => {
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
-            <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400 rounded-full p-3">
-                    <AcademicCapIcon className="w-6 h-6" />
-                </div>
-                <div className="flex-1">
-                     <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">{advisor.name}</p>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <WorkloadItem title={t('projectSupervision')} count={projectCount} quota={advisor.quota} colorClass="bg-blue-600" />
-                        <WorkloadItem title={t('mainCommittee')} count={committeeCounts.main} quota={advisor.mainCommitteeQuota} colorClass="bg-green-600" />
-                        <WorkloadItem title={t('secondCommittee')} count={committeeCounts.second} quota={advisor.secondCommitteeQuota} colorClass="bg-yellow-500" />
-                        <WorkloadItem title={t('thirdCommittee')} count={committeeCounts.third} quota={advisor.thirdCommitteeQuota} colorClass="bg-purple-500" />
-                     </div>
-                </div>
-            </div>
-        </div>
+        <Paper elevation={2} sx={{ p: 3 }}>
+            <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Avatar sx={{ bgcolor: 'secondary.light', color: 'secondary.main', width: 48, height: 48 }}>
+                    <AcademicCapIcon />
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>
+                        {advisor.name}
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <WorkloadItem title={t('projectSupervision')} count={projectCount} quota={advisor.quota} color="primary" />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <WorkloadItem title={t('mainCommittee')} count={committeeCounts.main} quota={advisor.mainCommitteeQuota} color="success" />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <WorkloadItem title={t('secondCommittee')} count={committeeCounts.second} quota={advisor.secondCommitteeQuota} color="warning" />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <WorkloadItem title={t('thirdCommittee')} count={committeeCounts.third} quota={advisor.thirdCommitteeQuota} color="secondary" />
+                        </Grid>
+                    </Grid>
+                </Box>
+            </Stack>
+        </Paper>
     );
 };
 
@@ -78,75 +105,106 @@ const StatusOverview: React.FC<{ projectGroups: ProjectGroup[]; t: (key: any) =>
     const total = projectGroups.length;
     
     const statusData = [
-        { name: t('approved'), count: statusCounts[ProjectStatus.Approved] || 0, color: 'bg-green-500' },
-        { name: t('pending'), count: statusCounts[ProjectStatus.Pending] || 0, color: 'bg-yellow-500' },
-        { name: t('rejected'), count: statusCounts[ProjectStatus.Rejected] || 0, color: 'bg-red-500' },
+        { name: t('approved'), count: statusCounts[ProjectStatus.Approved] || 0, color: 'success' as const },
+        { name: t('pending'), count: statusCounts[ProjectStatus.Pending] || 0, color: 'warning' as const },
+        { name: t('rejected'), count: statusCounts[ProjectStatus.Rejected] || 0, color: 'error' as const },
     ];
     
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
-            <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400 rounded-full p-3">
-                    <ClipboardDocumentListIcon className="w-6 h-6" />
-                </div>
-                <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">{t('projectStatusOverview')}</p>
-                    <div className="space-y-3">
+        <Paper elevation={2} sx={{ p: 3 }}>
+            <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Avatar sx={{ bgcolor: 'secondary.light', color: 'secondary.main', width: 48, height: 48 }}>
+                    <ClipboardDocumentListIcon />
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 2 }}>
+                        {t('projectStatusOverview')}
+                    </Typography>
+                    <Stack spacing={2}>
                         {statusData.map(status => {
                             const percentage = total > 0 ? (status.count / total) * 100 : 0;
                             return (
-                                <div key={status.name}>
-                                    <div className="flex justify-between items-baseline">
-                                        <p className="font-semibold text-slate-800 dark:text-slate-200">{status.name}</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{status.count} / {total}</p>
-                                    </div>
-                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-1">
-                                        <div 
-                                            className={`h-2 rounded-full ${status.color}`}
-                                            style={{ width: `${percentage}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
+                                <Box key={status.name}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+                                        <Typography variant="body2" fontWeight="semibold">
+                                            {status.name}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {status.count} / {total}
+                                        </Typography>
+                                    </Box>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={percentage}
+                                        color={status.color}
+                                        sx={{ height: 8, borderRadius: 1 }}
+                                    />
+                                </Box>
                             );
                         })}
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </Stack>
+                </Box>
+            </Stack>
+        </Paper>
     );
 };
 
 const MilestonesReviewPanel: React.FC<{ milestones: MilestoneReviewItem[]; onSelectProjectFromId: (projectId: string) => void; t: (key: any) => string; }> = ({ milestones, onSelectProjectFromId, t }) => {
     if (milestones.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md h-full">
-                <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0 bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400 rounded-full p-3">
-                        <CheckCircleIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-lg font-bold text-slate-900 dark:text-white">{t('allCaughtUp')}</p>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('noMilestonesToReview')}</p>
-                    </div>
-                </div>
-            </div>
+            <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
+                <Stack direction="row" spacing={2} alignItems="center">
+                    <Avatar sx={{ bgcolor: 'success.light', color: 'success.main', width: 48, height: 48 }}>
+                        <CheckCircleIcon />
+                    </Avatar>
+                    <Box>
+                        <Typography variant="h6" fontWeight="bold">
+                            {t('allCaughtUp')}
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                            {t('noMilestonesToReview')}
+                        </Typography>
+                    </Box>
+                </Stack>
+            </Paper>
         )
     }
 
     return (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md h-full">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">{t('reviewQueue')}</h3>
-            <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
+        <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>
+                {t('reviewQueue')}
+            </Typography>
+            <Stack spacing={1.5} sx={{ maxHeight: 256, overflowY: 'auto', pr: 1 }}>
                 {milestones.map(item => (
-                    <li key={item.projectGroupId + item.milestoneName}>
-                        <button onClick={() => onSelectProjectFromId(item.projectGroupId)} className="w-full text-left p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:ring-2 hover:ring-blue-500 transition-all">
-                            <p className="font-semibold text-slate-800 dark:text-slate-200">{item.milestoneName}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{item.projectGroupId} - {item.studentNames}</p>
-                        </button>
-                    </li>
+                    <Button
+                        key={item.projectGroupId + item.milestoneName}
+                        onClick={() => onSelectProjectFromId(item.projectGroupId)}
+                        fullWidth
+                        sx={{
+                            textAlign: 'left',
+                            textTransform: 'none',
+                            p: 1.5,
+                            bgcolor: 'action.hover',
+                            '&:hover': {
+                                bgcolor: 'primary.light',
+                                border: 2,
+                                borderColor: 'primary.main'
+                            }
+                        }}
+                    >
+                        <Box sx={{ width: '100%' }}>
+                            <Typography variant="body2" fontWeight="semibold">
+                                {item.milestoneName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {item.projectGroupId} - {item.studentNames}
+                            </Typography>
+                        </Box>
+                    </Button>
                 ))}
-            </ul>
-        </div>
+            </Stack>
+        </Paper>
     )
 }
 
@@ -158,45 +216,60 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ user, stats, advisors, 
       const selfAdvisor = advisors.find(adv => adv.id === user.id);
       if (!selfAdvisor) return null;
       return (
-          <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <StatCard icon={<UserGroupIcon className="w-6 h-6"/>} title={t('yourStudents')} value={stats.totalStudents} />
-                  <StatCard icon={<InboxStackIcon className="w-6 h-6"/>} title={t('milestonesToReview')} value={milestonesToReview.length} />
-                  <MilestonesReviewPanel milestones={milestonesToReview} onSelectProjectFromId={onSelectProjectFromId} t={t} />
-              </div>
+          <Stack spacing={3}>
+              <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                      <StatCard icon={<UserGroupIcon />} title={t('yourStudents')} value={stats.totalStudents} />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                      <StatCard icon={<InboxStackIcon />} title={t('milestonesToReview')} value={milestonesToReview.length} />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                      <MilestonesReviewPanel milestones={milestonesToReview} onSelectProjectFromId={onSelectProjectFromId} t={t} />
+                  </Grid>
+              </Grid>
               <AdvisorWorkloadCard
                 advisor={selfAdvisor}
                 projectCount={advisorProjectCounts[selfAdvisor.name] || 0}
                 committeeCounts={committeeCounts[selfAdvisor.id] || { main: 0, second: 0, third: 0 }}
                 t={t}
               />
-          </div>
+          </Stack>
       )
   }
     
   // Admin View
   return (
-    <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard icon={<ChartBarIcon className="w-6 h-6"/>} title={t('totalProjects')} value={stats.totalProjects} />
-            <StatCard icon={<UserGroupIcon className="w-6 h-6"/>} title={t('totalStudents')} value={stats.totalStudents} />
-            <StatusOverview projectGroups={projectGroups} t={t} />
-        </div>
-        <div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">{t('advisorWorkloadOverview')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Stack spacing={3}>
+        <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 4 }}>
+                <StatCard icon={<ChartBarIcon />} title={t('totalProjects')} value={stats.totalProjects} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+                <StatCard icon={<UserGroupIcon />} title={t('totalStudents')} value={stats.totalStudents} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+                <StatusOverview projectGroups={projectGroups} t={t} />
+            </Grid>
+        </Grid>
+        <Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+                {t('advisorWorkloadOverview')}
+            </Typography>
+            <Grid container spacing={3}>
                 {advisors.map(adv => (
-                    <AdvisorWorkloadCard
-                        key={adv.id}
-                        advisor={adv}
-                        projectCount={advisorProjectCounts[adv.name] || 0}
-                        committeeCounts={committeeCounts[adv.id] || { main: 0, second: 0, third: 0 }}
-                        t={t}
-                    />
+                    <Grid size={{ xs: 12, md: 6 }} key={adv.id}>
+                        <AdvisorWorkloadCard
+                            advisor={adv}
+                            projectCount={advisorProjectCounts[adv.name] || 0}
+                            committeeCounts={committeeCounts[adv.id] || { main: 0, second: 0, third: 0 }}
+                            t={t}
+                        />
+                    </Grid>
                 ))}
-            </div>
-        </div>
-    </div>
+            </Grid>
+        </Box>
+    </Stack>
   );
 };
 

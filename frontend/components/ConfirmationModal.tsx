@@ -13,7 +13,7 @@ interface ConfirmationModalProps {
   title: string;
   message: string;
   confirmText?: string;
-  confirmButtonClass?: string;
+  confirmButtonColor?: 'error' | 'warning' | 'primary' | 'success' | 'info';
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ 
@@ -23,15 +23,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     title, 
     message,
     confirmText,
-    confirmButtonClass
+    confirmButtonColor = 'primary'
 }) => {
   const t = useTranslations();
-  
-  const getButtonColor = (): 'error' | 'warning' | 'primary' => {
-    if (confirmButtonClass?.includes('red')) return 'error';
-    if (confirmButtonClass?.includes('orange')) return 'warning';
-    return 'primary';
-  };
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
@@ -54,7 +48,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <Button onClick={onClose} variant="outlined">
           {t('cancel')}
         </Button>
-        <Button onClick={onConfirm} variant="contained" color={getButtonColor()}>
+        <Button onClick={onConfirm} variant="contained" color={confirmButtonColor}>
           {confirmText || t('confirm')}
         </Button>
       </DialogActions>

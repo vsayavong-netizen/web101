@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Box, Fab } from '@mui/material';
 import { AutoAwesome as SparklesIconMui } from '@mui/icons-material';
 import Header from './Header';
-import ProjectTable from './ProjectTable';
+import ProjectTableEnhanced from './ProjectTableEnhanced';
 import { RegisterProjectModal } from './RegisterProjectModal';
 import ProjectFilters from './ProjectFilters';
 import ConfirmationModal from './ConfirmationModal';
@@ -16,7 +16,7 @@ import { StudentWelcome } from './StudentWelcome';
 import AdvisorActionModal from './AdvisorActionModal';
 import MilestoneTemplateManagement from './MilestoneTemplateManagement';
 import ProjectTimeline from './ProjectTimeline';
-import AnalyticsDashboard from './AnalyticsDashboard';
+import AnalyticsDashboardEnhanced from './AnalyticsDashboardEnhanced';
 import AnnouncementsManagement from './AnnouncementsManagement';
 import ProfileModal from './ProfileModal';
 import SubmissionsManagement from './SubmissionsManagement';
@@ -45,7 +45,7 @@ import { useTranslations } from '../hooks/useTranslations';
 import BulkActionsBar from './BulkActionsBar';
 import BulkMessageModal from './BulkMessageModal';
 import { SparklesIcon } from './icons';
-import Pagination from './Pagination';
+// Pagination is now handled by DataGrid internally
 import CommunicationAnalysisModal from './CommunicationAnalysisModal';
 import AiWritingAssistantModal from './AiWritingAssistantModal';
 
@@ -765,36 +765,11 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
       if (scheduleFilter !== 'all') projectsToDisplay = projectsToDisplay.filter(pg => scheduleFilter === 'scheduled' ? isScheduled(pg) : !isScheduled(pg));
       if (similarityFilter) projectsToDisplay = projectsToDisplay.filter(pg => !!pg.project.similarityInfo);
 
-      if (sortConfig) {
-          projectsToDisplay.sort((a, b) => {
-              let aValue, bValue;
-              switch (sortConfig.key) {
-                  case 'studentId':
-                      aValue = a.students[0]?.studentId || '';
-                      bValue = b.students[0]?.studentId || '';
-                      break;
-                  case 'projectId':
-                      aValue = a.project.projectId;
-                      bValue = b.project.projectId;
-                      break;
-                  case 'advisorName':
-                      aValue = a.project.advisorName;
-                      bValue = b.project.advisorName;
-                      break;
-                  default: return 0;
-              }
-              if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
-              if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-              return 0;
-          });
-      }
+      // Sorting is now handled by DataGrid internally
       return projectsToDisplay;
-  }, [projectGroups, searchQuery, advisorFilter, sortConfig, effectiveRole, isReviewFilterActive, projectsRequiringReviewIds, genderFilter, majorFilter, statusFilter, scheduleFilter, similarityFilter]);
+  }, [projectGroups, searchQuery, advisorFilter, effectiveRole, isReviewFilterActive, projectsRequiringReviewIds, genderFilter, majorFilter, statusFilter, scheduleFilter, similarityFilter]);
 
-  const paginatedProjects = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return sortedAndFilteredProjects.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [sortedAndFilteredProjects, currentPage]);
+  // Pagination is now handled by DataGrid internally
 
   const handleSelectProjectRow = (projectId: string) => {
     setSelectedProjectIds(prev => {
@@ -891,14 +866,12 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
               similarityFilter={similarityFilter}
               setSimilarityFilter={setSimilarityFilter}
             />
-            <ProjectTable 
+            <ProjectTableEnhanced 
               user={user}
               effectiveRole={effectiveRole}
-              projectGroups={paginatedProjects} 
+              projectGroups={sortedAndFilteredProjects} 
               onSelectProject={handleSelectProject}
               onRegisterClick={handleRegisterClick}
-              sortConfig={sortConfig}
-              requestSort={requestSort}
               onUpdateStatus={handleUpdateStatus}
               scoringSettings={scoringSettings}
               updateDetailedScore={updateDetailedScore}
@@ -908,14 +881,9 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
               selectedIds={selectedProjectIds}
               onSelect={handleSelectProjectRow}
               onSelectAll={handleSelectAllProjects}
+              loading={false}
             />
-            <Pagination
-                currentPage={currentPage}
-                totalPages={Math.ceil(sortedAndFilteredProjects.length / ITEMS_PER_PAGE)}
-                totalItems={sortedAndFilteredProjects.length}
-                itemsPerPage={ITEMS_PER_PAGE}
-                onPageChange={setCurrentPage}
-            />
+            {/* Pagination is now handled by DataGrid internally */}
           </Box>
         );
       case 'students':
@@ -935,7 +903,7 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
       case 'timeline':
         return <ProjectTimeline projectGroups={projectGroups} />;
       case 'analytics':
-        return <AnalyticsDashboard projectGroups={projectGroups} advisors={advisors} advisorProjectCounts={advisorProjectCounts} />;
+        return <AnalyticsDashboardEnhanced projectGroups={projectGroups} advisors={advisors} advisorProjectCounts={advisorProjectCounts} loading={false} />;
       case 'announcements':
         return <AnnouncementsManagement announcements={announcements} user={user} addAnnouncement={addAnnouncement} updateAnnouncement={updateAnnouncement} deleteAnnouncement={deleteAnnouncement} />;
       case 'committees':
@@ -989,7 +957,7 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
       {isModalOpen && <RegisterProjectModal onClose={handleCloseModal} onAddProject={addProject} onUpdateProject={updateProject} advisors={advisors} advisorProjectCounts={advisorProjectCounts} allProjects={projectGroups} allStudents={students} majors={majors} user={user} projectToEdit={editingProject} currentAcademicYear={currentAcademicYear} suggestedTopic={suggestedTopic} onSuggestionUsed={() => setSuggestedTopic(null)} />}
       {projectToDelete && <ConfirmationModal isOpen={!!projectToDelete} onClose={cancelDelete} onConfirm={confirmDelete} title={t('deleteProjectTitle')} message={t('deleteProjectConfirmation').replace('${topic}', projectToDelete.project.topicEng)} />}
       {projectToAction && <AdvisorActionModal isOpen={!!projectToAction} onClose={() => setProjectToAction(null)} onConfirm={handleConfirmAdvisorAction} projectGroup={projectToAction.project} action={projectToAction.action} advisors={advisors} advisorProjectCounts={advisorProjectCounts} currentAdvisorName={user.name} milestoneTemplates={milestoneTemplates} majors={majors} />}
-      {isNewYearModalOpen && <ConfirmationModal isOpen={isNewYearModalOpen} onClose={() => setIsNewYearModalOpen(false)} onConfirm={handleConfirmNewYear} title={t('confirmStartNewYear')} message={t('newYearConfirmation').replace('${year}', String(parseInt(currentAcademicYear, 10) + 1))} confirmButtonClass='bg-blue-600 hover:bg-blue-700' confirmText={t('startNewYear')} />}
+      {isNewYearModalOpen && <ConfirmationModal isOpen={isNewYearModalOpen} onClose={() => setIsNewYearModalOpen(false)} onConfirm={handleConfirmNewYear} title={t('confirmStartNewYear')} message={t('newYearConfirmation').replace('${year}', String(parseInt(currentAcademicYear, 10) + 1))} confirmButtonColor="primary" confirmText={t('startNewYear')} />}
       {isProfileModalOpen && <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} userData={currentUserData} onUpdateStudent={updateStudent} onUpdateAdvisor={updateAdvisor} allAdvisors={advisors} studentProjectGroup={studentProjectGroup} allProjectGroups={projectGroups} isPasswordChangeForced={!!isPasswordChangeForced} onPasswordChanged={onPasswordChanged}/>}
       <TourGuide {...tourProps} tourSteps={tourSteps} />
       {isSuggesterOpen && currentUserData && <TopicSuggesterModal onClose={() => setIsSuggesterOpen(false)} onSelectTopic={handleSelectSuggestedTopic} student={currentUserData as Student} majors={majors} />}

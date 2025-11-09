@@ -355,7 +355,7 @@ const AdvisorManagement: React.FC<AdvisorManagementProps> = (props) => {
                         {paginatedAdvisors.map(advisor => {
                             const projectCount = advisorProjectCounts[advisor.name] || 0;
                             return (
-                                <Grid item xs={12} sm={6} key={advisor.id}>
+                                <Grid size={{ xs: 12, sm: 6 }} key={advisor.id}>
                                     <AdvisorCard
                                         advisor={advisor}
                                         user={user}

@@ -279,105 +279,200 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setLoading(true);
             try {
                 const token = localStorage.getItem('auth_token');
+                const refreshToken = localStorage.getItem('refresh_token');
+                
+                // Helper function to refresh token if needed
+                const tryRefreshToken = async (): Promise<string | null> => {
+                    if (!refreshToken) return null;
+                    try {
+                        const response = await fetch(`${cleanAPIBaseURL}/api/auth/token/refresh/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refresh: refreshToken }),
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newToken = data.access || data.token;
+                            if (newToken) {
+                                localStorage.setItem('auth_token', newToken);
+                                return newToken;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Failed to refresh token:', error);
+                    }
+                    return null;
+                };
+
+                // Helper function to make authenticated request
+                const makeRequest = async (url: string, headers: HeadersInit): Promise<Response> => {
+                    let response = await fetch(url, { headers });
+                    
+                    // If 401, try to refresh token and retry once
+                    if (response.status === 401 && refreshToken) {
+                        const newToken = await tryRefreshToken();
+                        if (newToken) {
+                            const newHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
+                            response = await fetch(url, { headers: newHeaders });
+                        }
+                    }
+                    
+                    return response;
+                };
+
                 const headers: HeadersInit = {
                     'Content-Type': 'application/json',
                 };
                 
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
+                } else if (!refreshToken) {
+                    // No token and no refresh token - user needs to login
+                    console.warn('No authentication token found. Please login to access data.');
+                    addToast({ type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อโหลดข้อมูล' });
+                    setProjectGroups([]);
+                    setStudents([]);
+                    setAdvisors([]);
+                    setMajors(initialMajors);
+                    setClassrooms(initialClassrooms);
+                    setLoading(false);
+                    return;
                 }
 
                 // Load data from real backend API
                 const [projectsRes, studentsRes, advisorsRes, majorsRes, classroomsRes] = await Promise.allSettled([
-                    fetch(`${cleanAPIBaseURL}/api/projects/projects/`, { headers }),
-                    fetch(`${cleanAPIBaseURL}/api/students/`, { headers }),
-                    fetch(`${cleanAPIBaseURL}/api/advisors/`, { headers }),
-                    fetch(`${cleanAPIBaseURL}/api/majors/`, { headers }),
-                    fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers }),
+                    makeRequest(`${cleanAPIBaseURL}/api/projects/projects/`, headers),
+                    makeRequest(`${cleanAPIBaseURL}/api/students/`, headers),
+                    makeRequest(`${cleanAPIBaseURL}/api/advisors/`, headers),
+                    makeRequest(`${cleanAPIBaseURL}/api/majors/`, headers),
+                    makeRequest(`${cleanAPIBaseURL}/api/classrooms/`, headers),
                 ]);
 
+                // Helper function to process response
+                const processResponse = async <T,>(
+                    result: PromiseSettledResult<Response>,
+                    errorMessage: string,
+                    transformFn?: (data: any) => T[]
+                ): Promise<T[] | null> => {
+                    if (result.status === 'fulfilled') {
+                        const response = result.value;
+                        if (response.ok) {
+                            try {
+                                const data = await response.json();
+                                if (transformFn) {
+                                    return transformFn(data);
+                                }
+                                return Array.isArray(data) ? data : (data.results || data.data || []);
+                            } catch (error) {
+                                console.warn(`${errorMessage}: Failed to parse JSON`, error);
+                                return null;
+                            }
+                        } else if (response.status === 401) {
+                            console.warn(`${errorMessage}: Authentication required (401)`);
+                            return null;
+                        } else {
+                            console.warn(`${errorMessage}: HTTP ${response.status}`);
+                            return null;
+                        }
+                    } else {
+                        console.warn(`${errorMessage}: ${result.reason}`);
+                        return null;
+                    }
+                };
+
                 // Process projects
-                if (projectsRes.status === 'fulfilled' && projectsRes.value.ok) {
-                    const projectsData = await projectsRes.value.json();
-                    // Transform backend project format to frontend ProjectGroup format
-                    const transformedProjects = Array.isArray(projectsData) ? projectsData : (projectsData.results || projectsData.data || []);
-                    setProjectGroups(transformedProjects.map((p: any) => ({
-                        project: p,
-                        students: p.students || []
-                    })) || []);
+                const projectsData = await processResponse(
+                    projectsRes,
+                    'Failed to load projects from backend',
+                    (data: any) => {
+                        const transformedProjects = Array.isArray(data) ? data : (data.results || data.data || []);
+                        return transformedProjects.map((p: any) => ({
+                            project: p,
+                            students: p.students || []
+                        }));
+                    }
+                );
+                if (projectsData) {
+                    setProjectGroups(projectsData);
                 } else {
                     console.warn('Failed to load projects from backend, using empty array');
                     setProjectGroups([]);
                 }
 
                 // Process students
-                if (studentsRes.status === 'fulfilled' && studentsRes.value.ok) {
-                    const studentsData = await studentsRes.value.json();
-                    const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
-                    // Transform backend format to frontend format
-                    const transformedStudents = rawStudents.map((s: any) => ({
-                        studentId: s.student_id || s.studentId || s.id?.toString() || '',
-                        name: s.user?.first_name || s.name || s.first_name || '',
-                        surname: s.user?.last_name || s.surname || s.last_name || '',
-                        major: s.major || '',
-                        classroom: s.classroom || '',
-                        gender: s.gender || 'Male',
-                        tel: s.tel || s.phone || s.user?.phone || '',
-                        email: s.user?.email || s.email || '',
-                        status: s.status || 'Pending',
-                        isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
-                    })).filter((s: any) => s.studentId); // Filter out invalid students
-                    setStudents(transformedStudents);
+                const studentsData = await processResponse(
+                    studentsRes,
+                    'Failed to load students from backend',
+                    (data: any) => {
+                        const rawStudents = Array.isArray(data) ? data : (data.results || data.data || []);
+                        return rawStudents.map((s: any) => ({
+                            studentId: s.student_id || s.studentId || s.id?.toString() || '',
+                            name: s.user?.first_name || s.name || s.first_name || '',
+                            surname: s.user?.last_name || s.surname || s.last_name || '',
+                            major: s.major || '',
+                            classroom: s.classroom || '',
+                            gender: s.gender || 'Male',
+                            tel: s.tel || s.phone || s.user?.phone || '',
+                            email: s.user?.email || s.email || '',
+                            status: s.status || 'Pending',
+                            isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
+                        })).filter((s: any) => s.studentId);
+                    }
+                );
+                if (studentsData) {
+                    setStudents(studentsData);
                 } else {
                     console.warn('Failed to load students from backend, using empty array');
                     setStudents([]);
                 }
 
                 // Process advisors
-                if (advisorsRes.status === 'fulfilled' && advisorsRes.value.ok) {
-                    const advisorsData = await advisorsRes.value.json();
-                    const rawAdvisors = Array.isArray(advisorsData) ? advisorsData : (advisorsData.results || advisorsData.data || []);
-                    // Transform backend format to frontend format
-                    const transformedAdvisors = rawAdvisors.map((a: any) => ({
-                        id: a.id?.toString() || a.advisor_id || '',
-                        name: a.user?.full_name || (a.user?.first_name && a.user?.last_name ? `${a.user.first_name} ${a.user.last_name}` : '') || a.name || '',
-                        quota: a.quota || 10,
-                        mainCommitteeQuota: a.main_committee_quota || a.mainCommitteeQuota || 5,
-                        secondCommitteeQuota: a.second_committee_quota || a.secondCommitteeQuota || 5,
-                        thirdCommitteeQuota: a.third_committee_quota || a.thirdCommitteeQuota || 5,
-                        specializedMajorIds: a.specializedMajorIds || (a.specializations?.map((s: any) => {
-                            // Try to get major ID from specializations
-                            if (s.major && typeof s.major === 'object') return s.major.id || s.major;
-                            if (typeof s.major === 'string') {
-                                // Find major by name
-                                const major = initialMajors.find(m => m.name === s.major);
-                                return major?.id;
-                            }
-                            return s.id;
-                        }).filter((id: any) => id) || []),
-                        isDepartmentAdmin: a.is_department_admin || a.isDepartmentAdmin || false,
-                        password: a.password || 'password123',
-                        isAiAssistantEnabled: a.isAiAssistantEnabled !== undefined ? a.isAiAssistantEnabled : true,
-                    })).filter((a: any) => a.id && a.name); // Filter out invalid advisors
-                    setAdvisors(transformedAdvisors);
+                const advisorsData = await processResponse(
+                    advisorsRes,
+                    'Failed to load advisors from backend',
+                    (data: any) => {
+                        const rawAdvisors = Array.isArray(data) ? data : (data.results || data.data || []);
+                        return rawAdvisors.map((a: any) => ({
+                            id: a.id?.toString() || a.advisor_id || '',
+                            name: a.user?.full_name || (a.user?.first_name && a.user?.last_name ? `${a.user.first_name} ${a.user.last_name}` : '') || a.name || '',
+                            quota: a.quota || 10,
+                            mainCommitteeQuota: a.main_committee_quota || a.mainCommitteeQuota || 5,
+                            secondCommitteeQuota: a.second_committee_quota || a.secondCommitteeQuota || 5,
+                            thirdCommitteeQuota: a.third_committee_quota || a.thirdCommitteeQuota || 5,
+                            specializedMajorIds: a.specializedMajorIds || (a.specializations?.map((s: any) => {
+                                if (s.major && typeof s.major === 'object') return s.major.id || s.major;
+                                if (typeof s.major === 'string') {
+                                    const major = initialMajors.find(m => m.name === s.major);
+                                    return major?.id;
+                                }
+                                return s.id;
+                            }).filter((id: any) => id) || []),
+                            isDepartmentAdmin: a.is_department_admin || a.isDepartmentAdmin || false,
+                            password: a.password || 'password123',
+                            isAiAssistantEnabled: a.isAiAssistantEnabled !== undefined ? a.isAiAssistantEnabled : true,
+                        })).filter((a: any) => a.id && a.name);
+                    }
+                );
+                if (advisorsData) {
+                    setAdvisors(advisorsData);
                 } else {
                     console.warn('Failed to load advisors from backend, using empty array');
                     setAdvisors([]);
                 }
 
                 // Process majors
-                if (majorsRes.status === 'fulfilled' && majorsRes.value.ok) {
-                    const majorsData = await majorsRes.value.json();
-                    setMajors(Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || initialMajors));
+                const majorsData = await processResponse(majorsRes, 'Failed to load majors from backend');
+                if (majorsData) {
+                    setMajors(majorsData);
                 } else {
                     console.warn('Failed to load majors from backend, using initial majors');
                     setMajors(initialMajors);
                 }
 
                 // Process classrooms
-                if (classroomsRes.status === 'fulfilled' && classroomsRes.value.ok) {
-                    const classroomsData = await classroomsRes.value.json();
-                    setClassrooms(Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || initialClassrooms));
+                const classroomsData = await processResponse(classroomsRes, 'Failed to load classrooms from backend');
+                if (classroomsData) {
+                    setClassrooms(classroomsData);
                 } else {
                     console.warn('Failed to load classrooms from backend, using initial classrooms');
                     setClassrooms(initialClassrooms);
@@ -390,7 +485,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 setScoringSettings({ mainAdvisorWeight: 60, committeeWeight: 40, gradeBoundaries: [], advisorRubrics: [], committeeRubrics: [] });
             } catch (error) {
                 console.error("Failed to load data from backend:", error);
-                addToast({ type: 'error', message: 'Could not load data from server. Please check your connection.' });
+                addToast({ type: 'error', message: 'ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อ' });
                 // Set empty arrays as fallback
                 setProjectGroups([]);
                 setStudents([]);

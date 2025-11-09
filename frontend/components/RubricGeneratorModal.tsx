@@ -1,7 +1,11 @@
 
 import React, { useState } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, Box, Typography, TextField, IconButton, Stack, List, ListItem, Chip, CircularProgress
+} from '@mui/material';
+import { Close as CloseIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { ScoringRubricItem } from '../types';
-import { XMarkIcon, SparklesIcon } from './icons';
 import { useToast } from '../hooks/useToast';
 import { GoogleGenAI, Type } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
@@ -105,65 +109,94 @@ const RubricGeneratorModal: React.FC<RubricGeneratorModalProps> = ({ rubricType,
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" role="dialog">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center pb-4 border-b dark:border-slate-700">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <SparklesIcon className="w-6 h-6 text-purple-500"/>
-                        {t('aiRubricGenerator')}
-                    </h2>
-                    <button onClick={onClose}><XMarkIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="mt-4 flex-grow overflow-y-auto pr-2 space-y-4">
-                    <div>
-                        <label htmlFor="rubric-prompt" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+            <DialogTitle>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <SparklesIcon sx={{ color: 'secondary.main' }} />
+                        <Typography variant="h6" fontWeight="bold">
+                            {t('aiRubricGenerator')}
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+            </DialogTitle>
+            <DialogContent>
+                <Stack spacing={3} sx={{ mt: 1 }}>
+                    <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                             {t('rubricGeneratorDescription').replace('{targetScore}', String(targetScore))}
-                        </label>
-                        <textarea
+                        </Typography>
+                        <TextField
                             id="rubric-prompt"
+                            multiline
                             rows={3}
+                            fullWidth
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            className="mt-1 block w-full text-sm rounded-md border-gray-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                             placeholder="e.g., focus on research quality, presentation skills, and originality"
                         />
-                    </div>
-                    <button onClick={handleGenerate} disabled={isLoading} className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                        {isLoading ? (
-                            <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>{t('generating')}</>
-                        ) : (
-                           t('generateRubric')
-                        )}
-                    </button>
-                    {generatedRubric && (
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('generatedRubricPreview')}</h3>
-                            <ul className="space-y-2">
-                                {generatedRubric.map(item => (
-                                    <li key={item.id} className="flex justify-between items-center p-2 bg-slate-100 dark:bg-slate-700/50 rounded-md">
-                                        <span className="text-sm text-slate-800 dark:text-slate-200">{item.name}</span>
-                                        <span className="text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded-full">{item.maxScore} pts</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-                <div className="flex justify-end space-x-4 pt-4 border-t dark:border-slate-700 mt-4">
-                    <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white font-bold py-2 px-4 rounded-lg">
-                        {t('cancel')}
-                    </button>
-                    <button 
-                        type="button" 
-                        onClick={handleSave} 
-                        disabled={!generatedRubric}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400"
+                    </Box>
+                    <Button
+                        onClick={handleGenerate}
+                        disabled={isLoading}
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <SparklesIcon />}
                     >
-                        {t('acceptAndReplace')}
-                    </button>
-                </div>
-            </div>
-        </div>
+                        {isLoading ? t('generating') : t('generateRubric')}
+                    </Button>
+                    {generatedRubric && (
+                        <Box>
+                            <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>
+                                {t('generatedRubricPreview')}
+                            </Typography>
+                            <List>
+                                {generatedRubric.map(item => (
+                                    <ListItem
+                                        key={item.id}
+                                        sx={{
+                                            bgcolor: 'action.hover',
+                                            borderRadius: 1,
+                                            mb: 1,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <Typography variant="body2">
+                                            {item.name}
+                                        </Typography>
+                                        <Chip
+                                            label={`${item.maxScore} pts`}
+                                            size="small"
+                                            color="primary"
+                                            sx={{ fontWeight: 'bold' }}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    )}
+                </Stack>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+                <Button onClick={onClose} variant="outlined">
+                    {t('cancel')}
+                </Button>
+                <Button
+                    onClick={handleSave}
+                    disabled={!generatedRubric}
+                    variant="contained"
+                    color="primary"
+                >
+                    {t('acceptAndReplace')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

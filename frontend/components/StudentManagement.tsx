@@ -42,13 +42,13 @@ interface StudentManagementProps {
     onFilterConsumed?: () => void;
 }
 
-const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; onClick: () => void; color: string; isActive: boolean }> = ({ title, value, icon, onClick, color, isActive }) => {
-    const colorMap: Record<string, { bg: string; ring: string }> = {
-        'bg-blue-500': { bg: 'primary.main', ring: 'primary.main' },
-        'bg-green-500': { bg: 'success.main', ring: 'success.main' },
-        'bg-yellow-500': { bg: 'warning.main', ring: 'warning.main' },
+const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode; onClick: () => void; color: 'primary' | 'success' | 'warning'; isActive: boolean }> = ({ title, value, icon, onClick, color = 'primary', isActive }) => {
+    const colorMap: Record<'primary' | 'success' | 'warning', { bg: string; ring: string }> = {
+        'primary': { bg: 'primary.main', ring: 'primary.main' },
+        'success': { bg: 'success.main', ring: 'success.main' },
+        'warning': { bg: 'warning.main', ring: 'warning.main' },
     };
-    const muiColor = colorMap[color] || colorMap['bg-blue-500'];
+    const muiColor = colorMap[color];
     
     return (
         <Card
@@ -371,33 +371,33 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
                 </Stack>
             </Box>
             <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <StatCard 
                         title={t('totalStudents')} 
                         value={studentStats.total} 
                         icon={<GroupsIcon sx={{ fontSize: 24 }} />} 
                         onClick={() => setStatusFilter('all')} 
-                        color="bg-blue-500 ring-blue-500" 
+                        color="primary" 
                         isActive={statusFilter === 'all'} 
                     />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <StatCard 
                         title={t('approvedStudents')} 
                         value={studentStats.approved} 
                         icon={<CheckCircleIcon sx={{ fontSize: 24 }} />} 
                         onClick={() => setStatusFilter('Approved')} 
-                        color="bg-green-500 ring-green-500" 
+                        color="success" 
                         isActive={statusFilter === 'Approved'} 
                     />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <StatCard 
                         title={t('pendingStudents')} 
                         value={studentStats.pending} 
                         icon={<ScheduleIcon sx={{ fontSize: 24 }} />} 
                         onClick={() => setStatusFilter('Pending')} 
-                        color="bg-yellow-500 ring-yellow-500" 
+                        color="warning" 
                         isActive={statusFilter === 'Pending'} 
                     />
                 </Grid>
@@ -405,7 +405,7 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
 
             <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
                 <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                             fullWidth
                             placeholder={t('searchByIdNameEmail')}
@@ -420,7 +420,7 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
                             }}
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                         <FormControl fullWidth>
                             <InputLabel>{t('major')}</InputLabel>
                             <Select

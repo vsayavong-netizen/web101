@@ -1,5 +1,8 @@
 import React from 'react';
-import { XMarkIcon, SparklesIcon } from './icons';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Stack, IconButton, CircularProgress, Divider, Grid, Paper
+} from '@mui/material';
+import { Close as XMarkIcon, AutoAwesome as SparklesIcon } from '@mui/icons-material';
 import { GrammarCheckResult } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 
@@ -14,52 +17,99 @@ interface AiWritingAssistantModalProps {
 
 const AiWritingAssistantModal: React.FC<AiWritingAssistantModalProps> = ({ isOpen, onClose, isLoading, result, fileName, originalText }) => {
     const t = useTranslations();
-    if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" role="dialog">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center pb-4 border-b dark:border-slate-700">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <SparklesIcon className="w-6 h-6 text-purple-500" />
-                        {t('aiWritingAssistant')}
-                    </h2>
-                    <button onClick={onClose}><XMarkIcon className="w-6 h-6"/></button>
-                </div>
-                <div className="mt-4 flex-grow overflow-y-auto pr-2 space-y-4">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('analyzingDocument')}: <span className="font-semibold">{fileName}</span></p>
-                    {isLoading ? (
-                         <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                            <p className="mt-4 text-slate-500 dark:text-slate-400">{t('analyzingDocument')}</p>
-                        </div>
-                    ) : result ? (
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{t('summaryOfImprovements')}</h3>
-                                <p className="text-sm mt-1 text-slate-600 dark:text-slate-400">{result.summary}</p>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300">{t('originalText')}</h4>
-                                    <div className="mt-2 p-3 h-64 overflow-y-auto rounded-md bg-slate-100 dark:bg-slate-900 text-sm whitespace-pre-wrap">{originalText}</div>
-                                </div>
-                                 <div>
-                                    <h4 className="text-md font-semibold text-slate-700 dark:text-slate-300">{t('suggestedText')}</h4>
-                                    <div className="mt-2 p-3 h-64 overflow-y-auto rounded-md bg-green-50 dark:bg-green-900/50 text-sm whitespace-pre-wrap">{result.correctedText}</div>
-                                </div>
-                            </div>
-                        </div>
-                    ) : <p className="text-center text-slate-500 dark:text-slate-400">{t('couldNotGenerateAnalysis')}</p>}
-                </div>
-                 <div className="flex justify-end space-x-4 pt-4 border-t dark:border-slate-700 mt-4">
-                    <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 font-bold py-2 px-4 rounded-lg">{t('closeBtn')}</button>
-                    <button type="button" onClick={onClose} disabled={!result} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:bg-slate-400">
-                        {t('acceptAndReplace')}
-                    </button>
-                </div>
-            </div>
-        </div>
+        <Dialog open={isOpen} onClose={onClose} maxWidth="lg" fullWidth>
+            <DialogTitle>
+                <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <SparklesIcon sx={{ fontSize: 24, color: 'secondary.main' }} />
+                        <Typography variant="h6" fontWeight="bold">
+                            {t('aiWritingAssistant')}
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={onClose} size="small">
+                        <XMarkIcon />
+                    </IconButton>
+                </Stack>
+            </DialogTitle>
+            <Divider />
+            <DialogContent sx={{ flexGrow: 1, overflowY: 'auto' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {t('analyzingDocument')}: <Typography component="span" fontWeight="semibold">{fileName}</Typography>
+                </Typography>
+                {isLoading ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
+                        <CircularProgress size={48} />
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                            {t('analyzingDocument')}
+                        </Typography>
+                    </Box>
+                ) : result ? (
+                    <Stack spacing={2}>
+                        <Box>
+                            <Typography variant="h6" fontWeight="semibold" sx={{ mb: 1 }}>
+                                {t('summaryOfImprovements')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {result.summary}
+                            </Typography>
+                        </Box>
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Typography variant="subtitle2" fontWeight="semibold" sx={{ mb: 1 }}>
+                                    {t('originalText')}
+                                </Typography>
+                                <Paper
+                                    elevation={1}
+                                    sx={{
+                                        p: 1.5,
+                                        height: 256,
+                                        overflowY: 'auto',
+                                        bgcolor: 'action.hover',
+                                        whiteSpace: 'pre-wrap',
+                                        fontSize: '0.875rem'
+                                    }}
+                                >
+                                    {originalText}
+                                </Paper>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Typography variant="subtitle2" fontWeight="semibold" sx={{ mb: 1 }}>
+                                    {t('suggestedText')}
+                                </Typography>
+                                <Paper
+                                    elevation={1}
+                                    sx={{
+                                        p: 1.5,
+                                        height: 256,
+                                        overflowY: 'auto',
+                                        bgcolor: 'success.light',
+                                        whiteSpace: 'pre-wrap',
+                                        fontSize: '0.875rem'
+                                    }}
+                                >
+                                    {result.correctedText}
+                                </Paper>
+                            </Grid>
+                        </Grid>
+                    </Stack>
+                ) : (
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                        {t('couldNotGenerateAnalysis')}
+                    </Typography>
+                )}
+            </DialogContent>
+            <Divider />
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={onClose} variant="outlined">
+                    {t('closeBtn')}
+                </Button>
+                <Button onClick={onClose} disabled={!result} variant="contained" color="primary">
+                    {t('acceptAndReplace')}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 

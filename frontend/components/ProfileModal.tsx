@@ -39,12 +39,12 @@ interface ProfileModalProps {
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
     <Grid container spacing={2} sx={{ py: 1 }}>
-        <Grid item xs={12} sm={3}>
+        <Grid size={{ xs: 12, sm: 3 }}>
             <Typography variant="body2" color="text.secondary" fontWeight="medium">
                 {label}
             </Typography>
         </Grid>
-        <Grid item xs={12} sm={9}>
+        <Grid size={{ xs: 12, sm: 9 }}>
             <Typography variant="body2">
                 {value}
             </Typography>
@@ -75,12 +75,12 @@ const EditableField: React.FC<{
 
     return (
         <Grid container spacing={2} sx={{ py: 1 }} alignItems="center">
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
                 <Typography variant="body2" color="text.secondary" fontWeight="medium">
                     {label}
                 </Typography>
             </Grid>
-            <Grid item xs={12} sm={9}>
+            <Grid size={{ xs: 12, sm: 9 }}>
                 {isEditing ? (
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                         <TextField

@@ -1,6 +1,13 @@
 import React, { useMemo } from 'react';
+import {
+  Box, Paper, Typography, Tooltip, Stack, Divider
+} from '@mui/material';
+import {
+  Schedule as ClockIcon, Upload as DocumentArrowUpIcon,
+  CheckCircle as CheckCircleIcon, Refresh as ArrowPathIcon,
+  Warning as ExclamationTriangleIcon, BarChart as ChartBarIcon
+} from '@mui/icons-material';
 import { ProjectGroup, ProjectStatus, Milestone, MilestoneStatus, FinalSubmissionFile, FinalSubmissionStatus } from '../types';
-import { ClockIcon, DocumentArrowUpIcon, CheckCircleIcon, ArrowPathIcon, ExclamationTriangleIcon, ChartBarIcon } from './icons';
 import { useTranslations } from '../hooks/useTranslations';
 
 // Component Props
@@ -8,26 +15,46 @@ interface ProjectTimelineProps {
   projectGroups: ProjectGroup[];
 }
 
-// Milestone Tooltip Component
-const MilestoneTooltip: React.FC<{ milestone: Milestone, project: ProjectGroup, t: (key: any) => string }> = ({ milestone, project, t }) => (
-    <div className="absolute bottom-full mb-2 w-64 hidden group-hover:block bg-slate-800 text-white text-xs rounded p-2 z-20 shadow-lg text-left transform -translate-x-1/2 left-1/2">
-        <p className="font-bold border-b border-slate-600 pb-1 mb-1">{milestone.name}</p>
-        <p><strong>{t('projectLabel')}:</strong> {project.project.projectId}</p>
-        <p><strong>{t('studentsLabel')}:</strong> {project.students.map(s => s.name).join(', ')}</p>
-        <p><strong>{t('dueLabel')}:</strong> {new Date(milestone.dueDate).toLocaleDateString()}</p>
-        <p><strong>{t('statusLabel')}:</strong> {milestone.status}</p>
-    </div>
+// Milestone Tooltip Content Component
+const MilestoneTooltipContent: React.FC<{ milestone: Milestone, project: ProjectGroup, t: (key: any) => string }> = ({ milestone, project, t }) => (
+    <Box sx={{ p: 1 }}>
+        <Typography variant="caption" fontWeight="bold" sx={{ display: 'block', pb: 0.5, mb: 0.5, borderBottom: 1, borderColor: 'divider' }}>
+            {milestone.name}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('projectLabel')}:</strong> {project.project.projectId}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('studentsLabel')}:</strong> {project.students.map(s => s.name).join(', ')}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('dueLabel')}:</strong> {new Date(milestone.dueDate).toLocaleDateString()}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('statusLabel')}:</strong> {milestone.status}
+        </Typography>
+    </Box>
 );
 
-// Final Submission Tooltip Component
-const FinalSubmissionTooltip: React.FC<{ submission: FinalSubmissionFile, project: ProjectGroup, type: string, t: (key: any) => string }> = ({ submission, project, type, t }) => (
-    <div className="absolute bottom-full mb-2 w-64 hidden group-hover:block bg-slate-800 text-white text-xs rounded p-2 z-20 shadow-lg text-left transform -translate-x-1/2 left-1/2">
-        <p className="font-bold border-b border-slate-600 pb-1 mb-1">{type}</p>
-        <p><strong>{t('projectLabel')}:</strong> {project.project.projectId}</p>
-        <p><strong>{t('studentsLabel')}:</strong> {project.students.map(s => s.name).join(', ')}</p>
-        <p><strong>{t('submittedLabel')}:</strong> {new Date(submission.submittedAt).toLocaleDateString()}</p>
-        <p><strong>{t('statusLabel')}:</strong> {submission.status}</p>
-    </div>
+// Final Submission Tooltip Content Component
+const FinalSubmissionTooltipContent: React.FC<{ submission: FinalSubmissionFile, project: ProjectGroup, type: string, t: (key: any) => string }> = ({ submission, project, type, t }) => (
+    <Box sx={{ p: 1 }}>
+        <Typography variant="caption" fontWeight="bold" sx={{ display: 'block', pb: 0.5, mb: 0.5, borderBottom: 1, borderColor: 'divider' }}>
+            {type}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('projectLabel')}:</strong> {project.project.projectId}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('studentsLabel')}:</strong> {project.students.map(s => s.name).join(', ')}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('submittedLabel')}:</strong> {new Date(submission.submittedAt).toLocaleDateString()}
+        </Typography>
+        <Typography variant="caption" sx={{ display: 'block' }}>
+            <strong>{t('statusLabel')}:</strong> {submission.status}
+        </Typography>
+    </Box>
 );
 
 
@@ -97,23 +124,23 @@ const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectGroups }) => {
         const isOverdue = (milestone.status === MilestoneStatus.Pending || milestone.status === MilestoneStatus.RequiresRevision) && dueDate < today;
 
         if (isOverdue) {
-            return { icon: <ExclamationTriangleIcon className="w-4 h-4 text-white" />, color: 'bg-red-500', label: t('overdue') };
+            return { icon: <ExclamationTriangleIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'error.main', label: t('overdue') };
         }
 
         switch (milestone.status) {
-            case MilestoneStatus.Approved: return { icon: <CheckCircleIcon className="w-4 h-4 text-white"/>, color: 'bg-green-500', label: t('approved') };
-            case MilestoneStatus.Submitted: return { icon: <DocumentArrowUpIcon className="w-4 h-4 text-white"/>, color: 'bg-blue-500', label: t('submitted') };
-            case MilestoneStatus.RequiresRevision: return { icon: <ArrowPathIcon className="w-4 h-4 text-white"/>, color: 'bg-orange-500', label: t('requiresRevision') };
-            default: return { icon: <ClockIcon className="w-4 h-4 text-white"/>, color: 'bg-slate-400 dark:bg-slate-500', label: t('pending') };
+            case MilestoneStatus.Approved: return { icon: <CheckCircleIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'success.main', label: t('approved') };
+            case MilestoneStatus.Submitted: return { icon: <DocumentArrowUpIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'info.main', label: t('submitted') };
+            case MilestoneStatus.RequiresRevision: return { icon: <ArrowPathIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'warning.main', label: t('requiresRevision') };
+            default: return { icon: <ClockIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'grey.400', label: t('pending') };
         }
     };
 
     const getFinalSubmissionStatusInfo = (submission: FinalSubmissionFile) => {
         switch (submission.status) {
-            case FinalSubmissionStatus.Approved: return { icon: <CheckCircleIcon className="w-4 h-4 text-white"/>, color: 'bg-emerald-500', label: t('approved') };
-            case FinalSubmissionStatus.Submitted: return { icon: <DocumentArrowUpIcon className="w-4 h-4 text-white"/>, color: 'bg-sky-500', label: t('submitted') };
-            case FinalSubmissionStatus.RequiresRevision: return { icon: <ArrowPathIcon className="w-4 h-4 text-white"/>, color: 'bg-amber-500', label: t('requiresRevision') };
-            default: return { icon: <ClockIcon className="w-4 h-4 text-white"/>, color: 'bg-slate-400 dark:bg-slate-500', label: t('unknown') };
+            case FinalSubmissionStatus.Approved: return { icon: <CheckCircleIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'success.main', label: t('approved') };
+            case FinalSubmissionStatus.Submitted: return { icon: <DocumentArrowUpIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'info.main', label: t('submitted') };
+            case FinalSubmissionStatus.RequiresRevision: return { icon: <ArrowPathIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'warning.main', label: t('requiresRevision') };
+            default: return { icon: <ClockIcon sx={{ fontSize: 16, color: 'white' }} />, color: 'grey.400', label: t('unknown') };
         }
     };
 
@@ -143,56 +170,153 @@ const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectGroups }) => {
 
     if (approvedProjects.length === 0) {
         return (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center">
-                 <ChartBarIcon className="mx-auto h-12 w-12 text-slate-400" />
-                 <h3 className="mt-2 text-lg font-semibold text-slate-800 dark:text-slate-200">{t('noTimelineTitle')}</h3>
-                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+                <ChartBarIcon sx={{ fontSize: 48, color: 'text.secondary', mx: 'auto', display: 'block' }} />
+                <Typography variant="h6" fontWeight="medium" sx={{ mt: 2 }}>
+                    {t('noTimelineTitle')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {t('noTimelineData')}
-                 </p>
-            </div>
+                </Typography>
+            </Paper>
         );
     }
     
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">{t('projectTimelineTitle')}</h2>
-            <div className="overflow-x-auto">
-                <div className="relative" style={{ minWidth: '1200px' }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+                {t('projectTimelineTitle')}
+            </Typography>
+            <Box sx={{ overflowX: 'auto' }}>
+                <Box sx={{ position: 'relative', minWidth: 1200 }}>
                     {/* Month Headers */}
-                    <div className="relative h-8 mb-2 flex">
+                    <Box sx={{ position: 'relative', height: 32, mb: 1 }}>
                         {months.map(month => (
-                            <div key={month.name} className="text-xs font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 text-center" style={{ position: 'absolute', left: `${month.position}%`, width: `${month.width}%` }}>
+                            <Box
+                                key={month.name}
+                                sx={{
+                                    position: 'absolute',
+                                    left: `${month.position}%`,
+                                    width: `${month.width}%`,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    color: 'text.secondary',
+                                    borderRight: 1,
+                                    borderColor: 'divider',
+                                    textAlign: 'center'
+                                }}
+                            >
                                 {month.name}
-                            </div>
+                            </Box>
                         ))}
-                    </div>
+                    </Box>
 
                     {/* Today Marker */}
                     {todayPosition >= 0 && todayPosition <= 100 && (
-                        <div className="absolute top-8 bottom-0 w-0.5 bg-blue-500 z-10" style={{ left: `${todayPosition}%` }}>
-                           <div className="absolute -top-6 -translate-x-1/2 text-xs font-semibold bg-blue-500 text-white px-1.5 py-0.5 rounded">{t('today')}</div>
-                        </div>
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: 32,
+                                bottom: 0,
+                                width: 2,
+                                bgcolor: 'primary.main',
+                                zIndex: 10,
+                                left: `${todayPosition}%`
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: -24,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    px: 0.75,
+                                    py: 0.25,
+                                    borderRadius: 0.5
+                                }}
+                            >
+                                {t('today')}
+                            </Box>
+                        </Box>
                     )}
                     
                     {/* Project Rows */}
-                    <div className="space-y-2 pt-2">
+                    <Stack spacing={1} sx={{ pt: 1 }}>
                         {approvedProjects.map((pg, index) => (
-                            <div key={pg.project.projectId} className={`h-10 flex items-center rounded ${index % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}>
-                                <div className="w-48 px-2 text-sm font-semibold text-slate-700 dark:text-slate-300 truncate sticky left-0 bg-inherit z-10">
+                            <Box
+                                key={pg.project.projectId}
+                                sx={{
+                                    height: 40,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderRadius: 1,
+                                    bgcolor: index % 2 === 0 ? 'action.hover' : 'transparent'
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        width: 192,
+                                        px: 1,
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600,
+                                        color: 'text.secondary',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        position: 'sticky',
+                                        left: 0,
+                                        zIndex: 10,
+                                        bgcolor: 'inherit'
+                                    }}
+                                >
                                     {pg.project.projectId}
-                                </div>
-                                <div className="relative flex-1 h-full border-l border-slate-200 dark:border-slate-700">
+                                </Box>
+                                <Box
+                                    sx={{
+                                        position: 'relative',
+                                        flex: 1,
+                                        height: '100%',
+                                        borderLeft: 1,
+                                        borderColor: 'divider'
+                                    }}
+                                >
                                     {/* Milestones */}
                                     {pg.project.milestones?.map(milestone => {
                                         const pos = getDayPosition(new Date(milestone.dueDate));
                                         const statusInfo = getMilestoneStatusInfo(milestone);
                                         return (
-                                            <div key={milestone.id} className="group absolute top-1/2 -translate-y-1/2" style={{ left: `${pos}%` }}>
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white cursor-pointer ${statusInfo.color} ring-2 ring-white dark:ring-slate-800`}>
+                                            <Tooltip
+                                                key={milestone.id}
+                                                title={<MilestoneTooltipContent milestone={milestone} project={pg} t={t} />}
+                                                arrow
+                                                placement="top"
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        left: `${pos}%`,
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: '50%',
+                                                        bgcolor: statusInfo.color,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        border: 2,
+                                                        borderColor: 'background.paper',
+                                                        boxShadow: 1
+                                                    }}
+                                                >
                                                     {statusInfo.icon}
-                                                </div>
-                                                <MilestoneTooltip milestone={milestone} project={pg} t={t} />
-                                            </div>
+                                                </Box>
+                                            </Tooltip>
                                         );
                                     })}
                                     {/* Final Submissions */}
@@ -201,12 +325,33 @@ const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectGroups }) => {
                                         const pos = getDayPosition(new Date(submission.submittedAt));
                                         const statusInfo = getFinalSubmissionStatusInfo(submission);
                                         return (
-                                            <div className="group absolute top-1/2 -translate-y-1/2" style={{ left: `${pos}%` }}>
-                                                <div className={`w-6 h-6 rounded-md flex items-center justify-center text-white cursor-pointer ${statusInfo.color} ring-2 ring-white dark:ring-slate-800`}>
+                                            <Tooltip
+                                                title={<FinalSubmissionTooltipContent submission={submission} project={pg} type={t('preDefenseFilesLabel')} t={t} />}
+                                                arrow
+                                                placement="top"
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        left: `${pos}%`,
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: 1,
+                                                        bgcolor: statusInfo.color,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        border: 2,
+                                                        borderColor: 'background.paper',
+                                                        boxShadow: 1
+                                                    }}
+                                                >
                                                     {statusInfo.icon}
-                                                </div>
-                                                <FinalSubmissionTooltip submission={submission} project={pg} type={t('preDefenseFilesLabel')} t={t} />
-                                            </div>
+                                                </Box>
+                                            </Tooltip>
                                         );
                                     })()}
                                     {pg.project.finalSubmissions?.postDefenseFile && (() => {
@@ -214,26 +359,63 @@ const ProjectTimeline: React.FC<ProjectTimelineProps> = ({ projectGroups }) => {
                                         const pos = getDayPosition(new Date(submission.submittedAt));
                                         const statusInfo = getFinalSubmissionStatusInfo(submission);
                                         return (
-                                            <div className="group absolute top-1/2 -translate-y-1/2" style={{ left: `${pos}%` }}>
-                                                <div className={`w-6 h-6 rounded-md flex items-center justify-center text-white cursor-pointer ${statusInfo.color} ring-2 ring-white dark:ring-slate-800`}>
+                                            <Tooltip
+                                                title={<FinalSubmissionTooltipContent submission={submission} project={pg} type={t('postDefenseFilesLabel')} t={t} />}
+                                                arrow
+                                                placement="top"
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        left: `${pos}%`,
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: 1,
+                                                        bgcolor: statusInfo.color,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        border: 2,
+                                                        borderColor: 'background.paper',
+                                                        boxShadow: 1
+                                                    }}
+                                                >
                                                     {statusInfo.icon}
-                                                </div>
-                                                <FinalSubmissionTooltip submission={submission} project={pg} type={t('postDefenseFilesLabel')} t={t} />
-                                            </div>
+                                                </Box>
+                                            </Tooltip>
                                         );
                                     })()}
-                                </div>
-                            </div>
+                                </Box>
+                            </Box>
                         ))}
-                    </div>
-                </div>
-            </div>
-             <div className="flex flex-wrap gap-x-4 gap-y-1 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700 text-xs">
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-blue-500"></span><span className="text-slate-600 dark:text-slate-400">{t('milestoneUnit')}</span></div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-red-500"></span><span className="text-slate-600 dark:text-slate-400">{t('overdueMilestone')}</span></div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full mr-1.5 bg-green-500"></span><span className="text-slate-600 dark:text-slate-400">{t('defense')}</span></div>
-                </div>
-        </div>
+                    </Stack>
+                </Box>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Stack direction="row" spacing={3} flexWrap="wrap" sx={{ fontSize: '0.75rem' }}>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'info.main' }} />
+                    <Typography variant="caption" color="text.secondary">
+                        {t('milestoneUnit')}
+                    </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'error.main' }} />
+                    <Typography variant="caption" color="text.secondary">
+                        {t('overdueMilestone')}
+                    </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'success.main' }} />
+                    <Typography variant="caption" color="text.secondary">
+                        {t('defense')}
+                    </Typography>
+                </Stack>
+            </Stack>
+        </Paper>
     );
 };
 
