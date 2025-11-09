@@ -593,10 +593,10 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                     {/* Mobile/Tablet Card View - Edit Mode */}
                     <Box sx={{ display: { lg: 'none' } }}>
                         <Grid container spacing={2}>
-                            {sortedAndFilteredProjects.map(pg => {
-                                const hasEdits = !!edits[pg.project.projectId];
-                                const hasSchedule = !!(pg.project.defenseDate || pg.project.defenseTime || pg.project.defenseRoom);
-                                return (
+                        {sortedAndFilteredProjects.map(pg => {
+                            const hasEdits = !!edits[pg.project.projectId];
+                            const hasSchedule = !!(pg.project.defenseDate || pg.project.defenseTime || pg.project.defenseRoom);
+                            return (
                                     <Grid size={{ xs: 12, sm: 6 }} key={pg.project.projectId}>
                                         <Card sx={{ bgcolor: 'action.hover', p: 2 }}>
                                             <Box sx={{ mb: 2 }}>
@@ -716,9 +716,9 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                         <TableCell sx={{ px: 2, py: 1.5 }}>{t('defenseDate')}</TableCell>
                                         <TableCell sx={{ px: 2, py: 1.5 }}>{t('defenseTime')}</TableCell>
                                         <TableCell sx={{ px: 2, py: 1.5 }}>{t('defenseRoom')}</TableCell>
-                                        <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
-                                        <SortableHeader sortKey="topicEng" title={t('topicEng')} sortConfig={sortConfig} requestSort={requestSort} />
-                                        <SortableHeader sortKey="advisorName" title={t('mainAdvisor')} sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader sortKey="topicEng" title={t('topicEng')} sortConfig={sortConfig} requestSort={requestSort} />
+                                    <SortableHeader sortKey="advisorName" title={t('mainAdvisor')} sortConfig={sortConfig} requestSort={requestSort} />
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('mainCommittee')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('secondCommittee')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('thirdCommittee')}</TableCell>
@@ -726,10 +726,10 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {sortedAndFilteredProjects.map(pg => {
-                                        const hasEdits = !!edits[pg.project.projectId];
-                                        const hasSchedule = !!(pg.project.defenseDate || pg.project.defenseTime || pg.project.defenseRoom);
-                                        return (
+                                {sortedAndFilteredProjects.map(pg => {
+                                    const hasEdits = !!edits[pg.project.projectId];
+                                    const hasSchedule = !!(pg.project.defenseDate || pg.project.defenseTime || pg.project.defenseRoom);
+                                    return (
                                             <TableRow 
                                                 key={pg.project.projectId}
                                                 sx={{ 
@@ -817,7 +817,7 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                     {/* Mobile/Tablet Card View - Detail Mode */}
                     <Box sx={{ display: { lg: 'none' } }}>
                         <Grid container spacing={2}>
-                            {sortedAndFilteredProjects.map(pg => (
+                        {sortedAndFilteredProjects.map(pg => (
                                 <Grid size={{ xs: 12, sm: 6 }} key={pg.project.projectId}>
                                     <Card sx={{ bgcolor: 'action.hover', p: 2 }}>
                                         <Box sx={{ pb: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -851,7 +851,7 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                                 <Typography component="span" fontWeight="medium" color="text.secondary">{t('thirdCommittee')}:</Typography> {getAdvisorNameById(pg.project.thirdCommitteeId)}
                                             </Typography>
                                         </Stack>
-                                        {pg.students.map((s, i) => (
+                                {pg.students.map((s, i) => (
                                             <Box key={s.studentId} sx={{ pt: i > 0 ? 1 : 0, ...(i > 0 && { borderTop: 1, borderColor: 'divider' }) }}>
                                                 <Typography variant="body2" fontWeight="medium">
                                                     {s.name} {s.surname}
@@ -865,15 +865,15 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                             <Button
                                                 variant="outlined"
                                                 size="small"
-                                                onClick={() => onSelectProject(pg)}
+                                        onClick={() => onSelectProject(pg)}
                                                 sx={{ 
                                                     fontSize: '0.75rem',
                                                     fontWeight: 600,
                                                     textTransform: 'none',
                                                     borderRadius: 3
                                                 }}
-                                            >
-                                                {t('view')}
+                                    >
+                                        {t('view')}
                                             </Button>
                                         </Box>
                                     </Card>
@@ -887,30 +887,30 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <SortableHeader sortKey="defenseDate" title={t('defenseDate')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
-                                        <SortableHeader sortKey="defenseTime" title={t('defenseTime')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
-                                        <SortableHeader sortKey="defenseRoom" title={t('defenseRoom')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
-                                        <SortableHeader sortKey="studentId" title={t('studentId')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="defenseDate" title={t('defenseDate')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="defenseTime" title={t('defenseTime')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="defenseRoom" title={t('defenseRoom')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="studentId" title={t('studentId')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('gender')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('name')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('major')}</TableCell>
-                                        <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="projectId" title={t('projectId')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('topicLao')}</TableCell>
-                                        <SortableHeader sortKey="topicEng" title={t('topicEng')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
-                                        <SortableHeader sortKey="advisorName" title={t('mainAdvisor')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="topicEng" title={t('topicEng')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
+                                    <SortableHeader sortKey="advisorName" title={t('mainAdvisor')} sortConfig={detailSortConfig} requestSort={requestDetailSort} />
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('mainCommittee')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('secondCommittee')}</TableCell>
                                         <TableCell sx={{ px: 3, py: 1.5 }}>{t('thirdCommittee')}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {sortedAndFilteredProjects.map((pg) => {
-                                        const { project, students } = pg;
-                                        const student1 = students[0];
-                                        const student2 = students[1];
+                                {sortedAndFilteredProjects.map((pg) => {
+                                    const { project, students } = pg;
+                                    const student1 = students[0];
+                                    const student2 = students[1];
 
-                                        return (
-                                            <React.Fragment key={project.projectId}>
+                                    return (
+                                        <React.Fragment key={project.projectId}>
                                                 <TableRow sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                                     <TableCell rowSpan={2} sx={{ px: 3, py: 2, verticalAlign: 'top' }}>
                                                         {project.defenseDate || t('na')}
@@ -935,7 +935,7 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                                                 p: 0
                                                             }}
                                                         >
-                                                            {project.projectId}
+                                                        {project.projectId}
                                                         </Button>
                                                     </TableCell>
                                                     <TableCell rowSpan={2} sx={{ px: 3, py: 2, verticalAlign: 'top' }}>
@@ -958,20 +958,20 @@ const CommitteeManagement: React.FC<CommitteeManagementProps> = ({ projectGroups
                                                     </TableCell>
                                                 </TableRow>
                                                 <TableRow sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                                                    {student2 ? (
-                                                        <>
+                                                {student2 ? (
+                                                    <>
                                                             <TableCell sx={{ px: 3, py: 2 }}>{student2.studentId}</TableCell>
                                                             <TableCell sx={{ px: 3, py: 2 }}>{student2.gender}</TableCell>
                                                             <TableCell sx={{ px: 3, py: 2 }}>{student2.name} {student2.surname}</TableCell>
                                                             <TableCell sx={{ px: 3, py: 2 }}>{student2.major}</TableCell>
-                                                        </>
-                                                    ) : (
+                                                    </>
+                                                ) : (
                                                         <TableCell colSpan={4} sx={{ px: 3, py: 2 }}>&nbsp;</TableCell>
-                                                    )}
+                                                )}
                                                 </TableRow>
-                                            </React.Fragment>
-                                        );
-                                    })}
+                                        </React.Fragment>
+                                    );
+                                })}
                                 </TableBody>
                             </Table>
                         </TableContainer>
