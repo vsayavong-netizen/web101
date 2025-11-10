@@ -190,15 +190,20 @@ const ClassroomManagement: React.FC<ClassroomManagementProps> = ({ user, classro
         }
     };
 
-    const handleSaveClassroom = (classroomData: Classroom | Omit<Classroom, 'id'>) => {
-        if ('id' in classroomData) {
-            updateClassroom(classroomData);
-            addToast({ type: 'success', message: t('classroomUpdatedSuccess') });
-        } else {
-            addClassroom(classroomData);
-            addToast({ type: 'success', message: t('classroomAddedSuccess') });
+    const handleSaveClassroom = async (classroomData: Classroom | Omit<Classroom, 'id'>) => {
+        try {
+            if ('id' in classroomData) {
+                await updateClassroom(classroomData);
+                addToast({ type: 'success', message: t('classroomUpdatedSuccess') });
+            } else {
+                await addClassroom(classroomData);
+                addToast({ type: 'success', message: t('classroomAddedSuccess') });
+            }
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Failed to save classroom:', error);
+            addToast({ type: 'error', message: t('classroomSaveError') || 'Failed to save classroom' });
         }
-        setIsModalOpen(false);
     };
 
     const handleExportExcel = useCallback(async () => {
@@ -288,22 +293,33 @@ const ClassroomManagement: React.FC<ClassroomManagementProps> = ({ user, classro
             </Box>
 
             <Box sx={{ display: { lg: 'none' } }}>
-                <Grid container spacing={2}>
-                    {paginatedClassrooms.map((classroom, index) => {
-                        const stats = classroomStats.get(classroom.id) || { studentCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
-                        return (
-                            <Grid size={{ xs: 12, sm: 6 }} key={classroom.id}>
-                                <ClassroomCard
-                                    index={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                                    classroom={classroom}
-                                    {...stats}
-                                    onEdit={() => handleEditClick(classroom)}
-                                    onDelete={() => handleDeleteRequest(classroom)}
-                                />
-                            </Grid>
-                        );
-                    })}
-                </Grid>
+                {sortedAndFilteredClassrooms.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 5 }}>
+                        <Typography color="text.secondary">
+                            {searchQuery 
+                                ? (t('noClassroomsForQuery') || 'No classrooms found for "${query}".').replace('${query}', searchQuery)
+                                : (t('noClassroomsClickToAdd') || 'No classrooms found. Click "Add Classroom" to begin.')
+                            }
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={2}>
+                        {paginatedClassrooms.map((classroom, index) => {
+                            const stats = classroomStats.get(classroom.id) || { studentCount: 0, maleCount: 0, femaleCount: 0, monkCount: 0, projectCount: 0, soloProjectCount: 0, duoProjectCount: 0, approvedCount: 0, pendingCount: 0, rejectedCount: 0 };
+                            return (
+                                <Grid size={{ xs: 12, sm: 6 }} key={classroom.id}>
+                                    <ClassroomCard
+                                        index={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                        classroom={classroom}
+                                        {...stats}
+                                        onEdit={() => handleEditClick(classroom)}
+                                        onDelete={() => handleDeleteRequest(classroom)}
+                                    />
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                )}
             </Box>
 
             <TableContainer sx={{ display: { xs: 'none', lg: 'block' } }}>
@@ -379,7 +395,10 @@ const ClassroomManagement: React.FC<ClassroomManagementProps> = ({ user, classro
                 {sortedAndFilteredClassrooms.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 5 }}>
                         <Typography color="text.secondary">
-                            {searchQuery ? `No classrooms found for "${searchQuery}".` : 'No classrooms found. Click "Add Classroom" to begin.'}
+                            {searchQuery 
+                                ? (t('noClassroomsForQuery') || 'No classrooms found for "${query}".').replace('${query}', searchQuery)
+                                : (t('noClassroomsClickToAdd') || 'No classrooms found. Click "Add Classroom" to begin.')
+                            }
                         </Typography>
                     </Box>
                 )}
@@ -406,8 +425,8 @@ const ClassroomManagement: React.FC<ClassroomManagementProps> = ({ user, classro
                     isOpen={!!classroomToDelete}
                     onClose={() => setClassroomToDelete(null)}
                     onConfirm={confirmDelete}
-                    title="Delete Classroom?"
-                    message={`Are you sure you want to delete classroom "${classroomToDelete.name}"? This action cannot be undone.`}
+                    title={t('deleteClassroomTitle') || 'Delete Classroom?'}
+                    message={(t('deleteClassroomMessage') || 'Are you sure you want to delete classroom "${classroomName}"? This action cannot be undone.').replace('${classroomName}', classroomToDelete.name)}
                 />
             )}
         </Paper>

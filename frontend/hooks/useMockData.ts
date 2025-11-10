@@ -278,7 +278,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             if (!currentAcademicYear) return;
             setLoading(true);
             try {
-                const token = localStorage.getItem('auth_token');
+                let token = localStorage.getItem('auth_token');
                 const refreshToken = localStorage.getItem('refresh_token');
                 
                 // Helper function to refresh token if needed
@@ -297,12 +297,33 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                                 localStorage.setItem('auth_token', newToken);
                                 return newToken;
                             }
+                        } else {
+                            // Refresh token is invalid, clear it
+                            localStorage.removeItem('refresh_token');
+                            localStorage.removeItem('auth_token');
                         }
                     } catch (error) {
                         console.warn('Failed to refresh token:', error);
                     }
                     return null;
                 };
+
+                // If no access token but have refresh token, try to refresh first
+                if (!token && refreshToken) {
+                    token = await tryRefreshToken();
+                    if (!token) {
+                        // Refresh failed, user needs to login
+                        console.warn('Token refresh failed. Please login to access data.');
+                        addToast({ type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อโหลดข้อมูล' });
+                        setProjectGroups([]);
+                        setStudents([]);
+                        setAdvisors([]);
+                        setMajors(initialMajors);
+                        setClassrooms(initialClassrooms);
+                        setLoading(false);
+                        return;
+                    }
+                }
 
                 // Helper function to make authenticated request
                 const makeRequest = async (url: string, headers: HeadersInit): Promise<Response> => {
@@ -314,6 +335,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                         if (newToken) {
                             const newHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
                             response = await fetch(url, { headers: newHeaders });
+                        } else {
+                            // Refresh failed, clear tokens
+                            localStorage.removeItem('refresh_token');
+                            localStorage.removeItem('auth_token');
                         }
                     }
                     
@@ -326,7 +351,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
-                } else if (!refreshToken) {
+                } else {
                     // No token and no refresh token - user needs to login
                     console.warn('No authentication token found. Please login to access data.');
                     addToast({ type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อโหลดข้อมูล' });
@@ -364,18 +389,29 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                                 }
                                 return Array.isArray(data) ? data : (data.results || data.data || []);
                             } catch (error) {
+                                // Only log if it's not a 401 (which is expected when not authenticated)
+                                if (response.status !== 401) {
                                 console.warn(`${errorMessage}: Failed to parse JSON`, error);
+                                }
                                 return null;
                             }
                         } else if (response.status === 401) {
-                            console.warn(`${errorMessage}: Authentication required (401)`);
+                            // Don't log 401 errors as warnings - they're expected when user is not authenticated
+                            // Only log if we have a token (meaning it might be expired)
+                            if (token) {
+                                console.debug(`${errorMessage}: Authentication required (401) - token may be expired`);
+                            }
                             return null;
                         } else {
                             console.warn(`${errorMessage}: HTTP ${response.status}`);
                             return null;
                         }
                     } else {
+                        // Only log if it's not a network error that might be related to auth
+                        const reason = String(result.reason || '');
+                        if (!reason.includes('401') && !reason.includes('Unauthorized')) {
                         console.warn(`${errorMessage}: ${result.reason}`);
+                        }
                         return null;
                     }
                 };
@@ -395,7 +431,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 if (projectsData) {
                     setProjectGroups(projectsData);
                 } else {
-                    console.warn('Failed to load projects from backend, using empty array');
+                    // Only log if we have a token (meaning it's an unexpected failure)
+                    if (token) {
+                        console.debug('Failed to load projects from backend, using empty array');
+                    }
                     setProjectGroups([]);
                 }
 
@@ -405,24 +444,35 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                     'Failed to load students from backend',
                     (data: any) => {
                         const rawStudents = Array.isArray(data) ? data : (data.results || data.data || []);
-                        return rawStudents.map((s: any) => ({
-                            studentId: s.student_id || s.studentId || s.id?.toString() || '',
-                            name: s.user?.first_name || s.name || s.first_name || '',
-                            surname: s.user?.last_name || s.surname || s.last_name || '',
-                            major: s.major || '',
-                            classroom: s.classroom || '',
-                            gender: s.gender || 'Male',
-                            tel: s.tel || s.phone || s.user?.phone || '',
-                            email: s.user?.email || s.email || '',
-                            status: s.status || 'Pending',
-                            isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
-                        })).filter((s: any) => s.studentId);
+                        return rawStudents.map((s: any, index: number) => {
+                            const studentId = s.student_id || s.studentId || s.id?.toString() || '';
+                            const backendId = s.id?.toString() || '';
+                            // Use backend id as primary id, fallback to studentId-index for uniqueness
+                            const uniqueId = backendId || `${studentId}-${index}` || `S${Date.now()}-${index}`;
+                            
+                            return {
+                                id: uniqueId,
+                                studentId: studentId,
+                                name: s.user?.first_name || s.name || s.first_name || '',
+                                surname: s.user?.last_name || s.surname || s.last_name || '',
+                                major: s.major_name || s.major?.name || s.major || '',
+                                classroom: s.classroom_name || s.classroom?.name || s.classroom || '',
+                                gender: s.gender || 'Male',
+                                tel: s.tel || s.phone || s.user?.phone || '',
+                                email: s.user?.email || s.email || '',
+                                status: s.status || 'Pending',
+                                isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
+                            };
+                        }).filter((s: any) => s.studentId);
                     }
                 );
                 if (studentsData) {
                     setStudents(studentsData);
                 } else {
-                    console.warn('Failed to load students from backend, using empty array');
+                    // Only log if we have a token (meaning it's an unexpected failure)
+                    if (token) {
+                        console.debug('Failed to load students from backend, using empty array');
+                    }
                     setStudents([]);
                 }
 
@@ -456,7 +506,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 if (advisorsData) {
                     setAdvisors(advisorsData);
                 } else {
-                    console.warn('Failed to load advisors from backend, using empty array');
+                    // Only log if we have a token (meaning it's an unexpected failure)
+                    if (token) {
+                        console.debug('Failed to load advisors from backend, using empty array');
+                    }
                     setAdvisors([]);
                 }
 
@@ -465,16 +518,46 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 if (majorsData) {
                     setMajors(majorsData);
                 } else {
-                    console.warn('Failed to load majors from backend, using initial majors');
+                    // Only log if we have a token (meaning it's an unexpected failure)
+                    if (token) {
+                        console.debug('Failed to load majors from backend, using initial majors');
+                    }
                     setMajors(initialMajors);
                 }
 
                 // Process classrooms
-                const classroomsData = await processResponse(classroomsRes, 'Failed to load classrooms from backend');
+                const classroomsData = await processResponse(
+                    classroomsRes, 
+                    'Failed to load classrooms from backend',
+                    (data: any) => {
+                        const rawClassrooms = Array.isArray(data) ? data : (data.results || data.data || []);
+                        const loadedMajors = majors.length > 0 ? majors : initialMajors;
+                        return rawClassrooms.map((c: any) => {
+                            // Find major by backend ID or name
+                            const majorId = c.major;
+                            const majorName = c.major_name || c.majorName || '';
+                            const frontendMajor = loadedMajors.find((m: Major) => 
+                                m.id === majorId?.toString() || 
+                                m.name === majorName ||
+                                (typeof majorId === 'number' && m.id === majorId.toString())
+                            );
+                            
+                            return {
+                                id: c.id?.toString() || `C${Date.now()}`,
+                                name: c.name || '',
+                                majorId: frontendMajor?.id || majorId?.toString() || '',
+                                majorName: frontendMajor?.name || majorName || '',
+                            };
+                        });
+                    }
+                );
                 if (classroomsData) {
                     setClassrooms(classroomsData);
                 } else {
-                    console.warn('Failed to load classrooms from backend, using initial classrooms');
+                    // Only log if we have a token (meaning it's an unexpected failure)
+                    if (token) {
+                        console.debug('Failed to load classrooms from backend, using initial classrooms');
+                    }
                     setClassrooms(initialClassrooms);
                 }
 
@@ -744,19 +827,620 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
         }, [addToast, errorMessage]);
     };
 
-    const addStudent = createApiCallback(
-        (student: Student) => api.addCollectionItem(currentAcademicYear, 'students', { ...student, isAiAssistantEnabled: true }),
-        setStudents, 'Failed to add student.'
-    );
+    const addStudent = useCallback(async (student: Student) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Helper function to generate secure password that passes validation
+            const generateSecurePassword = (): string => {
+                // Generate password with: uppercase, lowercase, numbers, and special chars
+                // Use more characters to avoid common patterns
+                const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Exclude similar chars (I, O)
+                const lowercase = 'abcdefghijkmnpqrstuvwxyz'; // Exclude similar chars (l, o)
+                const numbers = '23456789'; // Exclude 0, 1
+                const special = '!@#$%&*';
+                
+                // Generate password with length 8-15 characters
+                let password = '';
+                
+                // Ensure at least one of each type
+                password += uppercase[Math.floor(Math.random() * uppercase.length)];
+                password += lowercase[Math.floor(Math.random() * lowercase.length)];
+                password += numbers[Math.floor(Math.random() * numbers.length)];
+                password += special[Math.floor(Math.random() * special.length)];
+                
+                // Add more random characters to reach target length (8-15 chars)
+                const allChars = uppercase + lowercase + numbers + special;
+                const targetLength = 8 + Math.floor(Math.random() * 8); // 8-15 chars
+                
+                for (let i = password.length; i < targetLength; i++) {
+                    password += allChars[Math.floor(Math.random() * allChars.length)];
+                }
+                
+                // Shuffle password using Fisher-Yates algorithm for better randomness
+                const passwordArray = password.split('');
+                for (let i = passwordArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
+                }
+                
+                return passwordArray.join('');
+            };
+
+            // First, check if student ID already exists
+            const studentId = student.studentId?.trim().toUpperCase();
+            if (!studentId) {
+                throw new Error('Student ID is required');
+            }
+
+            // Check for duplicate student ID in existing students
+            const existingStudent = students.find(s => 
+                s.studentId?.trim().toUpperCase() === studentId
+            );
+            if (existingStudent) {
+                throw new Error(`Student ID ${studentId} already exists`);
+            }
+
+            // Check for duplicate student ID in backend
+            try {
+                const checkResponse = await fetch(`${cleanAPIBaseURL}/api/students/?student_id=${encodeURIComponent(studentId)}`, {
+                    method: 'GET',
+                    headers,
+                });
+                if (checkResponse.ok) {
+                    const checkData = await checkResponse.json();
+                    const studentsList = Array.isArray(checkData) ? checkData : (checkData.results || checkData.data || []);
+                    if (studentsList.length > 0) {
+                        throw new Error(`Student ID ${studentId} already exists in the system`);
+                    }
+                }
+            } catch (checkError) {
+                // If check fails, continue anyway (backend will validate)
+                console.warn('Could not check student ID in backend:', checkError);
+            }
+
+            // First, create user account
+            let userId: number;
+            try {
+                // Generate unique username from student ID
+                let username = studentId.toLowerCase().replace(/\//g, '_').replace(/\s+/g, '_').replace(/-/g, '_');
+                // Ensure username is unique by checking and appending suffix if needed
+                let usernameAttempts = 0;
+                const originalUsername = username;
+                while (usernameAttempts < 5) {
+                    try {
+                        // Check if username exists (we'll handle this in the registration attempt)
+                        username = usernameAttempts > 0 ? `${originalUsername}_${usernameAttempts}` : originalUsername;
+                        usernameAttempts++;
+                        break; // Proceed to registration
+                    } catch {
+                        // Continue to next attempt
+                    }
+                }
+
+                // Generate unique email to avoid conflicts
+                // Check if email already exists and generate unique one
+                let email = student.email?.toLowerCase().trim();
+                if (!email) {
+                    // Generate unique email with timestamp and random suffix
+                    const timestamp = Date.now();
+                    const randomSuffix = Math.random().toString(36).substring(2, 9);
+                    email = `${username}_${timestamp}_${randomSuffix}@university.edu`;
+                }
+                
+                // Check if email exists in backend before creating
+                let emailAttempts = 0;
+                const originalEmail = email;
+                while (emailAttempts < 10) {
+                    try {
+                        const emailCheckResponse = await fetch(`${cleanAPIBaseURL}/api/users/?email=${encodeURIComponent(email)}`, {
+                            method: 'GET',
+                            headers,
+                        });
+                        
+                        if (emailCheckResponse.ok) {
+                            const emailCheckData = await emailCheckResponse.json();
+                            const usersList = Array.isArray(emailCheckData) ? emailCheckData : (emailCheckData.results || emailCheckData.data || []);
+                            if (usersList.length === 0) {
+                                // Email is available
+                                break;
+                            }
+                        }
+                        
+                        // Email exists, generate new one
+                        emailAttempts++;
+                        const timestamp = Date.now();
+                        const randomSuffix = Math.random().toString(36).substring(2, 9);
+                        email = `${originalEmail.split('@')[0]}_${timestamp}_${randomSuffix}@university.edu`;
+                    } catch {
+                        // If check fails, continue with current email
+                        break;
+                    }
+                }
+                
+                // Use secure password generator - ensure it's strong enough
+                let password = student.password;
+                if (!password) {
+                    password = generateSecurePassword();
+                }
+                
+                // Double-check password strength and regenerate if needed
+                const hasUpper = /[A-Z]/.test(password);
+                const hasLower = /[a-z]/.test(password);
+                const hasNumber = /[0-9]/.test(password);
+                const hasSpecial = /[!@#$%&*]/.test(password);
+                const isLongEnough = password.length >= 8 && password.length <= 15;
+                
+                // Regenerate if not strong enough (for student accounts, we need basic requirements)
+                if (!hasUpper || !hasLower || !hasNumber || !isLongEnough) {
+                    password = generateSecurePassword();
+                }
+                
+                // Convert academic year format if needed
+                const academicYear = currentAcademicYear.includes('-') 
+                    ? currentAcademicYear 
+                    : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
+                
+                // Create new user with retry logic for email conflicts
+                let createUserResponse;
+                let registrationAttempts = 0;
+                let registrationSuccess = false;
+                
+                while (registrationAttempts < 3 && !registrationSuccess) {
+                    try {
+                        createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                username: registrationAttempts > 0 ? `${username}_${registrationAttempts}` : username,
+                                email: registrationAttempts > 0 ? `${email.split('@')[0]}_${registrationAttempts}@university.edu` : email,
+                                password,
+                                password_confirm: password,
+                                first_name: student.name || '',
+                                last_name: student.surname || '',
+                                role: 'Student', // Must be capital S
+                                current_academic_year: academicYear,
+                            }),
+                        });
+                        
+                        if (createUserResponse.ok) {
+                            registrationSuccess = true;
+                            break;
+                        }
+                        
+                        // Parse error response - handle both JSON and text responses
+                        let errorData: any = {};
+                        try {
+                            const contentType = createUserResponse.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                errorData = await createUserResponse.json();
+                            } else {
+                                const responseText = await createUserResponse.text();
+                                try {
+                                    errorData = JSON.parse(responseText);
+                                } catch {
+                                    // If not JSON, try to extract error from text
+                                    errorData = { message: responseText || 'Unknown error' };
+                                }
+                            }
+                        } catch (parseError) {
+                            errorData = { message: 'Failed to parse error response' };
+                        }
+                        
+                        // Check if it's an email/username conflict
+                        if (errorData.errors) {
+                            const hasEmailError = errorData.errors.email && errorData.errors.email.some((e: string) => e.includes('already exists'));
+                            const hasUsernameError = errorData.errors.username && errorData.errors.username.some((e: string) => e.includes('already exists'));
+                            
+                            if (hasEmailError || hasUsernameError) {
+                                registrationAttempts++;
+                                // Generate new email/username for retry
+                                const timestamp = Date.now();
+                                const randomSuffix = Math.random().toString(36).substring(2, 9);
+                                email = `${username}_${timestamp}_${randomSuffix}@university.edu`;
+                                username = `${username}_${timestamp}`;
+                                continue;
+                            }
+                        }
+                        
+                        // If not a conflict error, throw immediately
+                        throw new Error(JSON.stringify(errorData));
+                    } catch (fetchError: any) {
+                        if (registrationAttempts >= 2) {
+                            // Last attempt failed
+                            let errorMessage = 'Failed to create user account.';
+                            try {
+                                const errorData = JSON.parse(fetchError.message);
+                                if (errorData.errors) {
+                                    const errorMessages: string[] = [];
+                                    Object.keys(errorData.errors).forEach((key: string) => {
+                                        const fieldErrors = errorData.errors[key];
+                                        if (Array.isArray(fieldErrors)) {
+                                            errorMessages.push(`${key}: ${fieldErrors.join(', ')}`);
+                                        } else {
+                                            errorMessages.push(`${key}: ${fieldErrors}`);
+                                        }
+                                    });
+                                    errorMessage = errorMessages.join('; ');
+                                } else if (errorData.message) {
+                                    errorMessage = errorData.message;
+                                } else if (errorData.detail) {
+                                    errorMessage = errorData.detail;
+                                }
+                            } catch {
+                                errorMessage = fetchError.message || 'Failed to create user account';
+                            }
+                            throw new Error(errorMessage);
+                        }
+                        registrationAttempts++;
+                    }
+                }
+                
+                if (!registrationSuccess || !createUserResponse || !createUserResponse.ok) {
+                    throw new Error('Failed to create user account after multiple attempts');
+                }
+                
+                const newUser = await createUserResponse.json();
+                userId = newUser.user?.id || newUser.id;
+            } catch (userError: any) {
+                // Extract error message properly
+                let errorMessage = 'Failed to create user account';
+                try {
+                    if (typeof userError.message === 'string') {
+                        // Try to parse if it's a JSON string
+                        try {
+                            const parsed = JSON.parse(userError.message);
+                            if (parsed.errors) {
+                                const errorMessages: string[] = [];
+                                Object.keys(parsed.errors).forEach((key: string) => {
+                                    const fieldErrors = parsed.errors[key];
+                                    if (Array.isArray(fieldErrors)) {
+                                        errorMessages.push(`${key}: ${fieldErrors.join(', ')}`);
+                                    } else {
+                                        errorMessages.push(`${key}: ${fieldErrors}`);
+                                    }
+                                });
+                                errorMessage = errorMessages.join('; ');
+                            } else if (parsed.message) {
+                                errorMessage = parsed.message;
+                            } else {
+                                errorMessage = userError.message;
+                            }
+                        } catch {
+                            // Not JSON, use as is
+                            errorMessage = userError.message;
+                        }
+                    } else {
+                        errorMessage = userError.message || errorMessage;
+                    }
+                } catch {
+                    errorMessage = 'Failed to create user account';
+                }
+                
+                console.warn('Failed to create user, falling back to localStorage:', errorMessage);
+                
+                // Show notification to user about the error
+                addToast({
+                    type: 'warning',
+                    message: `User account creation failed: ${errorMessage}. Student saved to local storage only.`
+                });
+                
+                // Fallback to localStorage
+                const newId = `S${students.length + 1}`;
+                const stored = localStorage.getItem(`students_${currentAcademicYear}`);
+                const collection = stored ? JSON.parse(stored) : [];
+                const newCollection = [...collection, { ...student, id: newId, isAiAssistantEnabled: true }];
+                localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(newCollection));
+                setStudents(newCollection);
+                return newCollection;
+            }
+
+            // Find major and classroom IDs from backend
+            let majorBackendId: number;
+            let classroomBackendId: number;
+            
+            try {
+                // Get major ID
+                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
+                if (majorsResponse.ok) {
+                    const majorsData = await majorsResponse.json();
+                    const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
+                    const major = majors.find(m => m.name === student.major);
+                    const backendMajor = majorsList.find((m: any) => 
+                        m.name === major?.name || m.abbreviation === major?.abbreviation
+                    );
+                    if (backendMajor) {
+                        majorBackendId = backendMajor.id;
+                    } else {
+                        throw new Error('Major not found in backend');
+                    }
+                } else {
+                    throw new Error('Failed to fetch majors');
+                }
+
+                // Get classroom ID
+                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                if (classroomsResponse.ok) {
+                    const classroomsData = await classroomsResponse.json();
+                    const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                    const classroom = classrooms.find(c => c.name === student.classroom);
+                    const backendClassroom = classroomsList.find((c: any) => 
+                        c.name === classroom?.name
+                    );
+                    if (backendClassroom) {
+                        classroomBackendId = backendClassroom.id;
+                    } else {
+                        throw new Error('Classroom not found in backend');
+                    }
+                } else {
+                    throw new Error('Failed to fetch classrooms');
+                }
+            } catch (lookupError) {
+                console.warn('Failed to get major/classroom IDs, falling back to localStorage:', lookupError);
+                // Fallback to localStorage
+                const newId = `S${students.length + 1}`;
+                const stored = localStorage.getItem(`students_${currentAcademicYear}`);
+                const collection = stored ? JSON.parse(stored) : [];
+                const newCollection = [...collection, { ...student, id: newId, isAiAssistantEnabled: true }];
+                localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(newCollection));
+                setStudents(newCollection);
+                return newCollection;
+            }
+
+            // Convert academic year format if needed
+            const academicYear = currentAcademicYear.includes('-') 
+                ? currentAcademicYear 
+                : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
+
+            // Create student with backend API
+            // Use normalized student ID (uppercase)
+            const studentPayload = {
+                user_id: userId,
+                student_id: studentId, // Use normalized student ID from earlier check
+                major: majorBackendId,
+                classroom: classroomBackendId,
+                academic_year: academicYear,
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/students/`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(studentPayload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                
+                // Extract error messages from response
+                let errorMessage = 'Failed to create student record.';
+                if (errorData.errors) {
+                    const errorMessages: string[] = [];
+                    Object.keys(errorData.errors).forEach(key => {
+                        const fieldErrors = errorData.errors[key];
+                        if (Array.isArray(fieldErrors)) {
+                            errorMessages.push(`${key}: ${fieldErrors.join(', ')}`);
+                        } else {
+                            errorMessages.push(`${key}: ${fieldErrors}`);
+                        }
+                    });
+                    errorMessage = errorMessages.join('; ');
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.student_id) {
+                    // Handle student_id validation error
+                    if (Array.isArray(errorData.student_id)) {
+                        errorMessage = `Student ID: ${errorData.student_id.join(', ')}`;
+                    } else {
+                        errorMessage = `Student ID: ${errorData.student_id}`;
+                    }
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            if (response.ok) {
+                const createdStudent = await response.json();
+                // Reload students list
+                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
+                if (studentsResponse.ok) {
+                    const studentsData = await studentsResponse.json();
+                    const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                    // Transform backend format to frontend format with unique ids
+                    const studentsList = rawStudents.map((s: any, index: number) => {
+                        const studentId = s.student_id || s.studentId || s.id?.toString() || '';
+                        const backendId = s.id?.toString() || '';
+                        const uniqueId = backendId || `${studentId}-${index}` || `S${Date.now()}-${index}`;
+                        
+                        return {
+                            id: uniqueId,
+                            studentId: studentId,
+                            name: s.user?.first_name || s.name || s.first_name || '',
+                            surname: s.user?.last_name || s.surname || s.last_name || '',
+                            major: s.major_name || s.major?.name || s.major || '',
+                            classroom: s.classroom_name || s.classroom?.name || s.classroom || '',
+                            gender: s.gender || 'Male',
+                            tel: s.tel || s.phone || s.user?.phone || '',
+                            email: s.user?.email || s.email || '',
+                            status: s.status || 'Pending',
+                            isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
+                        };
+                    }).filter((s: any) => s.studentId);
+                    setStudents(studentsList);
+                    return studentsList;
+                }
+                // If reload fails, transform created student and return
+                const studentId = createdStudent.student_id || createdStudent.studentId || createdStudent.id?.toString() || student.studentId || '';
+                const backendId = createdStudent.id?.toString() || '';
+                const uniqueId = backendId || `${studentId}-${Date.now()}` || `S${Date.now()}`;
+                const transformedStudent = {
+                    id: uniqueId,
+                    studentId: studentId,
+                    name: createdStudent.user?.first_name || createdStudent.name || createdStudent.first_name || student.name || '',
+                    surname: createdStudent.user?.last_name || createdStudent.surname || createdStudent.last_name || student.surname || '',
+                    major: createdStudent.major_name || createdStudent.major?.name || createdStudent.major || student.major || '',
+                    classroom: createdStudent.classroom_name || createdStudent.classroom?.name || createdStudent.classroom || student.classroom || '',
+                    gender: createdStudent.gender || student.gender || 'Male',
+                    tel: createdStudent.tel || createdStudent.phone || createdStudent.user?.phone || student.tel || '',
+                    email: createdStudent.user?.email || createdStudent.email || student.email || '',
+                    status: createdStudent.status || student.status || 'Pending',
+                    isAiAssistantEnabled: createdStudent.isAiAssistantEnabled !== undefined ? createdStudent.isAiAssistantEnabled : true,
+                };
+                const newList = [...students, transformedStudent];
+                setStudents(newList);
+                return newList;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.message || `Failed to create student: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage - use unique id
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 6);
+            const newId = student.studentId ? `${student.studentId}-${timestamp}-${randomSuffix}` : `S${timestamp}-${randomSuffix}`;
+            const stored = localStorage.getItem(`students_${currentAcademicYear}`);
+            const collection = stored ? JSON.parse(stored) : [];
+            const newCollection = [...collection, { ...student, id: newId, isAiAssistantEnabled: true }];
+            localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(newCollection));
+            setStudents(newCollection);
+            return newCollection;
+        }
+    }, [students, majors, classrooms, currentAcademicYear, cleanAPIBaseURL, setStudents]);
     const updateStudent = useCallback(async (student: Student) => {
         try {
-            const updatedStudents = await api.updateCollection(currentAcademicYear, 'students', students.map(s => s.studentId === student.studentId ? student : s));
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Find student ID from backend (need to find by student_id)
+            let studentBackendId: number | null = null;
+            try {
+                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
+                if (studentsResponse.ok) {
+                    const studentsData = await studentsResponse.json();
+                    const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                    const backendStudent = studentsList.find((s: any) => 
+                        s.student_id === student.studentId || (s.id && s.id.toString() === student.id)
+                    );
+                    if (backendStudent) {
+                        studentBackendId = backendStudent.id;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to get student ID from backend, falling back to localStorage:', error);
+            }
+
+            if (studentBackendId !== null) {
+                // Find major and classroom IDs from backend
+                let majorBackendId: number | undefined;
+                let classroomBackendId: number | undefined;
+                
+                try {
+                    // Get major ID
+                    const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
+                    if (majorsResponse.ok) {
+                        const majorsData = await majorsResponse.json();
+                        const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
+                        const major = majors.find(m => m.name === student.major);
+                        const backendMajor = majorsList.find((m: any) => 
+                            m.name === major?.name || m.abbreviation === major?.abbreviation
+                        );
+                        if (backendMajor) {
+                            majorBackendId = backendMajor.id;
+                        }
+                    }
+
+                    // Get classroom ID
+                    const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                    if (classroomsResponse.ok) {
+                        const classroomsData = await classroomsResponse.json();
+                        const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                        const classroom = classrooms.find(c => c.name === student.classroom);
+                        const backendClassroom = classroomsList.find((c: any) => 
+                            c.name === classroom?.name
+                        );
+                        if (backendClassroom) {
+                            classroomBackendId = backendClassroom.id;
+                        }
+                    }
+                } catch (lookupError) {
+                    console.warn('Failed to get major/classroom IDs:', lookupError);
+                }
+
+                // Convert academic year format if needed
+                const academicYear = currentAcademicYear.includes('-') 
+                    ? currentAcademicYear 
+                    : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
+
+                const studentPayload: any = {
+                    student_id: student.studentId,
+                    academic_year: academicYear,
+                };
+                if (majorBackendId !== undefined) studentPayload.major = majorBackendId;
+                if (classroomBackendId !== undefined) studentPayload.classroom = classroomBackendId;
+
+                const response = await fetch(`${cleanAPIBaseURL}/api/students/${studentBackendId}/`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify(studentPayload),
+                });
+
+                if (response.ok) {
+                    // Reload students list
+                    const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
+                    if (studentsResponse.ok) {
+                        const studentsData = await studentsResponse.json();
+                        const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                        // Transform backend format to frontend format with unique ids
+                        const studentsList = rawStudents.map((s: any, index: number) => {
+                            const studentId = s.student_id || s.studentId || s.id?.toString() || '';
+                            const backendId = s.id?.toString() || '';
+                            const uniqueId = backendId || `${studentId}-${index}` || `S${Date.now()}-${index}`;
+                            
+                            return {
+                                id: uniqueId,
+                                studentId: studentId,
+                                name: s.user?.first_name || s.name || s.first_name || '',
+                                surname: s.user?.last_name || s.surname || s.last_name || '',
+                                major: s.major_name || s.major?.name || s.major || '',
+                                classroom: s.classroom_name || s.classroom?.name || s.classroom || '',
+                                gender: s.gender || 'Male',
+                                tel: s.tel || s.phone || s.user?.phone || '',
+                                email: s.user?.email || s.email || '',
+                                status: s.status || 'Pending',
+                                isAiAssistantEnabled: s.isAiAssistantEnabled !== undefined ? s.isAiAssistantEnabled : true,
+                            };
+                        }).filter((s: any) => s.studentId);
+                        setStudents(studentsList);
+                        return studentsList;
+                    }
+                }
+            }
+
+            // Fallback to localStorage
+            const updatedStudents = students.map(s => s.studentId === student.studentId ? student : s);
+            localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(updatedStudents));
             setStudents(updatedStudents);
+            return updatedStudents;
         } catch (error) {
             console.error('Failed to update student.', error);
             addToast({ type: 'error', message: 'Failed to update student.' });
         }
-    }, [students, currentAcademicYear, addToast]);
+    }, [students, majors, classrooms, currentAcademicYear, cleanAPIBaseURL, setStudents, addToast]);
 
     const deleteStudent = createApiCallback(
         (id: string) => api.deleteCollectionItem(currentAcademicYear, 'students', id),
@@ -775,18 +1459,193 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
         (studentIds: string[], updates: Partial<Student>) => api.bulkUpdateCollection(currentAcademicYear, 'students', studentIds, updates),
         setStudents, 'Failed to bulk update students.'
     );
-    const bulkDeleteStudents = createApiCallback(
-        (studentIds: string[]) => api.bulkDeleteCollection(currentAcademicYear, 'students', studentIds),
-        setStudents, 'Failed to bulk delete students.'
-    );
+    const bulkDeleteStudents = useCallback(async (studentIds: string[]) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
-    const addAdvisor = createApiCallback(
-        (advisor: Omit<Advisor, 'id'>) => {
+            // Backend expects student_ids (student_id values) not IDs
+            // Get student_id values from students list
+            const studentIdValues = students
+                .filter(s => studentIds.includes(s.id) || studentIds.includes(s.studentId || ''))
+                .map(s => s.studentId || s.id);
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/students/bulk-delete/`, {
+                method: 'DELETE',
+                headers,
+                body: JSON.stringify({
+                    student_ids: studentIdValues,
+                }),
+            });
+
+            if (response.ok) {
+                // Reload students list
+                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
+                if (studentsResponse.ok) {
+                    const studentsData = await studentsResponse.json();
+                    const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                    setStudents(studentsList);
+                    return studentsList;
+                }
+            }
+
+            // Fallback to localStorage
+            const updatedStudents = students.filter(s => !studentIds.includes(s.id) && !studentIds.includes(s.studentId || ''));
+            localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(updatedStudents));
+            setStudents(updatedStudents);
+            return updatedStudents;
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const updatedStudents = students.filter(s => !studentIds.includes(s.id) && !studentIds.includes(s.studentId || ''));
+            localStorage.setItem(`students_${currentAcademicYear}`, JSON.stringify(updatedStudents));
+            setStudents(updatedStudents);
+            return updatedStudents;
+        }
+    }, [students, currentAcademicYear, cleanAPIBaseURL, setStudents]);
+
+    const addAdvisor = useCallback(async (advisor: Omit<Advisor, 'id'>) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Convert frontend format to backend format
+            const nameParts = advisor.name?.split(' ') || [];
+            const firstName = nameParts[0] || advisor.name || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            const username = advisor.name?.toLowerCase().replace(/\s+/g, '.') || `advisor${Date.now()}`;
+            const email = `${username}@university.edu`;
+
+            // First, create or get user
+            let userId: number;
+            try {
+                // Try to find existing user
+                const userResponse = await fetch(`${cleanAPIBaseURL}/api/users/?username=${username}`, { headers });
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    if (userData.results && userData.results.length > 0) {
+                        userId = userData.results[0].id;
+                    } else {
+                        // Create new user
+                        const createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                username,
+                                email,
+                                first_name: firstName,
+                                last_name: lastName,
+                                password: advisor.password || 'password123',
+                                role: 'Advisor',
+                                academic_year: currentAcademicYear,
+                            }),
+                        });
+                        if (!createUserResponse.ok) {
+                            const errorData = await createUserResponse.json();
+                            throw new Error(errorData.detail || errorData.message || 'Failed to create user');
+                        }
+                        const newUser = await createUserResponse.json();
+                        userId = newUser.user?.id || newUser.id;
+                    }
+                } else {
+                    // Create new user if search fails
+                    const createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            username,
+                            email,
+                            first_name: firstName,
+                            last_name: lastName,
+                            password: advisor.password || 'password123',
+                            role: 'Advisor',
+                            academic_year: currentAcademicYear,
+                        }),
+                    });
+                    if (!createUserResponse.ok) {
+                        const errorData = await createUserResponse.json();
+                        throw new Error(errorData.detail || errorData.message || 'Failed to create user');
+                    }
+                    const newUser = await createUserResponse.json();
+                    userId = newUser.user?.id || newUser.id;
+                }
+            } catch (userError) {
+                console.warn('Failed to create/get user, falling back to localStorage:', userError);
+                // Fallback to localStorage
             const newId = `A${advisors.length + 1}`;
-            return api.addCollectionItem(currentAcademicYear, 'advisors', { ...advisor, id: newId, isAiAssistantEnabled: true });
-        },
-        setAdvisors, 'Failed to add advisor.'
-    );
+                const stored = localStorage.getItem(`advisors_${currentAcademicYear}`);
+                const collection = stored ? JSON.parse(stored) : [];
+                const newCollection = [...collection, { ...advisor, id: newId, isAiAssistantEnabled: true }];
+                localStorage.setItem(`advisors_${currentAcademicYear}`, JSON.stringify(newCollection));
+                setAdvisors(newCollection);
+                return newCollection;
+            }
+
+            // Convert specializedMajorIds to major names
+            const specializationMajors = (advisor.specializedMajorIds || []).map(id => {
+                const major = majors.find(m => m.id === id);
+                return major?.name || '';
+            }).filter(name => name);
+
+            // Create advisor with backend API
+            const advisorPayload = {
+                user_id: userId,
+                quota: advisor.quota || 5,
+                main_committee_quota: advisor.mainCommitteeQuota || 5,
+                second_committee_quota: advisor.secondCommitteeQuota || 5,
+                third_committee_quota: advisor.thirdCommitteeQuota || 5,
+                is_department_admin: advisor.isDepartmentAdmin || false,
+                specialization_majors: specializationMajors,
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/advisors/`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(advisorPayload),
+            });
+
+            if (response.ok) {
+                const createdAdvisor = await response.json();
+                // Reload advisors list
+                const advisorsResponse = await fetch(`${cleanAPIBaseURL}/api/advisors/`, { headers });
+                if (advisorsResponse.ok) {
+                    const advisorsData = await advisorsResponse.json();
+                    const advisorsList = Array.isArray(advisorsData) ? advisorsData : (advisorsData.results || advisorsData.data || []);
+                    setAdvisors(advisorsList);
+                    return advisorsList;
+                }
+                // If reload fails, return the created advisor in array format
+                const newList = [...advisors, createdAdvisor];
+                setAdvisors(newList);
+                return newList;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.message || `Failed to create advisor: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const newId = `A${advisors.length + 1}`;
+            const stored = localStorage.getItem(`advisors_${currentAcademicYear}`);
+            const collection = stored ? JSON.parse(stored) : [];
+            const newCollection = [...collection, { ...advisor, id: newId, isAiAssistantEnabled: true }];
+            localStorage.setItem(`advisors_${currentAcademicYear}`, JSON.stringify(newCollection));
+            setAdvisors(newCollection);
+            return newCollection;
+        }
+    }, [majors, advisors, currentAcademicYear, addToast, cleanAPIBaseURL, setAdvisors]);
     const updateAdvisor = useCallback(async (advisor: Advisor) => {
         try {
             const updatedAdvisors = await api.updateCollection(currentAcademicYear, 'advisors', advisors.map(a => a.id === advisor.id ? advisor : a));
@@ -818,13 +1677,425 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
         setAdvisors, 'Failed to bulk update advisors.'
     );
     
-    const addMajor = createApiCallback((major: Omit<Major, 'id'>) => api.addCollectionItem(currentAcademicYear, 'majors', { ...major, id: `M${majors.length + 1}` }), setMajors, 'Failed to add major.');
+    const addMajor = useCallback(async (major: Omit<Major, 'id'>) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Convert frontend format to backend format
+            const majorPayload = {
+                name: major.name,
+                abbreviation: major.abbreviation,
+                description: (major as any).description || '',
+                degree_level: 'Bachelor', // Default degree level
+                is_active: true,
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/majors/`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(majorPayload),
+            });
+
+            if (response.ok) {
+                const createdMajor = await response.json();
+                // Reload majors list
+                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
+                if (majorsResponse.ok) {
+                    const majorsData = await majorsResponse.json();
+                    const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
+                    setMajors(majorsList);
+                    return majorsList;
+                }
+                // If reload fails, return the created major in array format
+                const newList = [...majors, createdMajor];
+                setMajors(newList);
+                return newList;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.message || `Failed to create major: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const newId = `M${majors.length + 1}`;
+            const stored = localStorage.getItem(`majors_${currentAcademicYear}`);
+            const collection = stored ? JSON.parse(stored) : [];
+            const newCollection = [...collection, { ...major, id: newId }];
+            localStorage.setItem(`majors_${currentAcademicYear}`, JSON.stringify(newCollection));
+            setMajors(newCollection);
+            return newCollection;
+        }
+    }, [majors, currentAcademicYear, cleanAPIBaseURL, setMajors]);
     const updateMajor = createApiCallback((major: Major) => api.updateCollection(currentAcademicYear, 'majors', majors.map(m => m.id === major.id ? major : m)), setMajors, 'Failed to update major.');
     const deleteMajor = createApiCallback((id: string) => api.deleteCollectionItem(currentAcademicYear, 'majors', id), setMajors, 'Failed to delete major.');
     
-    const addClassroom = createApiCallback((classroom: Omit<Classroom, 'id'>) => api.addCollectionItem(currentAcademicYear, 'classrooms', { ...classroom, id: `C${classrooms.length + 1}` }), setClassrooms, 'Failed to add classroom.');
-    const updateClassroom = createApiCallback((classroom: Classroom) => api.updateCollection(currentAcademicYear, 'classrooms', classrooms.map(c => c.id === classroom.id ? classroom : c)), setClassrooms, 'Failed to update classroom.');
-    const deleteClassroom = createApiCallback((id: string) => api.deleteCollectionItem(currentAcademicYear, 'classrooms', id), setClassrooms, 'Failed to delete classroom.');
+    const addClassroom = useCallback(async (classroom: Omit<Classroom, 'id'>) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Find major by ID to get the major object ID
+            const major = majors.find(m => m.id === classroom.majorId);
+            if (!major) {
+                throw new Error('Major not found');
+            }
+
+            // Convert frontend format to backend format
+            // Backend expects major ID (integer) not majorId (string)
+            // We need to get the actual major ID from backend
+            let majorBackendId: number;
+            try {
+                // Try to find major in backend by name or abbreviation
+                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
+                if (majorsResponse.ok) {
+                    const majorsData = await majorsResponse.json();
+                    const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
+                    const backendMajor = majorsList.find((m: any) => 
+                        m.name === major.name || m.abbreviation === major.abbreviation
+                    );
+                    if (backendMajor) {
+                        majorBackendId = backendMajor.id;
+                    } else {
+                        throw new Error('Major not found in backend');
+                    }
+                } else {
+                    throw new Error('Failed to fetch majors');
+                }
+            } catch (majorError) {
+                console.warn('Failed to get major ID from backend, falling back to localStorage:', majorError);
+                // Fallback to localStorage
+                const newId = `C${classrooms.length + 1}`;
+                const stored = localStorage.getItem(`classrooms_${currentAcademicYear}`);
+                const collection = stored ? JSON.parse(stored) : [];
+                const newCollection = [...collection, { ...classroom, id: newId }];
+                localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(newCollection));
+                setClassrooms(newCollection);
+                return newCollection;
+            }
+
+            // Convert academic year format if needed (e.g., "2024" -> "2024-2025")
+            const academicYear = currentAcademicYear.includes('-') 
+                ? currentAcademicYear 
+                : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
+
+            const classroomPayload = {
+                name: classroom.name,
+                major: majorBackendId,
+                academic_year: academicYear,
+                semester: '1', // Default semester
+                capacity: 30, // Default capacity
+                is_active: true,
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(classroomPayload),
+            });
+
+            if (response.ok) {
+                const createdClassroom = await response.json();
+                // Reload classrooms list
+                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                if (classroomsResponse.ok) {
+                    const classroomsData = await classroomsResponse.json();
+                    const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                    // Transform backend format to frontend format
+                    const classroomsList = rawClassrooms.map((c: any) => {
+                        const majorId = c.major;
+                        const majorName = c.major_name || c.majorName || '';
+                        const frontendMajor = majors.find((m: Major) => 
+                            m.id === majorId?.toString() || 
+                            m.name === majorName ||
+                            (typeof majorId === 'number' && m.id === majorId.toString())
+                        );
+                        
+                        return {
+                            id: c.id?.toString() || `C${Date.now()}`,
+                            name: c.name || '',
+                            majorId: frontendMajor?.id || majorId?.toString() || '',
+                            majorName: frontendMajor?.name || majorName || '',
+                        };
+                    });
+                    setClassrooms(classroomsList);
+                    return classroomsList;
+                }
+                // If reload fails, transform created classroom and return
+                const majorId = createdClassroom.major;
+                const majorName = createdClassroom.major_name || createdClassroom.majorName || '';
+                const frontendMajor = majors.find((m: Major) => 
+                    m.id === majorId?.toString() || 
+                    m.name === majorName ||
+                    (typeof majorId === 'number' && m.id === majorId.toString())
+                );
+                const transformedClassroom = {
+                    id: createdClassroom.id?.toString() || `C${Date.now()}`,
+                    name: createdClassroom.name || '',
+                    majorId: frontendMajor?.id || majorId?.toString() || '',
+                    majorName: frontendMajor?.name || majorName || '',
+                };
+                const newList = [...classrooms, transformedClassroom];
+                setClassrooms(newList);
+                return newList;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.message || `Failed to create classroom: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const newId = `C${classrooms.length + 1}`;
+            const stored = localStorage.getItem(`classrooms_${currentAcademicYear}`);
+            const collection = stored ? JSON.parse(stored) : [];
+            const newCollection = [...collection, { ...classroom, id: newId }];
+            localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(newCollection));
+            setClassrooms(newCollection);
+            return newCollection;
+        }
+    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
+    const updateClassroom = useCallback(async (classroom: Classroom) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Find major by ID to get the major object ID
+            const major = majors.find(m => m.id === classroom.majorId);
+            if (!major) {
+                throw new Error('Major not found');
+            }
+
+            // Get major ID from backend
+            let majorBackendId: number;
+            try {
+                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
+                if (majorsResponse.ok) {
+                    const majorsData = await majorsResponse.json();
+                    const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
+                    const backendMajor = majorsList.find((m: any) => 
+                        m.name === major.name || m.abbreviation === major.abbreviation
+                    );
+                    if (backendMajor) {
+                        majorBackendId = backendMajor.id;
+                    } else {
+                        throw new Error('Major not found in backend');
+                    }
+                } else {
+                    throw new Error('Failed to fetch majors');
+                }
+            } catch (majorError) {
+                console.warn('Failed to get major ID from backend, falling back to localStorage:', majorError);
+                // Fallback to localStorage
+                const updatedClassrooms = classrooms.map(c => c.id === classroom.id ? classroom : c);
+                localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(updatedClassrooms));
+                setClassrooms(updatedClassrooms);
+                return updatedClassrooms;
+            }
+
+            // Convert academic year format if needed
+            const academicYear = currentAcademicYear.includes('-') 
+                ? currentAcademicYear 
+                : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
+
+            // Get classroom ID from backend (need to find by name and major)
+            let classroomBackendId: number;
+            try {
+                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                if (classroomsResponse.ok) {
+                    const classroomsData = await classroomsResponse.json();
+                    const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                    const backendClassroom = classroomsList.find((c: any) => 
+                        c.name === classroom.name || (c.id && c.id.toString() === classroom.id)
+                    );
+                    if (backendClassroom) {
+                        classroomBackendId = backendClassroom.id;
+                    } else {
+                        throw new Error('Classroom not found in backend');
+                    }
+                } else {
+                    throw new Error('Failed to fetch classrooms');
+                }
+            } catch (classroomError) {
+                console.warn('Failed to get classroom ID from backend, falling back to localStorage:', classroomError);
+                // Fallback to localStorage
+                const updatedClassrooms = classrooms.map(c => c.id === classroom.id ? classroom : c);
+                localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(updatedClassrooms));
+                setClassrooms(updatedClassrooms);
+                return updatedClassrooms;
+            }
+
+            const classroomPayload = {
+                name: classroom.name,
+                major: majorBackendId,
+                academic_year: academicYear,
+                semester: '1', // Default semester
+                capacity: 30, // Default capacity
+                is_active: true,
+            };
+
+            const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/${classroomBackendId}/`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(classroomPayload),
+            });
+
+            if (response.ok) {
+                const updatedClassroom = await response.json();
+                // Reload classrooms list
+                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                if (classroomsResponse.ok) {
+                    const classroomsData = await classroomsResponse.json();
+                    const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                    // Transform backend format to frontend format
+                    const classroomsList = rawClassrooms.map((c: any) => {
+                        const majorId = c.major;
+                        const majorName = c.major_name || c.majorName || '';
+                        const frontendMajor = majors.find((m: Major) => 
+                            m.id === majorId?.toString() || 
+                            m.name === majorName ||
+                            (typeof majorId === 'number' && m.id === majorId.toString())
+                        );
+                        
+                        return {
+                            id: c.id?.toString() || `C${Date.now()}`,
+                            name: c.name || '',
+                            majorId: frontendMajor?.id || majorId?.toString() || '',
+                            majorName: frontendMajor?.name || majorName || '',
+                        };
+                    });
+                    setClassrooms(classroomsList);
+                    return classroomsList;
+                }
+                // If reload fails, transform updated classroom and update local state
+                const majorId = updatedClassroom.major;
+                const majorName = updatedClassroom.major_name || updatedClassroom.majorName || '';
+                const frontendMajor = majors.find((m: Major) => 
+                    m.id === majorId?.toString() || 
+                    m.name === majorName ||
+                    (typeof majorId === 'number' && m.id === majorId.toString())
+                );
+                const transformedClassroom = {
+                    id: updatedClassroom.id?.toString() || classroom.id,
+                    name: updatedClassroom.name || classroom.name,
+                    majorId: frontendMajor?.id || majorId?.toString() || classroom.majorId,
+                    majorName: frontendMajor?.name || majorName || classroom.majorName,
+                };
+                const updatedClassrooms = classrooms.map(c => c.id === classroom.id ? transformedClassroom : c);
+                setClassrooms(updatedClassrooms);
+                return updatedClassrooms;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.message || `Failed to update classroom: ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const updatedClassrooms = classrooms.map(c => c.id === classroom.id ? classroom : c);
+            localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(updatedClassrooms));
+            setClassrooms(updatedClassrooms);
+            return updatedClassrooms;
+        }
+    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
+
+    const deleteClassroom = useCallback(async (id: string) => {
+        try {
+            // Try to use backend API first
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Get classroom ID from backend (need to find by name or frontend ID)
+            let classroomBackendId: number | null = null;
+            try {
+                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                if (classroomsResponse.ok) {
+                    const classroomsData = await classroomsResponse.json();
+                    const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                    const classroomToDelete = classrooms.find(c => c.id === id);
+                    if (classroomToDelete) {
+                        const backendClassroom = classroomsList.find((c: any) => 
+                            c.name === classroomToDelete.name || (c.id && c.id.toString() === id)
+                        );
+                        if (backendClassroom) {
+                            classroomBackendId = backendClassroom.id;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to get classroom ID from backend, falling back to localStorage:', error);
+            }
+
+            if (classroomBackendId !== null) {
+                const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/${classroomBackendId}/`, {
+                    method: 'DELETE',
+                    headers,
+                });
+
+                if (response.ok) {
+                    // Reload classrooms list
+                    const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
+                    if (classroomsResponse.ok) {
+                        const classroomsData = await classroomsResponse.json();
+                        const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
+                        // Transform backend format to frontend format
+                        const classroomsList = rawClassrooms.map((c: any) => {
+                            const majorId = c.major;
+                            const majorName = c.major_name || c.majorName || '';
+                            const frontendMajor = majors.find((m: Major) => 
+                                m.id === majorId?.toString() || 
+                                m.name === majorName ||
+                                (typeof majorId === 'number' && m.id === majorId.toString())
+                            );
+                            
+                            return {
+                                id: c.id?.toString() || `C${Date.now()}`,
+                                name: c.name || '',
+                                majorId: frontendMajor?.id || majorId?.toString() || '',
+                                majorName: frontendMajor?.name || majorName || '',
+                            };
+                        });
+                        setClassrooms(classroomsList);
+                        return classroomsList;
+                    }
+                }
+            }
+
+            // Fallback to localStorage
+            const updatedClassrooms = classrooms.filter(c => c.id !== id);
+            localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(updatedClassrooms));
+            setClassrooms(updatedClassrooms);
+            return updatedClassrooms;
+        } catch (error) {
+            console.warn('Backend API failed, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const updatedClassrooms = classrooms.filter(c => c.id !== id);
+            localStorage.setItem(`classrooms_${currentAcademicYear}`, JSON.stringify(updatedClassrooms));
+            setClassrooms(updatedClassrooms);
+            return updatedClassrooms;
+        }
+    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
     
     const addMilestoneTemplate = createApiCallback((template: Omit<MilestoneTemplate, 'id'>) => api.addCollectionItem(currentAcademicYear, 'milestoneTemplates', { ...template, id: `TPL${milestoneTemplates.length + 1}` }), setMilestoneTemplates, 'Failed to add template.');
     const updateMilestoneTemplate = createApiCallback((template: MilestoneTemplate) => api.updateCollection(currentAcademicYear, 'milestoneTemplates', milestoneTemplates.map(t => t.id === template.id ? template : t)), setMilestoneTemplates, 'Failed to update template.');

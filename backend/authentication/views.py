@@ -60,7 +60,7 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 class UserRegistrationView(generics.CreateAPIView):
     """
-    User registration view
+    User registration view with improved error handling
     """
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
@@ -68,23 +68,46 @@ class UserRegistrationView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         
-        with transaction.atomic():
-            user = serializer.save()
-            
-            # Generate tokens for new user
-            refresh = RefreshToken.for_user(user)
-            access_token = refresh.access_token
+        # Validate data and return detailed errors if validation fails
+        if not serializer.is_valid():
+            # Format errors for better frontend consumption
+            errors = {}
+            for field, field_errors in serializer.errors.items():
+                if isinstance(field_errors, list):
+                    errors[field] = field_errors[0] if len(field_errors) == 1 else field_errors
+                else:
+                    errors[field] = field_errors
             
             return Response({
-                'user': UserProfileSerializer(user).data,
-                'tokens': {
-                    'access': str(access_token),
-                    'refresh': str(refresh)
-                },
-                'message': 'User registered successfully'
-            }, status=status.HTTP_201_CREATED)
+                'errors': errors,
+                'message': 'Registration failed. Please check the errors below.',
+                'detail': 'Validation error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            with transaction.atomic():
+                user = serializer.save()
+                
+                # Generate tokens for new user
+                refresh = RefreshToken.for_user(user)
+                access_token = refresh.access_token
+                
+                return Response({
+                    'user': UserProfileSerializer(user).data,
+                    'tokens': {
+                        'access': str(access_token),
+                        'refresh': str(refresh)
+                    },
+                    'message': 'User registered successfully'
+                }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # Handle unexpected errors
+            return Response({
+                'errors': {'non_field_errors': [str(e)]},
+                'message': 'An error occurred during registration. Please try again.',
+                'detail': 'Internal server error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):

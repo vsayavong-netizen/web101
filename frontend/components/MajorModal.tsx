@@ -66,9 +66,9 @@ const MajorModal: React.FC<MajorModalProps> = ({ onClose, onSave, majorToEdit, a
   return (
     <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Box component="span" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
           {isEditMode ? t('editMajor') : t('addMajor')}
-        </Typography>
+        </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>

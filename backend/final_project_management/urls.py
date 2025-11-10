@@ -337,6 +337,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/auth/', include('authentication.urls')),
+    path('api/users/', include('accounts.urls')),
     path('api/projects/', include('projects.urls')),
     path('api/students/', include('students.urls')),
     path('api/advisors/', include('advisors.urls')),

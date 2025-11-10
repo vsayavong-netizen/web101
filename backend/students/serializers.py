@@ -128,7 +128,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class StudentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating new students."""
     
-    user_id = serializers.IntegerField(write_only=True)
+    user_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     
     class Meta:
         model = Student
@@ -140,17 +140,32 @@ class StudentCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Create a new student."""
-        user_id = validated_data.pop('user_id')
-        try:
-            user = User.objects.get(id=user_id, role='Student')
-            student = Student.objects.create(user=user, **validated_data)
-            return student
-        except User.DoesNotExist:
-            raise serializers.ValidationError("User not found or not a student.")
+        user_id = validated_data.pop('user_id', None)
+        
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                # Check if user role is Student, if not, update it
+                if user.role != 'Student':
+                    user.role = 'Student'
+                    user.save()
+                student = Student.objects.create(user=user, **validated_data)
+                return student
+            except User.DoesNotExist:
+                raise serializers.ValidationError({
+                    'user_id': f"User with id {user_id} not found."
+                })
+        else:
+            raise serializers.ValidationError({
+                'user_id': "user_id is required to create a student."
+            })
 
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating student information."""
+    
+    major = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    classroom = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     
     class Meta:
         model = Student
@@ -159,6 +174,50 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
             'is_active', 'total_credits', 'completed_credits',
             'emergency_contact', 'emergency_phone'
         ]
+    
+    def validate_major(self, value):
+        """Handle major as either string or ID."""
+        if value is None or value == '':
+            return value
+        
+        # If it's a number (ID), try to get the major name
+        try:
+            major_id = int(value)
+            # Try to import Major model
+            try:
+                from majors.models import Major
+                major = Major.objects.filter(id=major_id).first()
+                if major:
+                    return major.name
+            except ImportError:
+                pass
+        except (ValueError, TypeError):
+            pass
+        
+        # Return as string
+        return str(value)
+    
+    def validate_classroom(self, value):
+        """Handle classroom as either string or ID."""
+        if value is None or value == '':
+            return value
+        
+        # If it's a number (ID), try to get the classroom name
+        try:
+            classroom_id = int(value)
+            # Try to import Classroom model
+            try:
+                from classrooms.models import Classroom
+                classroom = Classroom.objects.filter(id=classroom_id).first()
+                if classroom:
+                    return classroom.name
+            except ImportError:
+                pass
+        except (ValueError, TypeError):
+            pass
+        
+        # Return as string
+        return str(value)
 
 
 class StudentAcademicRecordSerializer(serializers.ModelSerializer):

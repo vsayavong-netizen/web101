@@ -43,9 +43,19 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    const studentId = student.studentId?.trim();
-    if (!studentId) newErrors.studentId = t('studentIdRequired');
-    else if (allStudents.some(s => s.studentId?.toLowerCase() === studentId.toLowerCase() && s.studentId !== studentToEdit?.studentId)) newErrors.studentId = t('studentIdExists');
+    const studentId = student.studentId?.trim().toUpperCase();
+    if (!studentId) {
+      newErrors.studentId = t('studentIdRequired');
+    } else {
+      // Check for duplicate student ID (case-insensitive, exclude current student if editing)
+      const normalizedCurrentId = studentToEdit?.studentId?.trim().toUpperCase();
+      if (allStudents.some(s => {
+        const normalizedId = s.studentId?.trim().toUpperCase();
+        return normalizedId === studentId && normalizedId !== normalizedCurrentId;
+      })) {
+        newErrors.studentId = t('studentIdExists');
+      }
+    }
     if (!student.name?.trim()) newErrors.name = t('nameRequired');
     if (!student.surname?.trim()) newErrors.surname = t('surnameRequired');
     if (!student.major) newErrors.major = t('majorRequired');
@@ -75,9 +85,9 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
   return (
     <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Box component="span" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
           {isEditMode ? t('editStudent') : t('addStudent')}
-        </Typography>
+        </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -159,12 +169,37 @@ const StudentModal: React.FC<StudentModalProps> = ({ onClose, onSave, studentToE
                   value={student.classroom || ''}
                   onChange={e => handleChange('classroom', e.target.value)}
                   label={t('classroom')}
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      if (filteredClassrooms.length === 0 && student.major) {
+                        return (
+                          <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                            {t('noClassroomsForMajor') || 'No classrooms for this major'}
+                          </Typography>
+                        );
+                      }
+                      return '';
+                    }
+                    return selected;
+                  }}
+                  displayEmpty
                 >
-                  {filteredClassrooms.map(c => (
-                    <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
-                  ))}
+                  {filteredClassrooms.length > 0 ? (
+                    filteredClassrooms.map(c => (
+                      <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem value="" disabled>
+                      {student.major ? t('noClassroomsForMajor') || 'No classrooms available for this major' : t('selectMajorFirst') || 'Please select a major first'}
+                    </MenuItem>
+                  )}
                 </Select>
                 {errors.classroom && <FormHelperText>{errors.classroom}</FormHelperText>}
+                {!errors.classroom && filteredClassrooms.length === 0 && student.major && (
+                  <FormHelperText sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
+                    {t('noClassroomsForMajor') || 'No classrooms available for this major. Please add a classroom first.'}
+                  </FormHelperText>
+                )}
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12 }}>

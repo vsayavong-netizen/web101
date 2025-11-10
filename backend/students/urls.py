@@ -28,6 +28,7 @@ urlpatterns = [
     path('statistics/', views.student_statistics, name='student-statistics'),
     path('search/', views.student_search, name='student-search'),
     path('bulk-update/', views.bulk_update_students, name='bulk-update-students'),
+    path('bulk-delete/', views.bulk_delete_students, name='bulk-delete-students'),
     path('<int:student_id>/progress/', views.student_progress, name='student-progress'),
     
     # Dashboard and analytics (commented out until views are created)

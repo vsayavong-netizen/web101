@@ -35,16 +35,18 @@ const ClassroomModal: React.FC<ClassroomModalProps> = ({ onClose, onSave, classr
       return availableMajors[0]?.id || '';
   }, [classroomToEdit, availableMajors]);
 
-  const [name, setName] = useState(classroomToEdit?.name || '');
-  const [majorId, setMajorId] = useState<string>(getInitialMajorId());
+  const [name, setName] = useState('');
+  const [majorId, setMajorId] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (classroomToEdit) {
-      setName(classroomToEdit.name);
-      setMajorId(classroomToEdit.majorId);
+      setName(classroomToEdit.name || '');
+      setMajorId(classroomToEdit.majorId || '');
     } else {
-      setMajorId(availableMajors[0]?.id || '');
+      const initialMajorId = availableMajors[0]?.id || '';
+      setName('');
+      setMajorId(initialMajorId);
     }
   }, [classroomToEdit, availableMajors]);
 
@@ -90,9 +92,9 @@ const ClassroomModal: React.FC<ClassroomModalProps> = ({ onClose, onSave, classr
   return (
     <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Box component="span" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
           {isEditMode ? t('editClassroom') : t('addClassroom')}
-        </Typography>
+        </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -113,12 +115,12 @@ const ClassroomModal: React.FC<ClassroomModalProps> = ({ onClose, onSave, classr
             <InputLabel>{t('major')}</InputLabel>
             <Select
               id="major"
-              value={majorId}
+              value={majorId || ''}
               onChange={e => setMajorId(e.target.value)}
               label={t('major')}
             >
               {availableMajors.length === 0 ? (
-                <MenuItem disabled>{t('pleaseAddMajorFirst')}</MenuItem>
+                <MenuItem value="" disabled>{t('pleaseAddMajorFirst')}</MenuItem>
               ) : (
                 availableMajors.map(m => (
                   <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>

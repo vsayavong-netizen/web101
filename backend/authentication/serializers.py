@@ -71,9 +71,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
-    User registration serializer
+    User registration serializer with improved error handling
     """
-    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
     
     class Meta:
@@ -87,24 +87,81 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'current_academic_year': {'required': True}
         }
 
+    def validate_password(self, value):
+        """
+        Validate password with custom logic for student accounts
+        For student accounts, we allow slightly less strict validation
+        """
+        # Basic length check
+        if len(value) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+        
+        # For student accounts, we'll be more lenient with password validation
+        # but still enforce basic security
+        role = self.initial_data.get('role', '')
+        is_student = role == 'Student'
+        
+        if not is_student:
+            # For non-student accounts, use full Django password validation
+            try:
+                validate_password(value)
+            except ValidationError as e:
+                # Convert Django ValidationError to DRF format
+                errors = []
+                for error in e.messages:
+                    errors.append(error)
+                raise serializers.ValidationError(errors)
+        else:
+            # For student accounts, only check basic requirements
+            # (length already checked above)
+            has_upper = any(c.isupper() for c in value)
+            has_lower = any(c.islower() for c in value)
+            has_digit = any(c.isdigit() for c in value)
+            
+            if not (has_upper and has_lower and has_digit):
+                raise serializers.ValidationError(
+                    "Password must contain at least one uppercase letter, one lowercase letter, and one number."
+                )
+        
+        return value
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError("Passwords don't match.")
+            raise serializers.ValidationError({"password_confirm": "Passwords don't match."})
         return attrs
 
     def validate_username(self, value):
+        if not value:
+            raise serializers.ValidationError("Username is required.")
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exists.")
         return value
 
     def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("Email is required.")
+        # Normalize email
+        value = value.lower().strip()
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists.")
+        return value
+
+    def validate_role(self, value):
+        """Validate role value"""
+        valid_roles = ['Admin', 'Advisor', 'Student', 'DepartmentAdmin']
+        if value not in valid_roles:
+            raise serializers.ValidationError(
+                f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            )
         return value
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+        
+        # Normalize email
+        if 'email' in validated_data:
+            validated_data['email'] = validated_data['email'].lower().strip()
         
         user = User.objects.create_user(
             password=password,

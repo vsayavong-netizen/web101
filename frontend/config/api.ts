@@ -1,6 +1,21 @@
 // API Configuration
+// Priority: Environment variable > Development default > Production default
+const getApiBaseURL = () => {
+  // Check environment variable first
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  if (envUrl) return envUrl;
+  
+  // Development default
+  if (import.meta.env?.DEV || import.meta.env?.MODE === 'development') {
+    return 'http://localhost:8000';
+  }
+  
+  // Production default
+  return 'https://eduinfo.online';
+};
+
 export const API_CONFIG = {
-  BASE_URL: (import.meta as any).env?.VITE_API_BASE_URL || 'https://eduinfo.online',
+  BASE_URL: getApiBaseURL(),
   API_VERSION: (import.meta as any).env?.VITE_API_VERSION || 'v1',
   TIMEOUT: 10000, // 10 seconds
   RETRY_ATTEMPTS: 3,

@@ -469,8 +469,8 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
                 )}
                 <Box sx={{ display: { lg: 'none' } }}>
                     <Grid container spacing={2}>
-                        {paginatedStudents.map(student => (
-                            <Grid size={{ xs: 12, sm: 6 }} key={student.studentId}>
+                        {paginatedStudents.map((student, index) => (
+                            <Grid size={{ xs: 12, sm: 6 }} key={student.id || `${student.studentId}-${index}`}>
                                 <StudentCard 
                                     student={student} 
                                     user={user} 
@@ -509,9 +509,9 @@ const StudentManagement: React.FC<StudentManagementProps> = (props) => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {paginatedStudents.map(student => (
+                            {paginatedStudents.map((student, index) => (
                                 <TableRow 
-                                    key={student.studentId}
+                                    key={student.id || `${student.studentId}-${index}`}
                                     selected={selectedStudentIds.has(student.studentId)}
                                     sx={{
                                         '&:hover': { bgcolor: 'action.hover' },

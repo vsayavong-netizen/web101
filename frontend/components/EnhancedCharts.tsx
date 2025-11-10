@@ -50,8 +50,16 @@ export const EnhancedLineChart: React.FC<EnhancedLineChartProps> = ({
         {
           data: data.map((d) => d.label),
           scaleType: 'band' as const,
+          label: xAxisLabel,
         },
       ],
+      yAxis: yAxisLabel
+        ? [
+            {
+              label: yAxisLabel,
+            },
+          ]
+        : undefined,
       series: [
         {
           data: data.map((d) => d.value),
@@ -60,7 +68,7 @@ export const EnhancedLineChart: React.FC<EnhancedLineChartProps> = ({
         },
       ],
     };
-  }, [data, theme]);
+  }, [data, theme, xAxisLabel, yAxisLabel]);
 
   return (
     <Paper elevation={2} sx={{ p: 3, ...sx }}>
@@ -74,9 +82,8 @@ export const EnhancedLineChart: React.FC<EnhancedLineChartProps> = ({
           width={undefined}
           height={height}
           xAxis={chartData.xAxis}
+          yAxis={chartData.yAxis}
           series={chartData.series}
-          leftAxis={yAxisLabel ? { label: yAxisLabel } : undefined}
-          bottomAxis={xAxisLabel ? { label: xAxisLabel } : undefined}
           slotProps={{
             legend: showLegend
               ? {
@@ -123,8 +130,24 @@ export const EnhancedBarChart: React.FC<EnhancedBarChartProps> = ({
         {
           data: data.map((d) => d.label),
           scaleType: 'band' as const,
+          label: horizontal ? yAxisLabel : xAxisLabel,
         },
       ],
+      yAxis: horizontal
+        ? xAxisLabel
+          ? [
+              {
+                label: xAxisLabel,
+              },
+            ]
+          : undefined
+        : yAxisLabel
+        ? [
+            {
+              label: yAxisLabel,
+            },
+          ]
+        : undefined,
       series: [
         {
           data: data.map((d) => d.value),
@@ -133,7 +156,7 @@ export const EnhancedBarChart: React.FC<EnhancedBarChartProps> = ({
         },
       ],
     };
-  }, [data, theme]);
+  }, [data, theme, xAxisLabel, yAxisLabel, horizontal]);
 
   return (
     <Paper elevation={2} sx={{ p: 3, ...sx }}>
@@ -147,10 +170,9 @@ export const EnhancedBarChart: React.FC<EnhancedBarChartProps> = ({
           width={undefined}
           height={height}
           xAxis={chartData.xAxis}
+          yAxis={chartData.yAxis}
           series={chartData.series}
           layout={horizontal ? 'horizontal' : 'vertical'}
-          leftAxis={yAxisLabel ? { label: yAxisLabel } : undefined}
-          bottomAxis={xAxisLabel ? { label: xAxisLabel } : undefined}
           slotProps={{
             legend: showLegend
               ? {

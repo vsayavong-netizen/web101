@@ -270,20 +270,22 @@ const CommunicationLog: React.FC<CommunicationLogProps> = ({ projectGroup, user,
                                         {renderMessage(entry.message)}
                                     </Typography>
                                     {entry.file && (
-                                        <Divider sx={{ my: 1, borderColor: isCurrentUser ? 'rgba(255,255,255,0.2)' : 'divider' }} />
-                                        <Button
-                                            component="a"
-                                            href={getFileDataUrl(entry.file.fileId)}
-                                            download={entry.file.name}
-                                            startIcon={<PaperClipIcon />}
-                                            size="small"
-                                            sx={{
-                                                textTransform: 'none',
-                                                color: isCurrentUser ? 'inherit' : 'primary.main'
-                                            }}
-                                        >
-                                            {entry.file.name}
-                                        </Button>
+                                        <>
+                                            <Divider sx={{ my: 1, borderColor: isCurrentUser ? 'rgba(255,255,255,0.2)' : 'divider' }} />
+                                            <Button
+                                                component="a"
+                                                href={getFileDataUrl(entry.file.fileId)}
+                                                download={entry.file.name}
+                                                startIcon={<PaperClipIcon />}
+                                                size="small"
+                                                sx={{
+                                                    textTransform: 'none',
+                                                    color: isCurrentUser ? 'inherit' : 'primary.main'
+                                                }}
+                                            >
+                                                {entry.file.name}
+                                            </Button>
+                                        </>
                                     )}
                                 </Paper>
                             </Box>

@@ -63,13 +63,16 @@ const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> = ({
     const telRegex = /^[\d, -]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    const studentId = student.studentId?.trim();
+    const studentId = student.studentId?.trim().toUpperCase();
     if (!studentId) {
       newErrors.studentId = t('studentIdRequired');
     } else if (!studentIdRegex.test(studentId)) {
       newErrors.studentId = t('invalidIdFormat');
-    } else if (allStudents.some(s => s.studentId?.toLowerCase() === studentId.toLowerCase())) {
-      newErrors.studentId = t('studentIdExists');
+    } else {
+      // Check for duplicate student ID (case-insensitive)
+      if (allStudents.some(s => s.studentId?.trim().toUpperCase() === studentId)) {
+        newErrors.studentId = t('studentIdExists');
+      }
     }
 
     if (!student.name?.trim()) newErrors.name = t('nameRequired');

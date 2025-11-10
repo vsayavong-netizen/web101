@@ -38,9 +38,22 @@ class StudentSerializer(serializers.ModelSerializer):
         return obj.get_project_count()
 
     def validate_student_id(self, value):
-        """Validate student ID format"""
-        if Student.objects.filter(student_id=value).exists():
+        """Validate student ID format and uniqueness"""
+        if not value:
+            raise serializers.ValidationError("Student ID is required.")
+        
+        # Normalize student ID (uppercase for consistency)
+        value = value.strip().upper()
+        
+        # Check for duplicates (case-insensitive)
+        # Exclude current instance if updating
+        queryset = Student.objects.filter(student_id__iexact=value)
+        if self.instance:  # If updating, exclude current instance
+            queryset = queryset.exclude(pk=self.instance.pk)
+        
+        if queryset.exists():
             raise serializers.ValidationError("Student ID already exists.")
+        
         return value
 
     def validate_email(self, value):
@@ -51,21 +64,73 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create student with user account"""
-        # Create user account first
-        user_data = {
-            'username': validated_data.get('student_id'),
-            'email': validated_data.get('email', ''),
-            'first_name': validated_data.get('name', ''),
-            'last_name': validated_data.get('surname', ''),
-            'role': 'student',
-            'academic_year': validated_data.get('academic_year'),
-            'is_active': True
-        }
+        from django.db import transaction
+        import secrets
+        import string
         
-        user = User.objects.create_user(**user_data)
-        validated_data['user'] = user
+        def generate_secure_password():
+            """Generate a secure password that passes validation"""
+            uppercase = string.ascii_uppercase
+            lowercase = string.ascii_lowercase
+            digits = string.digits
+            special = '!@#$%&*'
+            
+            password = (
+                secrets.choice(uppercase) +
+                secrets.choice(lowercase) +
+                secrets.choice(digits) +
+                secrets.choice(special)
+            )
+            
+            all_chars = uppercase + lowercase + digits + special
+            for _ in range(8):  # Total 12 characters
+                password += secrets.choice(all_chars)
+            
+            # Shuffle
+            password_list = list(password)
+            secrets.SystemRandom().shuffle(password_list)
+            return ''.join(password_list)
         
-        return super().create(validated_data)
+        with transaction.atomic():
+            # Create user account first
+            # Normalize student_id (already validated and normalized in validate_student_id)
+            student_id = validated_data.get('student_id', '').strip().upper()
+            username = student_id.lower().replace('/', '_').replace('-', '_').replace(' ', '_')
+            email = validated_data.get('email', '').lower().strip() or f"{username}@university.edu"
+            
+            # Ensure student_id is set in validated_data (normalized)
+            validated_data['student_id'] = student_id
+            
+            # Ensure unique username and email
+            counter = 1
+            original_username = username
+            original_email = email
+            while User.objects.filter(username=username).exists() or User.objects.filter(email=email).exists():
+                username = f"{original_username}_{counter}"
+                email = f"{original_email.split('@')[0]}_{counter}@university.edu"
+                counter += 1
+            
+            password = generate_secure_password()
+            
+            user_data = {
+                'username': username,
+                'email': email,
+                'first_name': validated_data.get('name', ''),
+                'last_name': validated_data.get('surname', ''),
+                'role': 'Student',  # Must match User model ROLE_CHOICES
+                'current_academic_year': validated_data.get('academic_year', '2024-2025'),
+                'is_active': True,
+                'is_ai_assistant_enabled': True,
+                'must_change_password': True  # Force password change on first login
+            }
+            
+            try:
+                user = User.objects.create_user(password=password, **user_data)
+                validated_data['user'] = user
+            except Exception as e:
+                raise serializers.ValidationError(f"Failed to create user account: {str(e)}")
+            
+            return super().create(validated_data)
 
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
@@ -129,21 +194,74 @@ class AdvisorSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create advisor with user account"""
-        # Create user account first
-        user_data = {
-            'username': validated_data.get('name').replace(' ', '.').lower(),
-            'email': f"{validated_data.get('name').replace(' ', '.').lower()}@university.edu",
-            'first_name': validated_data.get('name').split()[0] if ' ' in validated_data.get('name') else validated_data.get('name'),
-            'last_name': ' '.join(validated_data.get('name').split()[1:]) if ' ' in validated_data.get('name') else '',
-            'role': 'advisor',
-            'academic_year': validated_data.get('academic_year'),
-            'is_active': True
-        }
+        from django.db import transaction
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
         
-        user = User.objects.create_user(**user_data)
-        validated_data['user'] = user
+        # Generate secure password for advisor
+        import secrets
+        import string
         
-        return super().create(validated_data)
+        def generate_secure_password():
+            """Generate a secure password that passes validation"""
+            uppercase = string.ascii_uppercase
+            lowercase = string.ascii_lowercase
+            digits = string.digits
+            special = '!@#$%&*'
+            
+            password = (
+                secrets.choice(uppercase) +
+                secrets.choice(lowercase) +
+                secrets.choice(digits) +
+                secrets.choice(special)
+            )
+            
+            all_chars = uppercase + lowercase + digits + special
+            for _ in range(8):  # Total 12 characters
+                password += secrets.choice(all_chars)
+            
+            # Shuffle
+            password_list = list(password)
+            secrets.SystemRandom().shuffle(password_list)
+            return ''.join(password_list)
+        
+        with transaction.atomic():
+            # Create user account first
+            name = validated_data.get('name', '')
+            username_base = name.replace(' ', '.').lower().replace("'", "").replace("-", "_")
+            username = username_base
+            email_base = f"{username_base}@university.edu"
+            
+            # Ensure unique username and email
+            counter = 1
+            while User.objects.filter(username=username).exists() or User.objects.filter(email=email_base).exists():
+                username = f"{username_base}{counter}"
+                email_base = f"{username_base}{counter}@university.edu"
+                counter += 1
+            
+            password = generate_secure_password()
+            
+            user_data = {
+                'username': username,
+                'email': email_base,
+                'first_name': name.split()[0] if ' ' in name else name,
+                'last_name': ' '.join(name.split()[1:]) if ' ' in name else '',
+                'role': 'Advisor',  # Must match User model ROLE_CHOICES
+                'current_academic_year': validated_data.get('academic_year', '2024-2025'),
+                'is_active': True,
+                'is_ai_assistant_enabled': True
+            }
+            
+            try:
+                user = User.objects.create_user(password=password, **user_data)
+                # Set must_change_password to True so advisor changes password on first login
+                user.must_change_password = True
+                user.save()
+                validated_data['user'] = user
+            except Exception as e:
+                raise serializers.ValidationError(f"Failed to create user account: {str(e)}")
+            
+            return super().create(validated_data)
 
 
 class AdvisorUpdateSerializer(serializers.ModelSerializer):
