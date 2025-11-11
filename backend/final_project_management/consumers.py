@@ -19,29 +19,75 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
         self.user = self.scope["user"]
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"NotificationConsumer.connect: user={self.user.username if hasattr(self.user, 'username') else 'Anonymous'}, authenticated={self.user.is_authenticated if hasattr(self.user, 'is_authenticated') else False}, user_type={type(self.user)}")
+        
         if not self.user.is_authenticated:
+            logger.warning(f"WebSocket connection rejected: user not authenticated")
             await self.close()
             return
-            
-        self.notification_group_name = f"notifications_{self.user.id}"
         
-        # Join notification group
-        await self.channel_layer.group_add(
-            self.notification_group_name,
-            self.channel_name
-        )
-        
+        # Accept connection first to establish WebSocket
         await self.accept()
         
-        # Send recent notifications
-        await self.send_recent_notifications()
+        try:
+            self.notification_group_name = f"notifications_{self.user.id}"
+            
+            # Also join role-based group for role-wide notifications
+            self.role_group_name = f"notifications_role_{self.user.role}"
+            self.all_group_name = "notifications_all"
+            
+            # Join notification groups only if channel_layer is available
+            if self.channel_layer is not None:
+                try:
+                    await self.channel_layer.group_add(
+                        self.notification_group_name,
+                        self.channel_name
+                    )
+                    await self.channel_layer.group_add(
+                        self.role_group_name,
+                        self.channel_name
+                    )
+                    await self.channel_layer.group_add(
+                        self.all_group_name,
+                        self.channel_name
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to join channel groups: {e}")
+            else:
+                logger.warning("Channel layer not available, skipping group join")
+            
+            # Send recent notifications
+            await self.send_recent_notifications()
+        except Exception as e:
+            logger.error(f"Error in NotificationConsumer.connect: {e}")
+            # Connection already accepted, so we can't close it here
+            # But we can still send error message if needed
     
     async def disconnect(self, close_code):
-        if hasattr(self, 'notification_group_name'):
-            await self.channel_layer.group_discard(
-                self.notification_group_name,
-                self.channel_name
-            )
+        if self.channel_layer is not None:
+            try:
+                if hasattr(self, 'notification_group_name'):
+                    await self.channel_layer.group_discard(
+                        self.notification_group_name,
+                        self.channel_name
+                    )
+                if hasattr(self, 'role_group_name'):
+                    await self.channel_layer.group_discard(
+                        self.role_group_name,
+                        self.channel_name
+                    )
+                if hasattr(self, 'all_group_name'):
+                    await self.channel_layer.group_discard(
+                        self.all_group_name,
+                        self.channel_name
+                    )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error leaving channel groups: {e}")
     
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -76,20 +122,27 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_user_notifications(self):
         """Get user's recent notifications"""
+        from django.db.models import Q
+        
         notifications = Notification.objects.filter(
-            user_ids__contains=[str(self.user.id)],
-            read=False
-        ).order_by('-timestamp')[:10]
+            Q(recipient_id=str(self.user.id)) |
+            Q(recipient_id=self.user.role) |
+            Q(recipient_type='all')
+        ).filter(
+            is_read=False
+        ).order_by('-created_at')[:10]
         
         return [
             {
                 'id': str(notif.id),
                 'title': notif.title,
                 'message': notif.message,
-                'type': notif.type,
-                'timestamp': notif.timestamp.isoformat(),
-                'read': notif.read,
-                'project_id': notif.project_id
+                'type': notif.notification_type,
+                'priority': notif.priority,
+                'timestamp': notif.created_at.isoformat(),
+                'read': notif.is_read,
+                'action_url': notif.action_url,
+                'action_text': notif.action_text
             }
             for notif in notifications
         ]

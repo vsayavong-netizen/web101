@@ -1,10 +1,12 @@
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import './src/styles/global.css';
-import HomePage from './components/HomePage';
-import LoginPage from './components/LoginPage';
-import WelcomePage from './components/WelcomePage';
+
+// Lazy load main pages for code splitting
+const HomePage = lazy(() => import('./components/HomePage'));
+const LoginPage = lazy(() => import('./components/LoginPage'));
+const WelcomePage = lazy(() => import('./components/WelcomePage'));
 import { ToastProvider } from './context/ToastContext';
 import { useToast } from './hooks/useToast';
 import ToastContainer from './components/ToastContainer';
@@ -14,86 +16,37 @@ import { User, Notification, Role, Student, Advisor, SystemSecurityIssue } from 
 import { useMockData, initialProjectGroups, initialStudents, initialAdvisors, initialMajors, initialClassrooms, initialMilestoneTemplates, initialAnnouncements } from './hooks/useMockData';
 import { v4 as uuidv4 } from 'uuid';
 import { useTranslations } from './hooks/useTranslations';
+import { useAcademicYear } from './hooks/useAcademicYear';
+import { useNotifications } from './hooks/useNotifications';
 import { GoogleGenAI, Type } from "@google/genai";
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<(User & Partial<Student & Advisor>) | null>(null);
   const [effectiveRole, setEffectiveRole] = useState<Role | null>(null);
-  const [currentAcademicYear, setCurrentAcademicYear] = useState<string>('');
-  const [availableYears, setAvailableYears] = useState<string[]>([]);
-  const [isYearReady, setIsYearReady] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isPasswordChangeForced, setIsPasswordChangeForced] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   
   const addToast = useToast();
   const t = useTranslations();
-
-  useEffect(() => {
-    const storedYears = localStorage.getItem('academicYears');
-    if (storedYears) {
-      const years = JSON.parse(storedYears);
-      setAvailableYears(years);
-      setCurrentAcademicYear(years[years.length - 1]); // Default to the latest year
-    } else {
-      // First-time setup for the very first academic year
-      const INITIAL_YEAR = '2024';
-      localStorage.setItem('academicYears', JSON.stringify([INITIAL_YEAR]));
-      localStorage.setItem(`projectGroups_${INITIAL_YEAR}`, JSON.stringify(initialProjectGroups));
-      localStorage.setItem(`students_${INITIAL_YEAR}`, JSON.stringify(initialStudents));
-      localStorage.setItem(`advisors_${INITIAL_YEAR}`, JSON.stringify(initialAdvisors));
-      localStorage.setItem(`majors_${INITIAL_YEAR}`, JSON.stringify(initialMajors));
-      localStorage.setItem(`classrooms_${INITIAL_YEAR}`, JSON.stringify(initialClassrooms));
-      localStorage.setItem(`milestoneTemplates_${INITIAL_YEAR}`, JSON.stringify(initialMilestoneTemplates));
-      localStorage.setItem(`announcements_${INITIAL_YEAR}`, JSON.stringify(initialAnnouncements));
-      localStorage.setItem(`notifications_${INITIAL_YEAR}`, '[]');
-      // Default settings are now handled by useMockData's loadFromStorage
-      setAvailableYears([INITIAL_YEAR]);
-      setCurrentAcademicYear(INITIAL_YEAR);
-    }
-    setIsYearReady(true);
-  }, []);
   
-  useEffect(() => {
-    if (currentAcademicYear) {
-        const stored = localStorage.getItem(`notifications_${currentAcademicYear}`);
-        setNotifications(stored ? JSON.parse(stored) : []);
-    } else {
-        setNotifications([]);
-    }
-  }, [currentAcademicYear]);
-
-  useEffect(() => {
-    if (currentAcademicYear) {
-        localStorage.setItem(`notifications_${currentAcademicYear}`, JSON.stringify(notifications));
-    }
-  }, [notifications, currentAcademicYear]);
-
-  const addNotification = useCallback((notificationData: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      id: uuidv4(),
-      timestamp: new Date().toISOString(),
-      read: false,
-      ...notificationData,
-    };
-    setNotifications(prev => [newNotification, ...prev]);
-  }, []);
-
-  const markNotificationsAsRead = useCallback((userId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        (n.userIds.includes(userId) && !n.read) ? { ...n, read: true } : n
-      )
-    );
-  }, []);
+  // Use Academic Year hook (connects to backend API)
+  const {
+    currentAcademicYear,
+    availableYears,
+    loading: academicYearLoading,
+    changeAcademicYear,
+    startNewYear,
+  } = useAcademicYear();
   
-  const markSingleNotificationAsRead = useCallback((notificationId: string) => {
-    setNotifications(prev => 
-        prev.map(n => 
-            n.id === notificationId ? { ...n, read: true } : n
-        )
-    );
-  }, []);
+  const isYearReady = !academicYearLoading && currentAcademicYear !== '';
+  
+  // Use Notifications hook (connects to backend API, replaces localStorage)
+  const {
+    notifications,
+    addNotification,
+    markNotificationsAsRead,
+    markSingleNotificationAsRead,
+  } = useNotifications(user?.id, currentAcademicYear);
 
   const mockDataHookResult = useMockData(currentAcademicYear, addNotification, addToast);
 
@@ -138,32 +91,16 @@ const AppContent: React.FC = () => {
     }
   }, [user, addToast, t]);
 
-  const handleStartNewYear = useCallback(() => {
+  const handleStartNewYear = useCallback(async () => {
     if (!currentAcademicYear) return;
     
-    const nextYear = String(parseInt(currentAcademicYear, 10) + 1);
-
-    const currentAdvisors = JSON.stringify(mockDataHookResult.advisors);
-    const currentMajors = JSON.stringify(mockDataHookResult.majors);
-    const currentClassrooms = JSON.stringify(mockDataHookResult.classrooms);
-    const currentTemplates = JSON.stringify(mockDataHookResult.milestoneTemplates);
-
-    localStorage.setItem(`advisors_${nextYear}`, currentAdvisors);
-    localStorage.setItem(`majors_${nextYear}`, currentMajors);
-    localStorage.setItem(`classrooms_${nextYear}`, currentClassrooms);
-    localStorage.setItem(`milestoneTemplates_${nextYear}`, currentTemplates);
-    localStorage.setItem(`projectGroups_${nextYear}`, '[]'); 
-    localStorage.setItem(`students_${nextYear}`, '[]');      
-    localStorage.setItem(`announcements_${nextYear}`, '[]'); 
-    localStorage.setItem(`notifications_${nextYear}`, '[]'); 
-
-    const newYearList = [...availableYears, nextYear];
-    localStorage.setItem('academicYears', JSON.stringify(newYearList));
-    setAvailableYears(newYearList);
-    setCurrentAcademicYear(nextYear);
-    addToast({type: 'success', message: t('newYearStarted').replace('${year}', nextYear)})
-
-  }, [currentAcademicYear, availableYears, mockDataHookResult.advisors, mockDataHookResult.majors, mockDataHookResult.classrooms, mockDataHookResult.milestoneTemplates, addToast, t]);
+    // Use API to create next academic year
+    await startNewYear();
+    
+    // Note: The hook will handle updating currentAcademicYear and availableYears
+    // We still need to initialize localStorage data for the new year (for backward compatibility)
+    // This will be handled by useMockData hook when it loads data for the new year
+  }, [currentAcademicYear, startNewYear]);
   
   const { loading, projectGroups, students, advisors, ...restOfMockData } = mockDataHookResult;
   const { bulkUpdateStudents, bulkUpdateAdvisors } = restOfMockData;
@@ -174,8 +111,24 @@ const AppContent: React.FC = () => {
     }
     
     const AUDIT_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour for demo purposes
+    
+    // Define storage key outside try-catch for proper scoping
     const lastAuditStorageKey = `lastAutomatedSecurityAudit_${currentAcademicYear}`;
-    const lastAuditTimestamp = localStorage.getItem(lastAuditStorageKey);
+    
+    // Try to get last audit timestamp from Backend API
+    let lastAuditTimestamp: string | null = null;
+    try {
+      const { apiClient } = await import('./utils/apiClient');
+      const response = await apiClient.getSecurityAuditTimestamp(currentAcademicYear);
+      if (response.data && response.data.timestamp) {
+        lastAuditTimestamp = response.data.timestamp;
+      }
+    } catch (error) {
+      console.warn('Failed to get security audit timestamp from API, trying localStorage:', error);
+      // Fallback to localStorage
+      lastAuditTimestamp = localStorage.getItem(lastAuditStorageKey);
+    }
+    
     if (lastAuditTimestamp && (Date.now() - parseInt(lastAuditTimestamp, 10) < AUDIT_INTERVAL)) {
       return;
     }
@@ -305,6 +258,17 @@ const AppContent: React.FC = () => {
       
       addToast({ type: 'info', message: t('automatedSecurityScanFoundIssues').replace('${count}', String(issues.length)) });
 
+      // Update security audit timestamp in Backend API
+      try {
+        const { apiClient } = await import('./utils/apiClient');
+        await apiClient.updateSecurityAuditTimestamp(currentAcademicYear);
+      } catch (error) {
+        console.warn('Failed to update security audit timestamp in API, using localStorage fallback:', error);
+        // Fallback to localStorage
+        const lastAuditStorageKey = `lastAutomatedSecurityAudit_${currentAcademicYear}`;
+        localStorage.setItem(lastAuditStorageKey, String(Date.now()));
+      }
+
     } catch (error) {
       console.error("Automated Security Audit failed:", error);
       addToast({ type: 'error', message: t('automatedSecurityScanFailed') });
@@ -349,43 +313,58 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Loading component for Suspense
+  const PageLoader = () => (
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      bgcolor: 'background.default'
+    }}>
+      <CircularProgress size={64} />
+    </Box>
+  );
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
-      {user && effectiveRole ? (
-        <HomePage 
-          user={user} 
-          effectiveRole={effectiveRole}
-          onSwitchRole={handleSwitchRole}
-          onLogout={handleLogout} 
-          projectGroups={projectGroups}
-          students={students}
-          advisors={advisors}
-          majors={mockDataHookResult.majors}
-          classrooms={mockDataHookResult.classrooms}
-          {...restOfMockData} 
-          currentAcademicYear={currentAcademicYear}
-          availableYears={availableYears}
-          onYearChange={setCurrentAcademicYear}
-          onStartNewYear={handleStartNewYear}
-          notifications={notifications}
-          onMarkNotificationsAsRead={markNotificationsAsRead}
-          onMarkSingleNotificationAsRead={markSingleNotificationAsRead}
-          isPasswordChangeForced={isPasswordChangeForced}
-          onPasswordChanged={() => setIsPasswordChangeForced(false)}
-        />
-      ) : showWelcome ? (
-        <WelcomePage onLogin={handleShowLogin} />
-      ) : (
-        <LoginPage 
-          onLogin={handleLogin} 
-          advisors={advisors} 
-          students={students} 
-          addStudent={restOfMockData.addStudent}
-          majors={mockDataHookResult.majors}
-          classrooms={mockDataHookResult.classrooms}
-          onBackToWelcome={() => setShowWelcome(true)}
-        />
-      )}
+      <Suspense fallback={<PageLoader />}>
+        {user && effectiveRole ? (
+          <HomePage 
+            user={user} 
+            effectiveRole={effectiveRole}
+            onSwitchRole={handleSwitchRole}
+            onLogout={handleLogout} 
+            projectGroups={projectGroups}
+            students={students}
+            advisors={advisors}
+            majors={mockDataHookResult.majors}
+            classrooms={mockDataHookResult.classrooms}
+            {...restOfMockData} 
+            currentAcademicYear={currentAcademicYear}
+            availableYears={availableYears}
+            onYearChange={changeAcademicYear}
+            onStartNewYear={handleStartNewYear}
+            notifications={notifications}
+            onMarkNotificationsAsRead={markNotificationsAsRead}
+            onMarkSingleNotificationAsRead={markSingleNotificationAsRead}
+            isPasswordChangeForced={isPasswordChangeForced}
+            onPasswordChanged={() => setIsPasswordChangeForced(false)}
+          />
+        ) : showWelcome ? (
+          <WelcomePage onLogin={handleShowLogin} />
+        ) : (
+          <LoginPage 
+            onLogin={handleLogin} 
+            advisors={advisors} 
+            students={students} 
+            addStudent={restOfMockData.addStudent}
+            majors={mockDataHookResult.majors}
+            classrooms={mockDataHookResult.classrooms}
+            onBackToWelcome={() => setShowWelcome(true)}
+          />
+        )}
+      </Suspense>
     </Box>
   );
 };

@@ -32,6 +32,11 @@ function_urls = [
     path('preferences/', views.NotificationPreferenceListView.as_view(), name='notification-preference-list'),
     path('preferences/<int:pk>/', views.NotificationPreferenceDetailView.as_view(), name='notification-preference-detail'),
     
+    # User-specific notifications
+    path('user/<str:user_id>/', views.user_notifications, name='user-notifications'),
+    path('mark-read/', views.mark_notifications_read, name='mark-notifications-read'),
+    path('mark-archived/', views.mark_notifications_archived, name='mark-notifications-archived'),
+    
     # Statistics and search
     path('statistics/', views.notification_statistics, name='notification-statistics'),
     path('search/', views.notification_search, name='notification-search'),

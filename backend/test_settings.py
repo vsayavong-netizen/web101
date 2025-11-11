@@ -100,8 +100,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',
     'django_extensions',
+    'channels',  # Required for WebSocket tests
     
     # Local apps
+    'core',  # Core security middleware
     'final_project_management',
     'accounts',
     'projects',
@@ -117,6 +119,11 @@ INSTALLED_APPS = [
     'analytics',
     'settings',
     'reports',
+    'file_management',
+    'communication',
+    'ai_enhancement',
+    'defense_management',
+    'system_monitoring',  # Required for URL imports
 ]
 
 # Test-specific REST framework settings
@@ -176,3 +183,13 @@ X_FRAME_OPTIONS = 'DENY'
 # Disable external API calls during tests
 AI_ANALYSIS_ENABLED = False
 NOTIFICATION_EMAIL_ENABLED = False
+
+# Channels configuration for tests (use in-memory channel layer)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# ASGI application for tests
+ASGI_APPLICATION = 'final_project_management.asgi.application'

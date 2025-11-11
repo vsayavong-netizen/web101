@@ -85,6 +85,17 @@ export const API_ENDPOINTS = {
     REPORTS: '/api/analytics/reports/',
     STATS: '/api/analytics/stats/',
   },
+  ACADEMIC_YEARS: {
+    LIST: '/api/settings/academic-years/',
+    CURRENT: '/api/settings/academic-years/current/',
+    AVAILABLE: '/api/settings/academic-years/available/',
+    CREATE: '/api/settings/academic-years/',
+    DETAIL: (id: number) => `/api/settings/academic-years/${id}/`,
+    UPDATE: (id: number) => `/api/settings/academic-years/${id}/`,
+    DELETE: (id: number) => `/api/settings/academic-years/${id}/`,
+    ACTIVATE: (id: number) => `/api/settings/academic-years/${id}/activate/`,
+    CREATE_NEXT: '/api/settings/academic-years/create_next_year/',
+  },
 };
 
 // WebSocket Configuration

@@ -75,35 +75,122 @@ export const initialAnnouncements: Announcement[] = [ { id: 'ANN01', title: 'Wel
 
 // --- HYBRID API LAYER (Backend with localStorage Fallback) ---
 // This object attempts to use a backend first, but falls back to localStorage if the backend is unavailable.
-// Use proxy in development, direct URL in production
-const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:8000';
-// Ensure no trailing slash to prevent double slashes
-const cleanAPIBaseURL = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+import { apiClient } from '../utils/apiClient';
 
 const api = {
   // GET all data for a year
   getAllDataForYear: async (year: string) => {
     try {
-        const token = localStorage.getItem('auth_token');
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
+        // Try to get data from Backend API
+        const [projectsRes, studentsRes, advisorsRes, majorsRes, classroomsRes] = await Promise.allSettled([
+            apiClient.getProjects({ academic_year: year }),
+            apiClient.getStudents({ academic_year: year }),
+            apiClient.getAdvisors({ academic_year: year }),
+            apiClient.getMajors({ academic_year: year }),
+            apiClient.getClassrooms({ academic_year: year }),
+        ]);
+
+        const data: any = {};
         
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+        if (projectsRes.status === 'fulfilled' && projectsRes.value.data) {
+            data.projectGroups = projectsRes.value.data;
+            localStorage.setItem(`projectGroups_${year}`, JSON.stringify(data.projectGroups));
         }
         
-        const url = cleanAPIBaseURL ? `${cleanAPIBaseURL}/api/data/${year}/` : `/api/data/${year}/`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers,
-        });
-        if (!response.ok) throw new Error(`Backend not available: ${response.statusText}`);
-        const data = await response.json();
-        // Sync with localStorage
-        Object.keys(data).forEach(key => {
-            if (data[key]) localStorage.setItem(`${key}_${year}`, JSON.stringify(data[key]));
-        });
+        if (studentsRes.status === 'fulfilled' && studentsRes.value.data) {
+            data.students = studentsRes.value.data;
+            localStorage.setItem(`students_${year}`, JSON.stringify(data.students));
+        }
+        
+        if (advisorsRes.status === 'fulfilled' && advisorsRes.value.data) {
+            data.advisors = advisorsRes.value.data;
+            localStorage.setItem(`advisors_${year}`, JSON.stringify(data.advisors));
+        }
+        
+        if (majorsRes.status === 'fulfilled' && majorsRes.value.data) {
+            data.majors = majorsRes.value.data;
+            localStorage.setItem(`majors_${year}`, JSON.stringify(data.majors));
+        }
+        
+        if (classroomsRes.status === 'fulfilled' && classroomsRes.value.data) {
+            data.classrooms = classroomsRes.value.data;
+            localStorage.setItem(`classrooms_${year}`, JSON.stringify(data.classrooms));
+        }
+
+        // Load settings from Backend API
+        const loadFromStorage = (key: string) => {
+            const stored = localStorage.getItem(`${key}_${year}`);
+            return stored ? JSON.parse(stored) : undefined;
+        };
+
+        // Map frontend keys to backend setting types
+        const settingTypeMap: Record<string, 'milestone_templates' | 'announcements' | 'defense_settings' | 'scoring_settings'> = {
+            'milestoneTemplates': 'milestone_templates',
+            'announcements': 'announcements',
+            'defenseSettings': 'defense_settings',
+            'scoringSettings': 'scoring_settings'
+        };
+
+        // Try to load settings from Backend API
+        const [milestoneTemplatesRes, announcementsRes, defenseSettingsRes, scoringSettingsRes] = await Promise.allSettled([
+            apiClient.getAppSetting('milestone_templates', year),
+            apiClient.getAppSetting('announcements', year),
+            apiClient.getAppSetting('defense_settings', year),
+            apiClient.getAppSetting('scoring_settings', year),
+        ]);
+
+        // Process milestone templates
+        if (milestoneTemplatesRes.status === 'fulfilled' && milestoneTemplatesRes.value.status >= 200 && milestoneTemplatesRes.value.status < 300) {
+            const value = milestoneTemplatesRes.value.data?.value;
+            if (value !== null && value !== undefined) {
+                data.milestoneTemplates = value;
+                localStorage.setItem(`milestoneTemplates_${year}`, JSON.stringify(value));
+            } else {
+                data.milestoneTemplates = loadFromStorage('milestoneTemplates') || initialMilestoneTemplates;
+            }
+        } else {
+            data.milestoneTemplates = loadFromStorage('milestoneTemplates') || initialMilestoneTemplates;
+        }
+
+        // Process announcements
+        if (announcementsRes.status === 'fulfilled' && announcementsRes.value.status >= 200 && announcementsRes.value.status < 300) {
+            const value = announcementsRes.value.data?.value;
+            if (value !== null && value !== undefined) {
+                data.announcements = value;
+                localStorage.setItem(`announcements_${year}`, JSON.stringify(value));
+            } else {
+                data.announcements = loadFromStorage('announcements') || initialAnnouncements;
+            }
+        } else {
+            data.announcements = loadFromStorage('announcements') || initialAnnouncements;
+        }
+
+        // Process defense settings
+        if (defenseSettingsRes.status === 'fulfilled' && defenseSettingsRes.value.status >= 200 && defenseSettingsRes.value.status < 300) {
+            const value = defenseSettingsRes.value.data?.value;
+            if (value !== null && value !== undefined) {
+                data.defenseSettings = value;
+                localStorage.setItem(`defenseSettings_${year}`, JSON.stringify(value));
+            } else {
+                data.defenseSettings = loadFromStorage('defenseSettings');
+            }
+        } else {
+            data.defenseSettings = loadFromStorage('defenseSettings');
+        }
+
+        // Process scoring settings
+        if (scoringSettingsRes.status === 'fulfilled' && scoringSettingsRes.value.status >= 200 && scoringSettingsRes.value.status < 300) {
+            const value = scoringSettingsRes.value.data?.value;
+            if (value !== null && value !== undefined) {
+                data.scoringSettings = value;
+                localStorage.setItem(`scoringSettings_${year}`, JSON.stringify(value));
+            } else {
+                data.scoringSettings = loadFromStorage('scoringSettings');
+            }
+        } else {
+            data.scoringSettings = loadFromStorage('scoringSettings');
+        }
+
         return data;
     } catch (error) {
         console.warn('Backend fetch failed, falling back to localStorage.', error);
@@ -114,8 +201,8 @@ const api = {
         return {
             projectGroups: loadFromStorage('projectGroups'), students: loadFromStorage('students'),
             advisors: loadFromStorage('advisors'), majors: loadFromStorage('majors'),
-            classrooms: loadFromStorage('classrooms'), milestoneTemplates: loadFromStorage('milestoneTemplates'),
-            announcements: loadFromStorage('announcements'), defenseSettings: loadFromStorage('defenseSettings'),
+            classrooms: loadFromStorage('classrooms'), milestoneTemplates: loadFromStorage('milestoneTemplates') || initialMilestoneTemplates,
+            announcements: loadFromStorage('announcements') || initialAnnouncements, defenseSettings: loadFromStorage('defenseSettings'),
             scoringSettings: loadFromStorage('scoringSettings'),
         };
     }
@@ -124,12 +211,32 @@ const api = {
   // Generic PUT to update a whole collection
   updateCollection: async <T extends { [key: string]: any }>(year: string, key: string, items: T[]): Promise<T[]> => {
     try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/${key}` : `/api/${year}/${key}`;
-        const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(items) });
-        if (!response.ok) throw new Error(`Failed to update collection ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
+        // Use appropriate API method based on key
+        if (key === 'projectGroups') {
+            // Update each project individually
+            await Promise.allSettled(items.map((item: any) => 
+                apiClient.updateProject(item.project?.projectId || item.id, item)
+            ));
+        } else if (key === 'students') {
+            await Promise.allSettled(items.map((item: any) => 
+                apiClient.updateStudent(item.studentId || item.id, item)
+            ));
+        } else if (key === 'advisors') {
+            await Promise.allSettled(items.map((item: any) => 
+                apiClient.updateAdvisor(item.id, item)
+            ));
+        } else if (key === 'majors') {
+            await Promise.allSettled(items.map((item: any) => 
+                apiClient.updateMajor(item.id, item)
+            ));
+        } else if (key === 'classrooms') {
+            await Promise.allSettled(items.map((item: any) => 
+                apiClient.updateClassroom(item.id, item)
+            ));
+        }
+        
+        localStorage.setItem(`${key}_${year}`, JSON.stringify(items));
+        return items;
     } catch (error) {
         console.warn(`Backend update failed for ${key}, falling back to localStorage.`, error);
         localStorage.setItem(`${key}_${year}`, JSON.stringify(items));
@@ -140,12 +247,32 @@ const api = {
   // Generic PATCH to bulk update fields
   bulkUpdateCollection: async <T extends { [key: string]: any }>(year: string, key: string, ids: string[], updates: Partial<T>): Promise<T[]> => {
     try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/${key}` : `/api/${year}/${key}`;
-        const response = await fetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, updates }) });
-        if (!response.ok) throw new Error(`Failed to bulk update collection ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
+        // Use appropriate API method based on key
+        if (key === 'students') {
+            await Promise.allSettled(ids.map(id => 
+                apiClient.updateStudent(id, updates)
+            ));
+        } else if (key === 'advisors') {
+            await Promise.allSettled(ids.map(id => 
+                apiClient.updateAdvisor(id, updates)
+            ));
+        } else if (key === 'majors') {
+            await Promise.allSettled(ids.map(id => 
+                apiClient.updateMajor(id, updates)
+            ));
+        } else if (key === 'classrooms') {
+            await Promise.allSettled(ids.map(id => 
+                apiClient.updateClassroom(id, updates)
+            ));
+        }
+        
+        // Update localStorage
+        const stored = localStorage.getItem(`${key}_${year}`);
+        const collection: T[] = stored ? JSON.parse(stored) : [];
+        const idKey = key === 'students' ? 'studentId' : 'id';
+        const updatedCollection = collection.map(item => ids.includes(item[idKey]) ? { ...item, ...updates } : item);
+        localStorage.setItem(`${key}_${year}`, JSON.stringify(updatedCollection));
+        return updatedCollection;
     } catch (error) {
         console.warn(`Backend bulk update failed for ${key}, falling back to localStorage.`, error);
         const stored = localStorage.getItem(`${key}_${year}`);
@@ -160,12 +287,29 @@ const api = {
   // Generic POST to add a single item
   addCollectionItem: async <T>(year: string, key: string, item: T): Promise<T[]> => {
     try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/${key}` : `/api/${year}/${key}`;
-        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
-        if (!response.ok) throw new Error(`Failed to add item to ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
+        let newItem: any;
+        // Use appropriate API method based on key
+        if (key === 'students') {
+            const res = await apiClient.createStudent(item);
+            newItem = res.data;
+        } else if (key === 'advisors') {
+            const res = await apiClient.createAdvisor(item);
+            newItem = res.data;
+        } else if (key === 'majors') {
+            const res = await apiClient.createMajor(item);
+            newItem = res.data;
+        } else if (key === 'classrooms') {
+            const res = await apiClient.createClassroom(item);
+            newItem = res.data;
+        } else {
+            newItem = item;
+        }
+        
+        const stored = localStorage.getItem(`${key}_${year}`);
+        const collection = stored ? JSON.parse(stored) : [];
+        const newCollection = [...collection, newItem];
+        localStorage.setItem(`${key}_${year}`, JSON.stringify(newCollection));
+        return newCollection;
     } catch(error) {
         console.warn(`Backend add failed for ${key}, falling back to localStorage.`, error);
         const stored = localStorage.getItem(`${key}_${year}`);
@@ -179,12 +323,23 @@ const api = {
   // Generic DELETE for a single item
   deleteCollectionItem: async <T extends { [key: string]: any }>(year: string, key: string, id: string): Promise<T[]> => {
     try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/${key}/${id}` : `/api/${year}/${key}/${id}`;
-        const response = await fetch(url, { method: 'DELETE' });
-        if (!response.ok) throw new Error(`Failed to delete item from ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
+        // Use appropriate API method based on key
+        if (key === 'students') {
+            await apiClient.deleteStudent(id);
+        } else if (key === 'advisors') {
+            await apiClient.deleteAdvisor(id);
+        } else if (key === 'majors') {
+            await apiClient.deleteMajor(id);
+        } else if (key === 'classrooms') {
+            await apiClient.deleteClassroom(id);
+        }
+        
+        const stored = localStorage.getItem(`${key}_${year}`);
+        const collection: T[] = stored ? JSON.parse(stored) : [];
+        const idKey = key === 'students' ? 'studentId' : 'id';
+        const newCollection = collection.filter(item => item[idKey] !== id);
+        localStorage.setItem(`${key}_${year}`, JSON.stringify(newCollection));
+        return newCollection;
     } catch (error) {
         console.warn(`Backend delete failed for ${key}, falling back to localStorage.`, error);
         const stored = localStorage.getItem(`${key}_${year}`);
@@ -199,12 +354,25 @@ const api = {
   // Generic POST for bulk deletion
   bulkDeleteCollection: async <T extends { [key: string]: any }>(year: string, key: string, ids: string[]): Promise<T[]> => {
     try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/${key}/bulk_delete` : `/api/${year}/${key}/bulk_delete`;
-        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
-        if (!response.ok) throw new Error(`Failed to bulk delete from ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
+        // Use appropriate API method based on key
+        await Promise.allSettled(ids.map(id => {
+            if (key === 'students') {
+                return apiClient.deleteStudent(id);
+            } else if (key === 'advisors') {
+                return apiClient.deleteAdvisor(id);
+            } else if (key === 'majors') {
+                return apiClient.deleteMajor(id);
+            } else if (key === 'classrooms') {
+                return apiClient.deleteClassroom(id);
+            }
+        }));
+        
+        const stored = localStorage.getItem(`${key}_${year}`);
+        const collection: T[] = stored ? JSON.parse(stored) : [];
+        const idKey = key === 'students' ? 'studentId' : 'id';
+        const newCollection = collection.filter(item => !ids.includes(item[idKey]));
+        localStorage.setItem(`${key}_${year}`, JSON.stringify(newCollection));
+        return newCollection;
     } catch(error) {
         console.warn(`Backend bulk delete failed for ${key}, falling back to localStorage.`, error);
         const stored = localStorage.getItem(`${key}_${year}`);
@@ -218,15 +386,36 @@ const api = {
 
   // POST to update a settings object
   updateSettings: async (year: string, key: string, settings: any) => {
-    try {
-        const url = API_BASE_URL ? `${API_BASE_URL}/api/${year}/settings/${key}` : `/api/${year}/settings/${key}`;
-        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) });
-        if (!response.ok) throw new Error(`Failed to update settings for ${key}`);
-        const data = await response.json();
-        localStorage.setItem(`${key}_${year}`, JSON.stringify(data));
-        return data;
-    } catch(error) {
-        console.warn(`Backend settings update failed for ${key}, falling back to localStorage.`, error);
+    // Map frontend keys to backend setting types
+    const settingTypeMap: Record<string, 'milestone_templates' | 'announcements' | 'defense_settings' | 'scoring_settings'> = {
+        'milestoneTemplates': 'milestone_templates',
+        'announcements': 'announcements',
+        'defenseSettings': 'defense_settings',
+        'scoringSettings': 'scoring_settings'
+    };
+
+    const settingType = settingTypeMap[key];
+    
+    if (settingType) {
+        // Try to update via Backend API
+        try {
+            const response = await apiClient.updateAppSetting(settingType, settings, year);
+            if (response.status >= 200 && response.status < 300) {
+                // Update successful, also cache in localStorage as backup
+                localStorage.setItem(`${key}_${year}`, JSON.stringify(settings));
+                return settings;
+            } else {
+                throw new Error(`Backend API returned status ${response.status}`);
+            }
+        } catch (error) {
+            console.warn(`Backend settings update failed for ${key}, falling back to localStorage.`, error);
+            // Fallback to localStorage
+            localStorage.setItem(`${key}_${year}`, JSON.stringify(settings));
+            return settings;
+        }
+    } else {
+        // Unknown setting type, use localStorage only
+        console.warn(`Unknown setting type: ${key}, using localStorage only.`);
         localStorage.setItem(`${key}_${year}`, JSON.stringify(settings));
         return settings;
     }
@@ -285,25 +474,24 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 const tryRefreshToken = async (): Promise<string | null> => {
                     if (!refreshToken) return null;
                     try {
-                        const response = await fetch(`${cleanAPIBaseURL}/api/auth/token/refresh/`, {
+                        // Use apiClient for token refresh
+                        const refreshResponse = await apiClient.request('/api/auth/token/refresh/', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ refresh: refreshToken }),
                         });
-                        if (response.ok) {
-                            const data = await response.json();
-                            const newToken = data.access || data.token;
+                        if (refreshResponse.status === 200 && refreshResponse.data) {
+                            const newToken = refreshResponse.data.access || refreshResponse.data.token;
                             if (newToken) {
-                                localStorage.setItem('auth_token', newToken);
+                                apiClient.setToken(newToken);
                                 return newToken;
                             }
                         } else {
                             // Refresh token is invalid, clear it
-                            localStorage.removeItem('refresh_token');
-                            localStorage.removeItem('auth_token');
+                            apiClient.clearToken();
                         }
                     } catch (error) {
                         console.warn('Failed to refresh token:', error);
+                        apiClient.clearToken();
                     }
                     return null;
                 };
@@ -311,91 +499,45 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 // If no access token but have refresh token, try to refresh first
                 if (!token && refreshToken) {
                     token = await tryRefreshToken();
-                    if (!token) {
-                        // Refresh failed, user needs to login
-                        console.warn('Token refresh failed. Please login to access data.');
-                        addToast({ type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อโหลดข้อมูล' });
-                        setProjectGroups([]);
-                        setStudents([]);
-                        setAdvisors([]);
-                        setMajors(initialMajors);
-                        setClassrooms(initialClassrooms);
-                        setLoading(false);
-                        return;
-                    }
                 }
 
-                // Helper function to make authenticated request
-                const makeRequest = async (url: string, headers: HeadersInit): Promise<Response> => {
-                    let response = await fetch(url, { headers });
-                    
-                    // If 401, try to refresh token and retry once
-                    if (response.status === 401 && refreshToken) {
-                        const newToken = await tryRefreshToken();
-                        if (newToken) {
-                            const newHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
-                            response = await fetch(url, { headers: newHeaders });
-                        } else {
-                            // Refresh failed, clear tokens
-                            localStorage.removeItem('refresh_token');
-                            localStorage.removeItem('auth_token');
-                        }
-                    }
-                    
-                    return response;
-                };
-
-                const headers: HeadersInit = {
-                    'Content-Type': 'application/json',
-                };
+                // Only make API calls if user is authenticated
+                // If not authenticated, skip API calls and use localStorage fallback
+                const isAuthenticated = !!token;
                 
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                } else {
-                    // No token and no refresh token - user needs to login
-                    console.warn('No authentication token found. Please login to access data.');
-                    addToast({ type: 'warning', message: 'กรุณาเข้าสู่ระบบเพื่อโหลดข้อมูล' });
-                    setProjectGroups([]);
-                    setStudents([]);
-                    setAdvisors([]);
-                    setMajors(initialMajors);
-                    setClassrooms(initialClassrooms);
-                    setLoading(false);
-                    return;
-                }
+                // Load data from real backend API using apiClient (only if authenticated)
+                const [projectsRes, studentsRes, advisorsRes, majorsRes, classroomsRes] = await Promise.allSettled(
+                    isAuthenticated ? [
+                        apiClient.getProjects({ academic_year: currentAcademicYear }),
+                        apiClient.getStudents({ academic_year: currentAcademicYear }),
+                        apiClient.getAdvisors({ academic_year: currentAcademicYear }),
+                        apiClient.getMajors({ academic_year: currentAcademicYear }),
+                        apiClient.getClassrooms({ academic_year: currentAcademicYear }),
+                    ] : [
+                        // If not authenticated, create rejected promises that will be handled gracefully
+                        Promise.resolve({ status: 401, data: null, error: 'Unauthorized' } as any),
+                        Promise.resolve({ status: 401, data: null, error: 'Unauthorized' } as any),
+                        Promise.resolve({ status: 401, data: null, error: 'Unauthorized' } as any),
+                        Promise.resolve({ status: 401, data: null, error: 'Unauthorized' } as any),
+                        Promise.resolve({ status: 401, data: null, error: 'Unauthorized' } as any),
+                    ]
+                );
 
-                // Load data from real backend API
-                const [projectsRes, studentsRes, advisorsRes, majorsRes, classroomsRes] = await Promise.allSettled([
-                    makeRequest(`${cleanAPIBaseURL}/api/projects/projects/`, headers),
-                    makeRequest(`${cleanAPIBaseURL}/api/students/`, headers),
-                    makeRequest(`${cleanAPIBaseURL}/api/advisors/`, headers),
-                    makeRequest(`${cleanAPIBaseURL}/api/majors/`, headers),
-                    makeRequest(`${cleanAPIBaseURL}/api/classrooms/`, headers),
-                ]);
-
-                // Helper function to process response
-                const processResponse = async <T,>(
-                    result: PromiseSettledResult<Response>,
+                // Helper function to process response (now handles ApiResponse from apiClient)
+                const processResponse = <T,>(
+                    result: PromiseSettledResult<any>,
                     errorMessage: string,
                     transformFn?: (data: any) => T[]
-                ): Promise<T[] | null> => {
+                ): T[] | null => {
                     if (result.status === 'fulfilled') {
-                        const response = result.value;
-                        if (response.ok) {
-                            try {
-                                const data = await response.json();
-                                if (transformFn) {
-                                    return transformFn(data);
-                                }
-                                return Array.isArray(data) ? data : (data.results || data.data || []);
-                            } catch (error) {
-                                // Only log if it's not a 401 (which is expected when not authenticated)
-                                if (response.status !== 401) {
-                                console.warn(`${errorMessage}: Failed to parse JSON`, error);
-                                }
-                                return null;
+                        const apiResponse = result.value;
+                        if (apiResponse && apiResponse.status >= 200 && apiResponse.status < 300) {
+                            const data = apiResponse.data;
+                            if (transformFn) {
+                                return transformFn(data);
                             }
-                        } else if (response.status === 401) {
+                            return Array.isArray(data) ? data : (data.results || data.data || []);
+                        } else if (apiResponse?.status === 401) {
                             // Don't log 401 errors as warnings - they're expected when user is not authenticated
                             // Only log if we have a token (meaning it might be expired)
                             if (token) {
@@ -403,21 +545,24 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                             }
                             return null;
                         } else {
-                            console.warn(`${errorMessage}: HTTP ${response.status}`);
+                            const status = apiResponse?.status || 'Unknown';
+                            if (status !== 401) {
+                                console.warn(`${errorMessage}: HTTP ${status}`);
+                            }
                             return null;
                         }
                     } else {
                         // Only log if it's not a network error that might be related to auth
                         const reason = String(result.reason || '');
                         if (!reason.includes('401') && !reason.includes('Unauthorized')) {
-                        console.warn(`${errorMessage}: ${result.reason}`);
+                            console.warn(`${errorMessage}: ${result.reason}`);
                         }
                         return null;
                     }
                 };
 
                 // Process projects
-                const projectsData = await processResponse(
+                const projectsData = processResponse(
                     projectsRes,
                     'Failed to load projects from backend',
                     (data: any) => {
@@ -439,7 +584,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 }
 
                 // Process students
-                const studentsData = await processResponse(
+                const studentsData = processResponse(
                     studentsRes,
                     'Failed to load students from backend',
                     (data: any) => {
@@ -477,7 +622,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 }
 
                 // Process advisors
-                const advisorsData = await processResponse(
+                const advisorsData = processResponse(
                     advisorsRes,
                     'Failed to load advisors from backend',
                     (data: any) => {
@@ -514,7 +659,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 }
 
                 // Process majors
-                const majorsData = await processResponse(majorsRes, 'Failed to load majors from backend');
+                const majorsData = processResponse(majorsRes, 'Failed to load majors from backend');
                 if (majorsData) {
                     setMajors(majorsData);
                 } else {
@@ -526,7 +671,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 }
 
                 // Process classrooms
-                const classroomsData = await processResponse(
+                const classroomsData = processResponse(
                     classroomsRes, 
                     'Failed to load classrooms from backend',
                     (data: any) => {
@@ -678,14 +823,11 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 comment: project.comment || 'Initial submission',
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/projects/projects/`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(backendPayload),
-            });
+            // Use apiClient to create project
+            const response = await apiClient.createProject(backendPayload);
 
-            if (response.ok) {
-                const createdProject = await response.json();
+            if (response.status >= 200 && response.status < 300) {
+                const createdProject = response.data;
                 // Transform backend response to frontend format and add to local state
                 const transformedGroup: ProjectGroup = {
                     project: newProject,
@@ -714,7 +856,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 addToast({ type: 'error', message: 'Failed to add project.' });
             }
         }
-    }, [advisors, addNotification, addProjectLogEntry, t, currentAcademicYear, addToast, cleanAPIBaseURL]);
+    }, [advisors, addNotification, addProjectLogEntry, t, currentAcademicYear, addToast]);
 
     const updateProject = useCallback(async (group: ProjectGroup, actor: User) => {
         const originalGroup = projectGroups.find(p => p.project.projectId === group.project.projectId);
@@ -890,14 +1032,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
 
             // Check for duplicate student ID in backend
             try {
-                const checkResponse = await fetch(`${cleanAPIBaseURL}/api/students/?student_id=${encodeURIComponent(studentId)}`, {
-                    method: 'GET',
-                    headers,
-                });
-                if (checkResponse.ok) {
-                    const checkData = await checkResponse.json();
+                // Use apiClient to check if student ID exists
+                const checkResponse = await apiClient.getStudents({ academic_year: currentAcademicYear });
+                if (checkResponse.status >= 200 && checkResponse.status < 300) {
+                    const checkData = checkResponse.data;
                     const studentsList = Array.isArray(checkData) ? checkData : (checkData.results || checkData.data || []);
-                    if (studentsList.length > 0) {
+                    const existingStudent = studentsList.find((s: any) => 
+                        (s.student_id || s.studentId || '').toLowerCase() === studentId.toLowerCase()
+                    );
+                    if (existingStudent) {
                         throw new Error(`Student ID ${studentId} already exists in the system`);
                     }
                 }
@@ -935,35 +1078,8 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                     email = `${username}_${timestamp}_${randomSuffix}@university.edu`;
                 }
                 
-                // Check if email exists in backend before creating
-                let emailAttempts = 0;
-                const originalEmail = email;
-                while (emailAttempts < 10) {
-                    try {
-                        const emailCheckResponse = await fetch(`${cleanAPIBaseURL}/api/users/?email=${encodeURIComponent(email)}`, {
-                            method: 'GET',
-                            headers,
-                        });
-                        
-                        if (emailCheckResponse.ok) {
-                            const emailCheckData = await emailCheckResponse.json();
-                            const usersList = Array.isArray(emailCheckData) ? emailCheckData : (emailCheckData.results || emailCheckData.data || []);
-                            if (usersList.length === 0) {
-                                // Email is available
-                                break;
-                            }
-                        }
-                        
-                        // Email exists, generate new one
-                        emailAttempts++;
-                        const timestamp = Date.now();
-                        const randomSuffix = Math.random().toString(36).substring(2, 9);
-                        email = `${originalEmail.split('@')[0]}_${timestamp}_${randomSuffix}@university.edu`;
-                    } catch {
-                        // If check fails, continue with current email
-                        break;
-                    }
-                }
+                // Skip email uniqueness check - backend will validate during registration
+                // If email already exists, backend will return an error and we'll handle it
                 
                 // Use secure password generator - ensure it's strong enough
                 let password = student.password;
@@ -995,10 +1111,9 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 
                 while (registrationAttempts < 3 && !registrationSuccess) {
                     try {
-                        createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
-                            method: 'POST',
-                            headers,
-                            body: JSON.stringify({
+                        // Use apiClient to register user
+                        try {
+                            createUserResponse = await apiClient.register({
                                 username: registrationAttempts > 0 ? `${username}_${registrationAttempts}` : username,
                                 email: registrationAttempts > 0 ? `${email.split('@')[0]}_${registrationAttempts}@university.edu` : email,
                                 password,
@@ -1007,29 +1122,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                                 last_name: student.surname || '',
                                 role: 'Student', // Must be capital S
                                 current_academic_year: academicYear,
-                            }),
-                        });
-                        
-                        if (createUserResponse.ok) {
-                            registrationSuccess = true;
-                            break;
-                        }
-                        
-                        // Parse error response - handle both JSON and text responses
-                        let errorData: any = {};
-                        try {
-                            const contentType = createUserResponse.headers.get('content-type');
-                            if (contentType && contentType.includes('application/json')) {
-                                errorData = await createUserResponse.json();
-                            } else {
-                                const responseText = await createUserResponse.text();
-                                try {
-                                    errorData = JSON.parse(responseText);
-                                } catch {
-                                    // If not JSON, try to extract error from text
-                                    errorData = { message: responseText || 'Unknown error' };
-                                }
+                            });
+                            
+                            if (createUserResponse.status >= 200 && createUserResponse.status < 300) {
+                                registrationSuccess = true;
+                                break;
                             }
+                            
+                            // Parse error response
+                            const errorData = createUserResponse.error || createUserResponse.data || { message: 'Unknown error' };
                         } catch (parseError) {
                             errorData = { message: 'Failed to parse error response' };
                         }
@@ -1087,7 +1188,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                     throw new Error('Failed to create user account after multiple attempts');
                 }
                 
-                const newUser = await createUserResponse.json();
+                const newUser = createUserResponse.data;
                 userId = newUser.user?.id || newUser.id;
             } catch (userError: any) {
                 // Extract error message properly
@@ -1147,10 +1248,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             let classroomBackendId: number;
             
             try {
-                // Get major ID
-                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
-                if (majorsResponse.ok) {
-                    const majorsData = await majorsResponse.json();
+                // Get major ID using apiClient
+                const majorsResponse = await apiClient.getMajors({ academic_year: currentAcademicYear });
+                if (majorsResponse.status >= 200 && majorsResponse.status < 300) {
+                    const majorsData = majorsResponse.data;
                     const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
                     const major = majors.find(m => m.name === student.major);
                     const backendMajor = majorsList.find((m: any) => 
@@ -1165,10 +1266,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                     throw new Error('Failed to fetch majors');
                 }
 
-                // Get classroom ID
-                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                if (classroomsResponse.ok) {
-                    const classroomsData = await classroomsResponse.json();
+                // Get classroom ID using apiClient
+                const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                    const classroomsData = classroomsResponse.data;
                     const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                     const classroom = classrooms.find(c => c.name === student.classroom);
                     const backendClassroom = classroomsList.find((c: any) => 
@@ -1209,14 +1310,11 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 academic_year: academicYear,
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/students/`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(studentPayload),
-            });
+            // Use apiClient to create student
+            const response = await apiClient.createStudent(studentPayload);
 
-            if (!response.ok) {
-                const errorData = await response.json();
+            if (response.status < 200 || response.status >= 300) {
+                const errorData = response.error || response.data || {};
                 
                 // Extract error messages from response
                 let errorMessage = 'Failed to create student record.';
@@ -1247,12 +1345,12 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 throw new Error(errorMessage);
             }
 
-            if (response.ok) {
-                const createdStudent = await response.json();
-                // Reload students list
-                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
-                if (studentsResponse.ok) {
-                    const studentsData = await studentsResponse.json();
+            if (response.status >= 200 && response.status < 300) {
+                const createdStudent = response.data;
+                // Reload students list using apiClient
+                const studentsResponse = await apiClient.getStudents({ academic_year: currentAcademicYear });
+                if (studentsResponse.status >= 200 && studentsResponse.status < 300) {
+                    const studentsData = studentsResponse.data;
                     const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
                     // Transform backend format to frontend format with unique ids
                     const studentsList = rawStudents.map((s: any, index: number) => {
@@ -1314,7 +1412,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setStudents(newCollection);
             return newCollection;
         }
-    }, [students, majors, classrooms, currentAcademicYear, cleanAPIBaseURL, setStudents]);
+    }, [students, majors, classrooms, currentAcademicYear, setStudents]);
     const updateStudent = useCallback(async (student: Student) => {
         try {
             // Try to use backend API first
@@ -1329,9 +1427,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             // Find student ID from backend (need to find by student_id)
             let studentBackendId: number | null = null;
             try {
-                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
-                if (studentsResponse.ok) {
-                    const studentsData = await studentsResponse.json();
+                // Use apiClient to get student ID
+                const studentsResponse = await apiClient.getStudents({ academic_year: currentAcademicYear });
+                if (studentsResponse.status >= 200 && studentsResponse.status < 300) {
+                    const studentsData = studentsResponse.data;
                     const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
                     const backendStudent = studentsList.find((s: any) => 
                         s.student_id === student.studentId || (s.id && s.id.toString() === student.id)
@@ -1345,15 +1444,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             }
 
             if (studentBackendId !== null) {
-                // Find major and classroom IDs from backend
+                // Find major and classroom IDs from backend using apiClient
                 let majorBackendId: number | undefined;
                 let classroomBackendId: number | undefined;
                 
                 try {
-                    // Get major ID
-                    const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
-                    if (majorsResponse.ok) {
-                        const majorsData = await majorsResponse.json();
+                    // Get major ID using apiClient
+                    const majorsResponse = await apiClient.getMajors({ academic_year: currentAcademicYear });
+                    if (majorsResponse.status >= 200 && majorsResponse.status < 300) {
+                        const majorsData = majorsResponse.data;
                         const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
                         const major = majors.find(m => m.name === student.major);
                         const backendMajor = majorsList.find((m: any) => 
@@ -1364,10 +1463,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                         }
                     }
 
-                    // Get classroom ID
-                    const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                    if (classroomsResponse.ok) {
-                        const classroomsData = await classroomsResponse.json();
+                    // Get classroom ID using apiClient
+                    const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                    if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                        const classroomsData = classroomsResponse.data;
                         const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                         const classroom = classrooms.find(c => c.name === student.classroom);
                         const backendClassroom = classroomsList.find((c: any) => 
@@ -1393,17 +1492,14 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 if (majorBackendId !== undefined) studentPayload.major = majorBackendId;
                 if (classroomBackendId !== undefined) studentPayload.classroom = classroomBackendId;
 
-                const response = await fetch(`${cleanAPIBaseURL}/api/students/${studentBackendId}/`, {
-                    method: 'PATCH',
-                    headers,
-                    body: JSON.stringify(studentPayload),
-                });
+                // Use apiClient to update student
+                const response = await apiClient.updateStudent(studentBackendId, studentPayload);
 
-                if (response.ok) {
-                    // Reload students list
-                    const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
-                    if (studentsResponse.ok) {
-                        const studentsData = await studentsResponse.json();
+                if (response.status >= 200 && response.status < 300) {
+                    // Reload students list using apiClient
+                    const studentsResponse = await apiClient.getStudents({ academic_year: currentAcademicYear });
+                    if (studentsResponse.status >= 200 && studentsResponse.status < 300) {
+                        const studentsData = studentsResponse.data;
                         const rawStudents = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
                         // Transform backend format to frontend format with unique ids
                         const studentsList = rawStudents.map((s: any, index: number) => {
@@ -1440,7 +1536,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             console.error('Failed to update student.', error);
             addToast({ type: 'error', message: 'Failed to update student.' });
         }
-    }, [students, majors, classrooms, currentAcademicYear, cleanAPIBaseURL, setStudents, addToast]);
+    }, [students, majors, classrooms, currentAcademicYear, setStudents, addToast]);
 
     const deleteStudent = createApiCallback(
         (id: string) => api.deleteCollectionItem(currentAcademicYear, 'students', id),
@@ -1476,23 +1572,22 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 .filter(s => studentIds.includes(s.id) || studentIds.includes(s.studentId || ''))
                 .map(s => s.studentId || s.id);
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/students/bulk-delete/`, {
-                method: 'DELETE',
-                headers,
-                body: JSON.stringify({
-                    student_ids: studentIdValues,
-                }),
-            });
+            // Use apiClient to bulk delete students (delete individually)
+            try {
+                await Promise.allSettled(
+                    studentIdValues.map(id => apiClient.deleteStudent(id))
+                );
+            } catch (error) {
+                console.warn('Bulk delete failed, some students may not be deleted:', error);
+            }
 
-            if (response.ok) {
-                // Reload students list
-                const studentsResponse = await fetch(`${cleanAPIBaseURL}/api/students/`, { headers });
-                if (studentsResponse.ok) {
-                    const studentsData = await studentsResponse.json();
-                    const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
-                    setStudents(studentsList);
-                    return studentsList;
-                }
+            // Reload students list using apiClient
+            const studentsResponse = await apiClient.getStudents({ academic_year: currentAcademicYear });
+            if (studentsResponse.status >= 200 && studentsResponse.status < 300) {
+                const studentsData = studentsResponse.data;
+                const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.results || studentsData.data || []);
+                setStudents(studentsList);
+                return studentsList;
             }
 
             // Fallback to localStorage
@@ -1508,7 +1603,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setStudents(updatedStudents);
             return updatedStudents;
         }
-    }, [students, currentAcademicYear, cleanAPIBaseURL, setStudents]);
+    }, [students, currentAcademicYear, setStudents]);
 
     const addAdvisor = useCallback(async (advisor: Omit<Advisor, 'id'>) => {
         try {
@@ -1531,55 +1626,27 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             // First, create or get user
             let userId: number;
             try {
-                // Try to find existing user
-                const userResponse = await fetch(`${cleanAPIBaseURL}/api/users/?username=${username}`, { headers });
-                if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    if (userData.results && userData.results.length > 0) {
-                        userId = userData.results[0].id;
-                    } else {
-                        // Create new user
-                        const createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
-                            method: 'POST',
-                            headers,
-                            body: JSON.stringify({
-                                username,
-                                email,
-                                first_name: firstName,
-                                last_name: lastName,
-                                password: advisor.password || 'password123',
-                                role: 'Advisor',
-                                academic_year: currentAcademicYear,
-                            }),
-                        });
-                        if (!createUserResponse.ok) {
-                            const errorData = await createUserResponse.json();
-                            throw new Error(errorData.detail || errorData.message || 'Failed to create user');
-                        }
-                        const newUser = await createUserResponse.json();
-                        userId = newUser.user?.id || newUser.id;
-                    }
-                } else {
-                    // Create new user if search fails
-                    const createUserResponse = await fetch(`${cleanAPIBaseURL}/api/auth/register/`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                            username,
-                            email,
-                            first_name: firstName,
-                            last_name: lastName,
-                            password: advisor.password || 'password123',
-                            role: 'Advisor',
-                            academic_year: currentAcademicYear,
-                        }),
+                // Try to create user using apiClient
+                // Note: Backend may not have user search endpoint, so we'll try to register directly
+                try {
+                    const createUserResponse = await apiClient.register({
+                        username,
+                        email,
+                        first_name: firstName,
+                        last_name: lastName,
+                        password: advisor.password || 'password123',
+                        role: 'Advisor',
+                        academic_year: currentAcademicYear,
                     });
-                    if (!createUserResponse.ok) {
-                        const errorData = await createUserResponse.json();
-                        throw new Error(errorData.detail || errorData.message || 'Failed to create user');
+                    if (createUserResponse.status >= 200 && createUserResponse.status < 300) {
+                        const newUser = createUserResponse.data;
+                        userId = newUser.user?.id || newUser.id;
+                    } else {
+                        throw new Error(createUserResponse.error || createUserResponse.message || 'Failed to create user');
                     }
-                    const newUser = await createUserResponse.json();
-                    userId = newUser.user?.id || newUser.id;
+                } catch (registerError: any) {
+                    // If username/email already exists, try to extract user ID from error or use a different approach
+                    throw new Error(registerError.message || 'Failed to create user');
                 }
             } catch (userError) {
                 console.warn('Failed to create/get user, falling back to localStorage:', userError);
@@ -1610,18 +1677,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 specialization_majors: specializationMajors,
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/advisors/`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(advisorPayload),
-            });
+            // Use apiClient to create advisor
+            const response = await apiClient.createAdvisor(advisorPayload);
 
-            if (response.ok) {
-                const createdAdvisor = await response.json();
-                // Reload advisors list
-                const advisorsResponse = await fetch(`${cleanAPIBaseURL}/api/advisors/`, { headers });
-                if (advisorsResponse.ok) {
-                    const advisorsData = await advisorsResponse.json();
+            if (response.status >= 200 && response.status < 300) {
+                const createdAdvisor = response.data;
+                // Reload advisors list using apiClient
+                const advisorsResponse = await apiClient.getAdvisors({ academic_year: currentAcademicYear });
+                if (advisorsResponse.status >= 200 && advisorsResponse.status < 300) {
+                    const advisorsData = advisorsResponse.data;
                     const advisorsList = Array.isArray(advisorsData) ? advisorsData : (advisorsData.results || advisorsData.data || []);
                     setAdvisors(advisorsList);
                     return advisorsList;
@@ -1631,7 +1695,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 setAdvisors(newList);
                 return newList;
             } else {
-                const errorData = await response.json();
+                const errorData = response.error || response.data || {};
                 throw new Error(errorData.detail || errorData.message || `Failed to create advisor: ${response.status}`);
             }
         } catch (error) {
@@ -1645,7 +1709,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setAdvisors(newCollection);
             return newCollection;
         }
-    }, [majors, advisors, currentAcademicYear, addToast, cleanAPIBaseURL, setAdvisors]);
+    }, [majors, advisors, currentAcademicYear, addToast, setAdvisors]);
     const updateAdvisor = useCallback(async (advisor: Advisor) => {
         try {
             const updatedAdvisors = await api.updateCollection(currentAcademicYear, 'advisors', advisors.map(a => a.id === advisor.id ? advisor : a));
@@ -1697,18 +1761,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 is_active: true,
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/majors/`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(majorPayload),
-            });
+            // Use apiClient to create major
+            const response = await apiClient.createMajor(majorPayload);
 
-            if (response.ok) {
-                const createdMajor = await response.json();
-                // Reload majors list
-                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
-                if (majorsResponse.ok) {
-                    const majorsData = await majorsResponse.json();
+            if (response.status >= 200 && response.status < 300) {
+                const createdMajor = response.data;
+                // Reload majors list using apiClient
+                const majorsResponse = await apiClient.getMajors({ academic_year: currentAcademicYear });
+                if (majorsResponse.status >= 200 && majorsResponse.status < 300) {
+                    const majorsData = majorsResponse.data;
                     const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
                     setMajors(majorsList);
                     return majorsList;
@@ -1718,7 +1779,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 setMajors(newList);
                 return newList;
             } else {
-                const errorData = await response.json();
+                const errorData = response.error || response.data || {};
                 throw new Error(errorData.detail || errorData.message || `Failed to create major: ${response.status}`);
             }
         } catch (error) {
@@ -1732,7 +1793,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setMajors(newCollection);
             return newCollection;
         }
-    }, [majors, currentAcademicYear, cleanAPIBaseURL, setMajors]);
+    }, [majors, currentAcademicYear, setMajors]);
     const updateMajor = createApiCallback((major: Major) => api.updateCollection(currentAcademicYear, 'majors', majors.map(m => m.id === major.id ? major : m)), setMajors, 'Failed to update major.');
     const deleteMajor = createApiCallback((id: string) => api.deleteCollectionItem(currentAcademicYear, 'majors', id), setMajors, 'Failed to delete major.');
     
@@ -1758,10 +1819,10 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             // We need to get the actual major ID from backend
             let majorBackendId: number;
             try {
-                // Try to find major in backend by name or abbreviation
-                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
-                if (majorsResponse.ok) {
-                    const majorsData = await majorsResponse.json();
+                // Try to find major in backend using apiClient
+                const majorsResponse = await apiClient.getMajors({ academic_year: currentAcademicYear });
+                if (majorsResponse.status >= 200 && majorsResponse.status < 300) {
+                    const majorsData = majorsResponse.data;
                     const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
                     const backendMajor = majorsList.find((m: any) => 
                         m.name === major.name || m.abbreviation === major.abbreviation
@@ -1800,18 +1861,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 is_active: true,
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(classroomPayload),
-            });
+            // Use apiClient to create classroom
+            const response = await apiClient.createClassroom(classroomPayload);
 
-            if (response.ok) {
-                const createdClassroom = await response.json();
-                // Reload classrooms list
-                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                if (classroomsResponse.ok) {
-                    const classroomsData = await classroomsResponse.json();
+            if (response.status >= 200 && response.status < 300) {
+                const createdClassroom = response.data;
+                // Reload classrooms list using apiClient
+                const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                    const classroomsData = classroomsResponse.data;
                     const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                     // Transform backend format to frontend format
                     const classroomsList = rawClassrooms.map((c: any) => {
@@ -1851,7 +1909,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 setClassrooms(newList);
                 return newList;
             } else {
-                const errorData = await response.json();
+                const errorData = response.error || response.data || {};
                 throw new Error(errorData.detail || errorData.message || `Failed to create classroom: ${response.status}`);
             }
         } catch (error) {
@@ -1865,7 +1923,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setClassrooms(newCollection);
             return newCollection;
         }
-    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
+    }, [classrooms, majors, currentAcademicYear, setClassrooms]);
     const updateClassroom = useCallback(async (classroom: Classroom) => {
         try {
             // Try to use backend API first
@@ -1883,12 +1941,12 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 throw new Error('Major not found');
             }
 
-            // Get major ID from backend
+            // Get major ID from backend using apiClient
             let majorBackendId: number;
             try {
-                const majorsResponse = await fetch(`${cleanAPIBaseURL}/api/majors/`, { headers });
-                if (majorsResponse.ok) {
-                    const majorsData = await majorsResponse.json();
+                const majorsResponse = await apiClient.getMajors({ academic_year: currentAcademicYear });
+                if (majorsResponse.status >= 200 && majorsResponse.status < 300) {
+                    const majorsData = majorsResponse.data;
                     const majorsList = Array.isArray(majorsData) ? majorsData : (majorsData.results || majorsData.data || []);
                     const backendMajor = majorsList.find((m: any) => 
                         m.name === major.name || m.abbreviation === major.abbreviation
@@ -1915,12 +1973,12 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 ? currentAcademicYear 
                 : `${currentAcademicYear}-${parseInt(currentAcademicYear) + 1}`;
 
-            // Get classroom ID from backend (need to find by name and major)
+            // Get classroom ID from backend using apiClient
             let classroomBackendId: number;
             try {
-                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                if (classroomsResponse.ok) {
-                    const classroomsData = await classroomsResponse.json();
+                const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                    const classroomsData = classroomsResponse.data;
                     const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                     const backendClassroom = classroomsList.find((c: any) => 
                         c.name === classroom.name || (c.id && c.id.toString() === classroom.id)
@@ -1951,18 +2009,15 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 is_active: true,
             };
 
-            const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/${classroomBackendId}/`, {
-                method: 'PATCH',
-                headers,
-                body: JSON.stringify(classroomPayload),
-            });
+            // Use apiClient to update classroom
+            const response = await apiClient.updateClassroom(classroomBackendId, classroomPayload);
 
-            if (response.ok) {
-                const updatedClassroom = await response.json();
-                // Reload classrooms list
-                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                if (classroomsResponse.ok) {
-                    const classroomsData = await classroomsResponse.json();
+            if (response.status >= 200 && response.status < 300) {
+                const updatedClassroom = response.data;
+                // Reload classrooms list using apiClient
+                const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                    const classroomsData = classroomsResponse.data;
                     const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                     // Transform backend format to frontend format
                     const classroomsList = rawClassrooms.map((c: any) => {
@@ -2002,7 +2057,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 setClassrooms(updatedClassrooms);
                 return updatedClassrooms;
             } else {
-                const errorData = await response.json();
+                const errorData = response.error || response.data || {};
                 throw new Error(errorData.detail || errorData.message || `Failed to update classroom: ${response.status}`);
             }
         } catch (error) {
@@ -2013,7 +2068,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setClassrooms(updatedClassrooms);
             return updatedClassrooms;
         }
-    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
+    }, [classrooms, majors, currentAcademicYear, setClassrooms]);
 
     const deleteClassroom = useCallback(async (id: string) => {
         try {
@@ -2026,12 +2081,12 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Get classroom ID from backend (need to find by name or frontend ID)
+            // Get classroom ID from backend using apiClient
             let classroomBackendId: number | null = null;
             try {
-                const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                if (classroomsResponse.ok) {
-                    const classroomsData = await classroomsResponse.json();
+                const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                    const classroomsData = classroomsResponse.data;
                     const classroomsList = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                     const classroomToDelete = classrooms.find(c => c.id === id);
                     if (classroomToDelete) {
@@ -2048,16 +2103,14 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             }
 
             if (classroomBackendId !== null) {
-                const response = await fetch(`${cleanAPIBaseURL}/api/classrooms/${classroomBackendId}/`, {
-                    method: 'DELETE',
-                    headers,
-                });
+                // Use apiClient to delete classroom
+                const response = await apiClient.deleteClassroom(classroomBackendId);
 
-                if (response.ok) {
-                    // Reload classrooms list
-                    const classroomsResponse = await fetch(`${cleanAPIBaseURL}/api/classrooms/`, { headers });
-                    if (classroomsResponse.ok) {
-                        const classroomsData = await classroomsResponse.json();
+                if (response.status >= 200 && response.status < 300) {
+                    // Reload classrooms list using apiClient
+                    const classroomsResponse = await apiClient.getClassrooms({ academic_year: currentAcademicYear });
+                    if (classroomsResponse.status >= 200 && classroomsResponse.status < 300) {
+                        const classroomsData = classroomsResponse.data;
                         const rawClassrooms = Array.isArray(classroomsData) ? classroomsData : (classroomsData.results || classroomsData.data || []);
                         // Transform backend format to frontend format
                         const classroomsList = rawClassrooms.map((c: any) => {
@@ -2095,7 +2148,7 @@ export const useMockData = (currentAcademicYear: string, addNotification: (notif
             setClassrooms(updatedClassrooms);
             return updatedClassrooms;
         }
-    }, [classrooms, majors, currentAcademicYear, cleanAPIBaseURL, setClassrooms]);
+    }, [classrooms, majors, currentAcademicYear, setClassrooms]);
     
     const addMilestoneTemplate = createApiCallback((template: Omit<MilestoneTemplate, 'id'>) => api.addCollectionItem(currentAcademicYear, 'milestoneTemplates', { ...template, id: `TPL${milestoneTemplates.length + 1}` }), setMilestoneTemplates, 'Failed to add template.');
     const updateMilestoneTemplate = createApiCallback((template: MilestoneTemplate) => api.updateCollection(currentAcademicYear, 'milestoneTemplates', milestoneTemplates.map(t => t.id === template.id ? template : t)), setMilestoneTemplates, 'Failed to update template.');

@@ -54,12 +54,56 @@ export default defineConfig(({ mode }) => {
         sourcemap: mode === 'development',
         rollupOptions: {
           output: {
-            manualChunks: {
-              vendor: ['react', 'react-dom'],
-              ui: ['@mui/material', '@mui/icons-material'],
-            }
+            manualChunks: (id) => {
+              // Vendor chunks
+              if (id.includes('node_modules')) {
+                // React core
+                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                  return 'vendor-react';
+                }
+                // MUI
+                if (id.includes('@mui')) {
+                  return 'vendor-ui';
+                }
+                // Google GenAI
+                if (id.includes('@google/genai')) {
+                  return 'vendor-ai';
+                }
+                // Other large dependencies
+                if (id.includes('exceljs') || id.includes('jszip')) {
+                  return 'vendor-utils';
+                }
+                // All other node_modules
+                return 'vendor';
+              }
+              // Application chunks
+              if (id.includes('/components/')) {
+                // Heavy components
+                if (id.includes('HomePage') || id.includes('ProjectTableEnhanced')) {
+                  return 'chunk-main';
+                }
+                // Management components
+                if (id.includes('Management') || id.includes('Dashboard')) {
+                  return 'chunk-management';
+                }
+                // Modal components
+                if (id.includes('Modal') || id.includes('Dialog')) {
+                  return 'chunk-modals';
+                }
+                // Other components
+                return 'chunk-components';
+              }
+              // Utils and hooks
+              if (id.includes('/utils/') || id.includes('/hooks/')) {
+                return 'chunk-utils';
+              }
+            },
+            chunkFileNames: 'assets/js/[name]-[hash].js',
+            entryFileNames: 'assets/js/[name]-[hash].js',
+            assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
           }
-        }
+        },
+        chunkSizeWarningLimit: 1000, // 1MB
       },
       optimizeDeps: {
         include: ['react', 'react-dom', '@mui/material', '@mui/icons-material']

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'communication',
     'ai_enhancement',
     'defense_management',
+    'system_monitoring',
 ]
 
 # Custom User Model
@@ -79,13 +80,11 @@ ALLOWED_ORIGINS = [
 ]
 
 # Channels Configuration
-REDIS_URL_ENV = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
+# Use in-memory channel layer for development (no Redis dependency)
+# For production, switch to Redis channel layer
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL_ENV],
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
 
@@ -173,6 +172,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Logging Configuration
+# Create logs directory if it doesn't exist
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -190,25 +192,40 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'logs/django.log',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'error.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
     'loggers': {
         'django': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
         },
         'final_project_management': {
             'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
         },
     },
 }
@@ -239,6 +256,10 @@ MIDDLEWARE = [
     # Custom middleware (simplified)
     'final_project_management.middleware.StaticFileMimeTypeMiddleware',
     'final_project_management.middleware.FrontendAssetMiddleware',
+    
+    # Monitoring middleware
+    'system_monitoring.middleware.PerformanceMonitoringMiddleware',
+    'system_monitoring.middleware.ErrorLoggingMiddleware',
 ]
 
 # Security settings are handled by SecurityHeadersMiddleware in core/middleware/security.py
@@ -362,44 +383,8 @@ if not DEBUG:
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# JWT Settings
-from datetime import timedelta
-
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-}
-
-# CORS settings
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173',
-    cast=lambda v: [s.strip() for s in v.split(',')]
-)
-
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in development
-CORS_ALLOWED_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-CORS_ALLOWED_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
+# Note: JWT Settings are already defined above (lines 110-135)
+# Note: CORS settings are already defined above (lines 92-105)
 
 # Celery Configuration
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=config('REDIS_URL', default='redis://127.0.0.1:6379/0'))

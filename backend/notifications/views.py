@@ -34,10 +34,24 @@ class NotificationListView(generics.ListCreateAPIView):
         """Filter notifications based on user."""
         user = self.request.user
         return Notification.objects.filter(
-            Q(recipient_id=user.id) |
+            Q(recipient_id=str(user.id)) |
             Q(recipient_id=user.role) |
             Q(recipient_type='all')
         )
+    
+    def perform_create(self, serializer):
+        """Create notification and send via WebSocket."""
+        notification = serializer.save()
+        
+        # Send notification via WebSocket
+        try:
+            from .websocket_utils import broadcast_notification
+            broadcast_notification(notification)
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send notification via WebSocket: {e}")
 
 
 class NotificationDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -339,10 +353,29 @@ def user_notifications(request, user_id):
 def mark_notifications_read(request):
     """Mark notifications as read."""
     notification_ids = request.data.get('notification_ids', [])
+    recipient_id = request.data.get('recipient_id')
+    
+    # If notification_ids is empty but recipient_id is provided, mark all for that user
+    if not notification_ids and recipient_id:
+        notifications = Notification.objects.filter(
+            Q(recipient_id=recipient_id) |
+            Q(recipient_id=request.user.role) |
+            Q(recipient_type='all')
+        ).filter(is_read=False)
+        
+        updated_count = notifications.update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+        
+        return Response({
+            'message': f'Marked {updated_count} notifications as read.',
+            'updated_count': updated_count
+        })
     
     if not notification_ids:
         return Response(
-            {'error': 'notification_ids is required.'},
+            {'error': 'notification_ids or recipient_id is required.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     

@@ -1,53 +1,56 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Fab } from '@mui/material';
+import React, { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
+import { Box, Fab, CircularProgress } from '@mui/material';
 import { AutoAwesome as SparklesIconMui } from '@mui/icons-material';
 import Header from './Header';
 import ProjectTableEnhanced from './ProjectTableEnhanced';
-import { RegisterProjectModal } from './RegisterProjectModal';
 import ProjectFilters from './ProjectFilters';
 import ConfirmationModal from './ConfirmationModal';
 import ProjectDetailView from './ProjectDetailView';
-import StudentManagement from './StudentManagement';
-import AdvisorManagement from './AdvisorManagement';
-import DepartmentAdminManagement from './DepartmentAdminManagement';
-import MajorManagement from './MajorManagement';
-import ClassroomManagement from './ClassroomManagement';
 import { StudentWelcome } from './StudentWelcome';
-import AdvisorActionModal from './AdvisorActionModal';
-import MilestoneTemplateManagement from './MilestoneTemplateManagement';
-import ProjectTimeline from './ProjectTimeline';
-import AnalyticsDashboardEnhanced from './AnalyticsDashboardEnhanced';
-import AnnouncementsManagement from './AnnouncementsManagement';
-import ProfileModal from './ProfileModal';
-import SubmissionsManagement from './SubmissionsManagement';
-import CommitteeManagement from './CommitteeManagement';
-import ScoringManagement from './ScoringManagement';
-import { FinalProjectManagement } from './FinalProjectManagement';
-import { SettingsPage } from './SettingsPage';
-import CalendarView from './CalendarView';
-import { ReportingPage } from './ReportingPage';
-import AiToolsPage from './AiToolsPage';
+
+// Lazy load heavy components for code splitting
+const RegisterProjectModal = lazy(() => import('./RegisterProjectModal').then(module => ({ default: module.RegisterProjectModal })));
+const StudentManagement = lazy(() => import('./StudentManagement'));
+const AdvisorManagement = lazy(() => import('./AdvisorManagement'));
+const DepartmentAdminManagement = lazy(() => import('./DepartmentAdminManagement'));
+const MajorManagement = lazy(() => import('./MajorManagement'));
+const ClassroomManagement = lazy(() => import('./ClassroomManagement'));
+const AdvisorActionModal = lazy(() => import('./AdvisorActionModal'));
+const MilestoneTemplateManagement = lazy(() => import('./MilestoneTemplateManagement'));
+const ProjectTimeline = lazy(() => import('./ProjectTimeline'));
+const AnalyticsDashboardEnhanced = lazy(() => import('./AnalyticsDashboardEnhanced'));
+const AnnouncementsManagement = lazy(() => import('./AnnouncementsManagement'));
+const ProfileModal = lazy(() => import('./ProfileModal'));
+const SubmissionsManagement = lazy(() => import('./SubmissionsManagement'));
+const CommitteeManagement = lazy(() => import('./CommitteeManagement'));
+const ScoringManagement = lazy(() => import('./ScoringManagement'));
+const FinalProjectManagement = lazy(() => import('./FinalProjectManagement').then(module => ({ default: module.FinalProjectManagement })));
+const SettingsPage = lazy(() => import('./SettingsPage').then(module => ({ default: module.SettingsPage })));
+const CalendarView = lazy(() => import('./CalendarView'));
+const ReportingPage = lazy(() => import('./ReportingPage').then(module => ({ default: module.ReportingPage })));
+const AiToolsPage = lazy(() => import('./AiToolsPage'));
+const AdminDashboard = lazy(() => import('./AdminDashboard').then(module => ({ default: module.AdminDashboard })));
+const StudentDashboard = lazy(() => import('./StudentDashboard').then(module => ({ default: module.StudentDashboard })));
+const AdvisorDashboard = lazy(() => import('./AdvisorDashboard').then(module => ({ default: module.AdvisorDashboard })));
+const NotificationsPage = lazy(() => import('./NotificationsPage'));
+const TopicSuggesterModal = lazy(() => import('./TopicSuggesterModal'));
+const AiChatWidget = lazy(() => import('./AiChatWidget'));
+const CommunicationAnalysisModal = lazy(() => import('./CommunicationAnalysisModal'));
+const AiWritingAssistantModal = lazy(() => import('./AiWritingAssistantModal'));
+const BulkMessageModal = lazy(() => import('./BulkMessageModal'));
 import { useToast } from '../hooks/useToast';
 import { ProjectGroup, Advisor, Student, User, ProjectStatus, Major, Classroom, Project, Milestone, MilestoneStatus, Notification, MilestoneTemplate, Announcement, FileUploadPayload, FinalSubmissionStatus, DefenseSettings, ScoringSettings, LogEntry, ProjectHealthStatus, MilestoneUpdatePayload, SystemHealthIssue, Role, SystemSecurityIssue, MilestoneReviewItem, CommunicationAnalysisResult, GeneralSettings, GrammarCheckResult } from '../types';
 import { ExcelUtils } from '../utils/excelUtils';
 import { useTour } from '../hooks/useTour';
 import { getStudentWelcomeTour, getAdvisorDashboardTour } from '../config/tourSteps';
 import TourGuide from './TourGuide';
-import { AdvisorDashboard } from './AdvisorDashboard';
-import TopicSuggesterModal from './TopicSuggesterModal';
-import AiChatWidget from './AiChatWidget';
 import { GoogleGenAI, Type } from "@google/genai";
 import { formatTimeAgo } from '../utils/timeUtils';
-import { AdminDashboard } from './AdminDashboard';
-import { StudentDashboard } from './StudentDashboard';
-import NotificationsPage from './NotificationsPage';
 import { useTranslations } from '../hooks/useTranslations';
 import BulkActionsBar from './BulkActionsBar';
-import BulkMessageModal from './BulkMessageModal';
 import { SparklesIcon } from './icons';
 // Pagination is now handled by DataGrid internally
-import CommunicationAnalysisModal from './CommunicationAnalysisModal';
-import AiWritingAssistantModal from './AiWritingAssistantModal';
+// Note: TopicSuggesterModal, AiChatWidget, CommunicationAnalysisModal, AiWritingAssistantModal, BulkMessageModal are lazy loaded above
 
 type SortDirection = 'ascending' | 'descending';
 type SortKey = 'studentId' | 'projectId' | 'advisorName';
@@ -648,14 +651,35 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
     setOriginalText('');
 
     try {
-        const dataUrl = localStorage.getItem(`file_${file.fileId}`);
-        if (!dataUrl) {
+        // Try to get file from Backend API first
+        const { getFile } = await import('../utils/fileStorage');
+        let fileData: string | null = null;
+        
+        try {
+            fileData = await getFile(file.fileId);
+        } catch (apiError) {
+            console.warn('Backend file fetch failed, trying localStorage:', apiError);
+            fileData = localStorage.getItem(`file_${file.fileId}`);
+        }
+        
+        if (!fileData) {
             addToast({ type: 'error', message: t('fileNotFound') });
             throw new Error('File not found');
         }
 
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
+        // Handle URL or data URL
+        let blob: Blob;
+        if (fileData.startsWith('http')) {
+            const response = await fetch(fileData);
+            blob = await response.blob();
+        } else if (fileData.startsWith('data:')) {
+            const response = await fetch(fileData);
+            blob = await response.blob();
+        } else {
+            // Assume it's a data URL
+            const response = await fetch(fileData);
+            blob = await response.blob();
+        }
         
         const textFileTypes = ['text/plain', 'text/markdown', 'text/csv'];
         if (!blob.type.startsWith('text/') && !textFileTypes.includes(blob.type)) {
@@ -887,41 +911,41 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
           </Box>
         );
       case 'students':
-        return <StudentManagement user={user} students={students} projectGroups={projectGroups} majors={majors} classrooms={classrooms} addStudent={addStudent} updateStudent={updateStudent} deleteStudent={deleteStudent} bulkAddOrUpdateStudents={bulkAddOrUpdateStudents} bulkUpdateStudents={bulkUpdateStudents} bulkDeleteStudents={bulkDeleteStudents} initialFilter={studentPageFilter} onFilterConsumed={() => setStudentPageFilter(undefined)} />;
+        return <Suspense fallback={<ComponentLoader />}><StudentManagement user={user} students={students} projectGroups={projectGroups} majors={majors} classrooms={classrooms} addStudent={addStudent} updateStudent={updateStudent} deleteStudent={deleteStudent} bulkAddOrUpdateStudents={bulkAddOrUpdateStudents} bulkUpdateStudents={bulkUpdateStudents} bulkDeleteStudents={bulkDeleteStudents} initialFilter={studentPageFilter} onFilterConsumed={() => setStudentPageFilter(undefined)} /></Suspense>;
       case 'advisors':
-        return <AdvisorManagement user={user} advisors={advisors} projectGroups={projectGroups} majors={majors} advisorProjectCounts={advisorProjectCounts} committeeCounts={committeeCounts} addAdvisor={addAdvisor} updateAdvisor={updateAdvisor} deleteAdvisor={deleteAdvisor} deleteAdvisors={deleteAdvisors} bulkAddOrUpdateAdvisors={bulkAddOrUpdateAdvisors} bulkUpdateAdvisors={bulkUpdateAdvisors} />;
+        return <Suspense fallback={<ComponentLoader />}><AdvisorManagement user={user} advisors={advisors} projectGroups={projectGroups} majors={majors} advisorProjectCounts={advisorProjectCounts} committeeCounts={committeeCounts} addAdvisor={addAdvisor} updateAdvisor={updateAdvisor} deleteAdvisor={deleteAdvisor} deleteAdvisors={deleteAdvisors} bulkAddOrUpdateAdvisors={bulkAddOrUpdateAdvisors} bulkUpdateAdvisors={bulkUpdateAdvisors} /></Suspense>;
       case 'deptAdmins':
-        return <DepartmentAdminManagement user={user} advisors={advisors} projectGroups={projectGroups} majors={majors} addAdvisor={addAdvisor} updateAdvisor={updateAdvisor} />;
+        return <Suspense fallback={<ComponentLoader />}><DepartmentAdminManagement user={user} advisors={advisors} projectGroups={projectGroups} majors={majors} addAdvisor={addAdvisor} updateAdvisor={updateAdvisor} /></Suspense>;
       case 'majors':
-        return <MajorManagement majors={majors} students={students} classrooms={classrooms} projectGroups={projectGroups} addMajor={addMajor} updateMajor={updateMajor} deleteMajor={deleteMajor} />;
+        return <Suspense fallback={<ComponentLoader />}><MajorManagement majors={majors} students={students} classrooms={classrooms} projectGroups={projectGroups} addMajor={addMajor} updateMajor={updateMajor} deleteMajor={deleteMajor} /></Suspense>;
       case 'classrooms':
-        return <ClassroomManagement user={user} classrooms={classrooms} students={students} majors={majors} projectGroups={projectGroups} addClassroom={addClassroom} updateClassroom={updateClassroom} deleteClassroom={deleteClassroom} />;
+        return <Suspense fallback={<ComponentLoader />}><ClassroomManagement user={user} classrooms={classrooms} students={students} majors={majors} projectGroups={projectGroups} addClassroom={addClassroom} updateClassroom={updateClassroom} deleteClassroom={deleteClassroom} /></Suspense>;
       case 'milestoneTemplates':
-        return <MilestoneTemplateManagement templates={milestoneTemplates} addTemplate={addMilestoneTemplate} updateTemplate={updateMilestoneTemplate} deleteTemplate={deleteMilestoneTemplate} />;
+        return <Suspense fallback={<ComponentLoader />}><MilestoneTemplateManagement templates={milestoneTemplates} addTemplate={addMilestoneTemplate} updateTemplate={updateMilestoneTemplate} deleteTemplate={deleteMilestoneTemplate} /></Suspense>;
       case 'submissions':
-        return <SubmissionsManagement projectGroups={projectGroups} />;
+        return <Suspense fallback={<ComponentLoader />}><SubmissionsManagement projectGroups={projectGroups} /></Suspense>;
       case 'timeline':
-        return <ProjectTimeline projectGroups={projectGroups} />;
+        return <Suspense fallback={<ComponentLoader />}><ProjectTimeline projectGroups={projectGroups} /></Suspense>;
       case 'analytics':
-        return <AnalyticsDashboardEnhanced projectGroups={projectGroups} advisors={advisors} advisorProjectCounts={advisorProjectCounts} loading={false} />;
+        return <Suspense fallback={<ComponentLoader />}><AnalyticsDashboardEnhanced projectGroups={projectGroups} advisors={advisors} advisorProjectCounts={advisorProjectCounts} loading={false} /></Suspense>;
       case 'announcements':
-        return <AnnouncementsManagement announcements={announcements} user={user} addAnnouncement={addAnnouncement} updateAnnouncement={updateAnnouncement} deleteAnnouncement={deleteAnnouncement} />;
+        return <Suspense fallback={<ComponentLoader />}><AnnouncementsManagement announcements={announcements} user={user} addAnnouncement={addAnnouncement} updateAnnouncement={updateAnnouncement} deleteAnnouncement={deleteAnnouncement} /></Suspense>;
       case 'committees':
-        return <CommitteeManagement projectGroups={projectGroups} advisors={advisors} majors={majors} user={user} committeeCounts={committeeCounts} updateProjectCommittee={updateProjectCommittee} updateProjectDefenseSchedule={updateProjectDefenseSchedule} onSelectProject={handleSelectProject} defenseSettings={defenseSettings} bulkUpdateSchedules={bulkUpdateSchedules} autoScheduleDefenses={autoScheduleDefenses} clearAllSchedulesAndCommittees={clearAllSchedulesAndCommittees} onNavigate={setActiveView}/>;
+        return <Suspense fallback={<ComponentLoader />}><CommitteeManagement projectGroups={projectGroups} advisors={advisors} majors={majors} user={user} committeeCounts={committeeCounts} updateProjectCommittee={updateProjectCommittee} updateProjectDefenseSchedule={updateProjectDefenseSchedule} onSelectProject={handleSelectProject} defenseSettings={defenseSettings} bulkUpdateSchedules={bulkUpdateSchedules} autoScheduleDefenses={autoScheduleDefenses} clearAllSchedulesAndCommittees={clearAllSchedulesAndCommittees} onNavigate={setActiveView}/></Suspense>;
       case 'scoring':
-        return <ScoringManagement projectGroups={projectGroups} scoringSettings={scoringSettings} onSelectProject={handleSelectProject} advisors={advisors} />;
+        return <Suspense fallback={<ComponentLoader />}><ScoringManagement projectGroups={projectGroups} scoringSettings={scoringSettings} onSelectProject={handleSelectProject} advisors={advisors} /></Suspense>;
       case 'finalGrades':
-        return <FinalProjectManagement projectGroups={projectGroups} advisors={advisors} updateProjectGrade={updateProjectGrade} />;
+        return <Suspense fallback={<ComponentLoader />}><FinalProjectManagement projectGroups={projectGroups} advisors={advisors} updateProjectGrade={updateProjectGrade} /></Suspense>;
       case 'settings':
-        return <SettingsPage defenseSettings={defenseSettings} majors={majors} advisors={advisors} updateDefenseSettings={updateDefenseSettings} autoScheduleDefenses={autoScheduleDefenses} scoringSettings={scoringSettings} updateScoringSettings={updateScoringSettings} />;
+        return <Suspense fallback={<ComponentLoader />}><SettingsPage defenseSettings={defenseSettings} majors={majors} advisors={advisors} updateDefenseSettings={updateDefenseSettings} autoScheduleDefenses={autoScheduleDefenses} scoringSettings={scoringSettings} updateScoringSettings={updateScoringSettings} /></Suspense>;
       case 'calendar':
-        return <CalendarView projectGroups={projectGroups} user={user} advisors={advisors} onSelectProject={handleSelectProject} />;
+        return <Suspense fallback={<ComponentLoader />}><CalendarView projectGroups={projectGroups} user={user} advisors={advisors} onSelectProject={handleSelectProject} /></Suspense>;
        case 'reporting':
-        return <ReportingPage projectGroups={projectGroups} advisors={advisors} students={students} majors={majors} classrooms={classrooms} committeeCounts={committeeCounts} />;
+        return <Suspense fallback={<ComponentLoader />}><ReportingPage projectGroups={projectGroups} advisors={advisors} students={students} majors={majors} classrooms={classrooms} committeeCounts={committeeCounts} /></Suspense>;
       case 'aiTools':
-        return <AiToolsPage user={user} projectGroups={projectGroups} advisors={advisors} students={students} majors={majors} advisorProjectCounts={advisorProjectCounts} systemHealthIssues={systemHealthIssues} isAnalyzingSystemHealth={isAnalyzingSystemHealth} onRunSystemHealthAnalysis={handleAnalyzeSystemHealth} securityIssues={securityIssues} isAnalyzingSecurity={isAnalyzingSecurity} onRunSecurityAudit={handleAnalyzeSecurityAudit} />;
+        return <Suspense fallback={<ComponentLoader />}><AiToolsPage user={user} projectGroups={projectGroups} advisors={advisors} students={students} majors={majors} advisorProjectCounts={advisorProjectCounts} systemHealthIssues={systemHealthIssues} isAnalyzingSystemHealth={isAnalyzingSystemHealth} onRunSystemHealthAnalysis={handleAnalyzeSystemHealth} securityIssues={securityIssues} isAnalyzingSecurity={isAnalyzingSecurity} onRunSecurityAudit={handleAnalyzeSecurityAudit} /></Suspense>;
        case 'notifications':
-        return <NotificationsPage notifications={userNotifications} onSelectNotification={(n) => { onMarkSingleNotificationAsRead(n.id); if(n.projectId) { const pg = projectGroups.find(p=>p.project.projectId === n.projectId); if(pg) handleSelectProject(pg); } else { setActiveView('dashboard'); } }} onMarkAllRead={() => onMarkNotificationsAsRead(user.id)} />;
+        return <Suspense fallback={<ComponentLoader />}><NotificationsPage notifications={userNotifications} onSelectNotification={(n) => { onMarkSingleNotificationAsRead(n.id); if(n.projectId) { const pg = projectGroups.find(p=>p.project.projectId === n.projectId); if(pg) handleSelectProject(pg); } else { setActiveView('dashboard'); } }} onMarkAllRead={() => onMarkNotificationsAsRead(user.id)} /></Suspense>;
       default:
         return <Box>{t('pageNotFound')}</Box>;
     }
@@ -954,14 +978,14 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
       <Box component="main" sx={{ mt: 3 }}>
         {renderCurrentView()}
       </Box>
-      {isModalOpen && <RegisterProjectModal onClose={handleCloseModal} onAddProject={addProject} onUpdateProject={updateProject} advisors={advisors} advisorProjectCounts={advisorProjectCounts} allProjects={projectGroups} allStudents={students} majors={majors} user={user} projectToEdit={editingProject} currentAcademicYear={currentAcademicYear} suggestedTopic={suggestedTopic} onSuggestionUsed={() => setSuggestedTopic(null)} />}
+      {isModalOpen && <Suspense fallback={<ComponentLoader />}><RegisterProjectModal onClose={handleCloseModal} onAddProject={addProject} onUpdateProject={updateProject} advisors={advisors} advisorProjectCounts={advisorProjectCounts} allProjects={projectGroups} allStudents={students} majors={majors} user={user} projectToEdit={editingProject} currentAcademicYear={currentAcademicYear} suggestedTopic={suggestedTopic} onSuggestionUsed={() => setSuggestedTopic(null)} /></Suspense>}
       {projectToDelete && <ConfirmationModal isOpen={!!projectToDelete} onClose={cancelDelete} onConfirm={confirmDelete} title={t('deleteProjectTitle')} message={t('deleteProjectConfirmation').replace('${topic}', projectToDelete.project.topicEng)} />}
-      {projectToAction && <AdvisorActionModal isOpen={!!projectToAction} onClose={() => setProjectToAction(null)} onConfirm={handleConfirmAdvisorAction} projectGroup={projectToAction.project} action={projectToAction.action} advisors={advisors} advisorProjectCounts={advisorProjectCounts} currentAdvisorName={user.name} milestoneTemplates={milestoneTemplates} majors={majors} />}
+      {projectToAction && <Suspense fallback={<ComponentLoader />}><AdvisorActionModal isOpen={!!projectToAction} onClose={() => setProjectToAction(null)} onConfirm={handleConfirmAdvisorAction} projectGroup={projectToAction.project} action={projectToAction.action} advisors={advisors} advisorProjectCounts={advisorProjectCounts} currentAdvisorName={user.name} milestoneTemplates={milestoneTemplates} majors={majors} /></Suspense>}
       {isNewYearModalOpen && <ConfirmationModal isOpen={isNewYearModalOpen} onClose={() => setIsNewYearModalOpen(false)} onConfirm={handleConfirmNewYear} title={t('confirmStartNewYear')} message={t('newYearConfirmation').replace('${year}', String(parseInt(currentAcademicYear, 10) + 1))} confirmButtonColor="primary" confirmText={t('startNewYear')} />}
-      {isProfileModalOpen && <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} userData={currentUserData} onUpdateStudent={updateStudent} onUpdateAdvisor={updateAdvisor} allAdvisors={advisors} studentProjectGroup={studentProjectGroup} allProjectGroups={projectGroups} isPasswordChangeForced={!!isPasswordChangeForced} onPasswordChanged={onPasswordChanged}/>}
+      {isProfileModalOpen && <Suspense fallback={<ComponentLoader />}><ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} user={user} userData={currentUserData} onUpdateStudent={updateStudent} onUpdateAdvisor={updateAdvisor} allAdvisors={advisors} studentProjectGroup={studentProjectGroup} allProjectGroups={projectGroups} isPasswordChangeForced={!!isPasswordChangeForced} onPasswordChanged={onPasswordChanged}/></Suspense>}
       <TourGuide {...tourProps} tourSteps={tourSteps} />
-      {isSuggesterOpen && currentUserData && <TopicSuggesterModal onClose={() => setIsSuggesterOpen(false)} onSelectTopic={handleSelectSuggestedTopic} student={currentUserData as Student} majors={majors} />}
-      {isAiAssistantEnabledForUser && isChatOpen && <AiChatWidget user={user} onClose={() => setIsChatOpen(false)} studentProjectGroup={studentProjectGroup} allProjects={projectGroups} allAdvisors={advisors} allStudents={students} />}
+      {isSuggesterOpen && currentUserData && <Suspense fallback={<ComponentLoader />}><TopicSuggesterModal onClose={() => setIsSuggesterOpen(false)} onSelectTopic={handleSelectSuggestedTopic} student={currentUserData as Student} majors={majors} /></Suspense>}
+      {isAiAssistantEnabledForUser && isChatOpen && <Suspense fallback={<ComponentLoader />}><AiChatWidget user={user} onClose={() => setIsChatOpen(false)} studentProjectGroup={studentProjectGroup} allProjects={projectGroups} allAdvisors={advisors} allStudents={students} /></Suspense>}
       {isAiAssistantEnabledForUser && !isChatOpen && activeView !== 'dashboard' && (
           <Fab 
             onClick={() => setIsChatOpen(true)} 
@@ -984,9 +1008,9 @@ Respond ONLY with a JSON object containing a key "issues", which is an array of 
           </Fab>
       )}
       {selectedProjectIds.size > 0 && <BulkActionsBar selectedCount={selectedProjectIds.size} onClear={() => setSelectedProjectIds(new Set())} onSendMessage={() => setIsBulkMessageModalOpen(true)} />}
-      {isBulkMessageModalOpen && <BulkMessageModal isOpen={isBulkMessageModalOpen} onClose={() => setIsBulkMessageModalOpen(false)} onSend={handleBulkMessageSend} selectedProjects={selectedProjectsForBulkMessage} user={user} />}
-      {isAnalysisModalOpen && <CommunicationAnalysisModal isOpen={isAnalysisModalOpen} onClose={() => setIsAnalysisModalOpen(false)} result={analysisResult} isLoading={isAnalyzing} />}
-      {isWritingAssistantOpen && <AiWritingAssistantModal isOpen={isWritingAssistantOpen} onClose={() => setIsWritingAssistantOpen(false)} isLoading={isCheckingGrammar} result={grammarResult} fileName={writingAssistantFile?.name || ''} originalText={originalText} />}
+      {isBulkMessageModalOpen && <Suspense fallback={<ComponentLoader />}><BulkMessageModal isOpen={isBulkMessageModalOpen} onClose={() => setIsBulkMessageModalOpen(false)} onSend={handleBulkMessageSend} selectedProjects={selectedProjectsForBulkMessage} user={user} /></Suspense>}
+      {isAnalysisModalOpen && <Suspense fallback={<ComponentLoader />}><CommunicationAnalysisModal isOpen={isAnalysisModalOpen} onClose={() => setIsAnalysisModalOpen(false)} result={analysisResult} isLoading={isAnalyzing} /></Suspense>}
+      {isWritingAssistantOpen && <Suspense fallback={<ComponentLoader />}><AiWritingAssistantModal isOpen={isWritingAssistantOpen} onClose={() => setIsWritingAssistantOpen(false)} isLoading={isCheckingGrammar} result={grammarResult} fileName={writingAssistantFile?.name || ''} originalText={originalText} /></Suspense>}
     </Box>
   );
 };

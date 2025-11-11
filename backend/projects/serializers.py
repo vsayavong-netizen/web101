@@ -663,14 +663,72 @@ class BulkProjectUpdateSerializer(serializers.Serializer):
 
 class ProjectSearchSerializer(serializers.Serializer):
     """
-    Project search serializer
+    Advanced project search serializer with comprehensive filtering options
     """
-    query = serializers.CharField(required=False)
-    status = serializers.CharField(required=False)
-    advisor = serializers.CharField(required=False)
-    major = serializers.CharField(required=False)
-    scheduled = serializers.BooleanField(required=False)
-    academic_year = serializers.CharField(required=False)
-    ordering = serializers.CharField(required=False)
-    page = serializers.IntegerField(required=False, min_value=1)
-    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100)
+    # Text search
+    query = serializers.CharField(required=False, help_text="Search in project ID, topics, advisor, student names")
+    
+    # Status filters
+    status = serializers.CharField(required=False, help_text="Filter by project status")
+    statuses = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Filter by multiple statuses"
+    )
+    
+    # Advisor filters
+    advisor = serializers.CharField(required=False, help_text="Filter by advisor name")
+    advisor_ids = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Filter by multiple advisor IDs"
+    )
+    
+    # Major filters
+    major = serializers.CharField(required=False, help_text="Filter by major name")
+    majors = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Filter by multiple majors"
+    )
+    
+    # Student filters
+    student_id = serializers.CharField(required=False, help_text="Filter by student ID")
+    student_name = serializers.CharField(required=False, help_text="Filter by student name")
+    gender = serializers.CharField(required=False, help_text="Filter by student gender")
+    
+    # Date filters
+    created_after = serializers.DateField(required=False, help_text="Filter projects created after this date")
+    created_before = serializers.DateField(required=False, help_text="Filter projects created before this date")
+    defense_after = serializers.DateField(required=False, help_text="Filter defenses scheduled after this date")
+    defense_before = serializers.DateField(required=False, help_text="Filter defenses scheduled before this date")
+    
+    # Defense filters
+    scheduled = serializers.BooleanField(required=False, help_text="Filter by scheduled status")
+    has_defense_date = serializers.BooleanField(required=False, help_text="Filter projects with/without defense date")
+    defense_room = serializers.CharField(required=False, help_text="Filter by defense room")
+    
+    # Score filters
+    min_score = serializers.FloatField(required=False, min_value=0, max_value=100, help_text="Minimum final score")
+    max_score = serializers.FloatField(required=False, min_value=0, max_value=100, help_text="Maximum final score")
+    has_grade = serializers.BooleanField(required=False, help_text="Filter projects with/without final grade")
+    
+    # Milestone filters
+    has_pending_milestones = serializers.BooleanField(required=False, help_text="Filter projects with pending milestones")
+    milestone_count_min = serializers.IntegerField(required=False, min_value=0, help_text="Minimum milestone count")
+    milestone_count_max = serializers.IntegerField(required=False, min_value=0, help_text="Maximum milestone count")
+    
+    # Committee filters
+    has_committee = serializers.BooleanField(required=False, help_text="Filter projects with/without committee")
+    committee_member = serializers.CharField(required=False, help_text="Filter by committee member name")
+    
+    # Academic year
+    academic_year = serializers.CharField(required=False, help_text="Filter by academic year")
+    
+    # Similarity filter
+    has_similarity_issues = serializers.BooleanField(required=False, help_text="Filter projects with similarity issues")
+    
+    # Sorting and pagination
+    ordering = serializers.CharField(required=False, help_text="Order by field (prefix with - for descending)")
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    page_size = serializers.IntegerField(required=False, min_value=1, max_value=100, default=20)

@@ -13,6 +13,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 
 from accounts.models import User
 from .serializers import (
@@ -36,19 +37,26 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        
-        if response.status_code == 200:
-            # Log successful login
-            user = authenticate(
-                username=request.data.get('username'),
-                password=request.data.get('password')
-            )
-            if user:
-                user.last_login_ip = get_client_ip(request)
-                user.save(update_fields=['last_login_ip'])
-        
-        return response
+        try:
+            response = super().post(request, *args, **kwargs)
+            
+            if response.status_code == 200:
+                # Log successful login
+                user = authenticate(
+                    username=request.data.get('username'),
+                    password=request.data.get('password')
+                )
+                if user:
+                    user.last_login_ip = get_client_ip(request)
+                    user.save(update_fields=['last_login_ip'])
+            
+            return response
+        except Exception as e:
+            # Handle unexpected errors gracefully
+            return Response({
+                'detail': 'An error occurred during login. Please try again.',
+                'error': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CustomTokenRefreshView(TokenRefreshView):

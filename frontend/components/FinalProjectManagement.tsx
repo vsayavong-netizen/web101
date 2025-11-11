@@ -22,12 +22,16 @@ interface FinalProjectManagementProps {
 
 type SortKey = 'projectId' | 'studentNames' | 'advisorName' | 'finalGrade';
 
-const getFileDataUrl = (fileId: string): string => {
+import { getFile } from '../utils/fileStorage';
+
+const getFileDataUrl = async (fileId: string): Promise<string> => {
     try {
-        return localStorage.getItem(`file_${fileId}`) || '';
+        const fileData = await getFile(fileId);
+        return fileData || '';
     } catch (error) {
-        console.error('Error reading file from localStorage:', error);
-        return '';
+        console.error('Error reading file:', error);
+        // Fallback to localStorage
+        return localStorage.getItem(`file_${fileId}`) || '';
     }
 };
 
@@ -104,25 +108,30 @@ export const FinalProjectManagement: React.FC<FinalProjectManagementProps> = ({ 
         });
     };
 
-    const handleDownload = (pg: ProjectGroup) => {
+    const handleDownload = async (pg: ProjectGroup) => {
         const file = pg.project.finalSubmissions?.postDefenseFile;
         if (!file) return;
 
-        const dataUrl = getFileDataUrl(file.fileId);
-        if (dataUrl) {
-            const studentNames = pg.students.map(s => `${s.name}_${s.surname}`).join('_and_');
-            const safeStudentNames = studentNames.replace(/\s+/g, '_');
-            const nameParts = file.name.split('.');
-            const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
-            const newFileName = `${pg.project.projectId}_${safeStudentNames}_Final_Report.${extension}`;
-            
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = newFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
+        try {
+            const dataUrl = await getFileDataUrl(file.fileId);
+            if (dataUrl) {
+                const studentNames = pg.students.map(s => `${s.name}_${s.surname}`).join('_and_');
+                const safeStudentNames = studentNames.replace(/\s+/g, '_');
+                const nameParts = file.name.split('.');
+                const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
+                const newFileName = `${pg.project.projectId}_${safeStudentNames}_Final_Report.${extension}`;
+                
+                const link = document.createElement('a');
+                link.href = dataUrl.startsWith('http') ? dataUrl : dataUrl;
+                link.download = newFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                addToast({ type: 'error', message: t('couldNotRetrieveFile') });
+            }
+        } catch (error) {
+            console.error('Failed to download file:', error);
             addToast({ type: 'error', message: t('couldNotRetrieveFile') });
         }
     };

@@ -38,12 +38,16 @@ const formatBytes = (bytes: number, decimals = 2) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const getFileDataUrl = (fileId: string): string => {
+import { getFile } from '../utils/fileStorage';
+
+const getFileDataUrl = async (fileId: string): Promise<string> => {
     try {
-        return localStorage.getItem(`file_${fileId}`) || '';
+        const fileData = await getFile(fileId);
+        return fileData || '';
     } catch (error) {
-        console.error('Error reading file from localStorage:', error);
-        return '';
+        console.error('Error reading file:', error);
+        // Fallback to localStorage
+        return localStorage.getItem(`file_${fileId}`) || '';
     }
 };
 
@@ -162,25 +166,30 @@ const SubmissionsManagement: React.FC<SubmissionsManagementProps> = ({ projectGr
     const sortedAndFilteredPreDefense = useMemo(() => applySortAndFilter(preDefenseRows, preSearchQuery, preSortConfig), [preDefenseRows, preSearchQuery, preSortConfig]);
     const sortedAndFilteredPostDefense = useMemo(() => applySortAndFilter(postDefenseRows, postSearchQuery, postSortConfig), [postDefenseRows, postSearchQuery, postSortConfig]);
 
-    const handleDownload = (row: SubmissionRow) => {
-        const dataUrl = getFileDataUrl(row.file.fileId);
-        if (dataUrl) {
-            const safeStudentNames = row.studentNames.replace(/, /g, ' and ').replace(/\s+/g, '_');
-            
-            const nameParts = row.file.name.split('.');
-            const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
+    const handleDownload = async (row: SubmissionRow) => {
+        try {
+            const dataUrl = await getFileDataUrl(row.file.fileId);
+            if (dataUrl) {
+                const safeStudentNames = row.studentNames.replace(/, /g, ' and ').replace(/\s+/g, '_');
+                
+                const nameParts = row.file.name.split('.');
+                const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
 
-            const submissionType = row.submissionType.replace(/\s+/g, '_');
+                const submissionType = row.submissionType.replace(/\s+/g, '_');
 
-            const newFileName = `${row.projectId}_${safeStudentNames}_${submissionType}.${extension}`;
+                const newFileName = `${row.projectId}_${safeStudentNames}_${submissionType}.${extension}`;
 
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = newFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
+                const link = document.createElement('a');
+                link.href = dataUrl.startsWith('http') ? dataUrl : dataUrl;
+                link.download = newFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                addToast({ type: 'error', message: t('couldNotRetrieveFile') });
+            }
+        } catch (error) {
+            console.error('Failed to download file:', error);
             addToast({ type: 'error', message: t('couldNotRetrieveFile') });
         }
     };
@@ -201,25 +210,46 @@ const SubmissionsManagement: React.FC<SubmissionsManagementProps> = ({ projectGr
         const zip = new JSZip();
     
         for (const row of submissionsToZip) {
-            const dataUrl = getFileDataUrl(row.file.fileId);
-            if (dataUrl) {
-                const base64Data = dataUrl.split(',')[1];
-                if(base64Data) {
-                    const safeStudentNames = row.studentNames
-                        .replace(/, /g, ' and ')
-                        .replace(/\s+/g, ' ')
-                        .trim();
-
-                    const nameParts = row.file.name.split('.');
-                    const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
-
-                    const baseName = `${row.projectId} ${safeStudentNames} ${row.submissionType}`;
-                    const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9 ._-]/g, '').replace(/\s/g, '_');
+            try {
+                const dataUrl = await getFileDataUrl(row.file.fileId);
+                if (dataUrl) {
+                    // Handle both data URL and regular URL
+                    let base64Data: string | null = null;
+                    if (dataUrl.startsWith('data:')) {
+                        base64Data = dataUrl.split(',')[1];
+                    } else if (dataUrl.startsWith('http')) {
+                        // Fetch file and convert to base64
+                        const response = await fetch(dataUrl);
+                        const blob = await response.blob();
+                        base64Data = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const result = reader.result as string;
+                                resolve(result.split(',')[1]);
+                            };
+                            reader.readAsDataURL(blob);
+                        });
+                    }
                     
-                    const newFileName = `${sanitizedBaseName}.${extension}`;
+                    if(base64Data) {
+                        const safeStudentNames = row.studentNames
+                            .replace(/, /g, ' and ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
 
-                    zip.file(newFileName, base64Data, { base64: true });
+                        const nameParts = row.file.name.split('.');
+                        const extension = nameParts.length > 1 ? nameParts.pop() : 'file';
+
+                        const baseName = `${row.projectId} ${safeStudentNames} ${row.submissionType}`;
+                        const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9 ._-]/g, '').replace(/\s/g, '_');
+                        
+                        const newFileName = `${sanitizedBaseName}.${extension}`;
+
+                        zip.file(newFileName, base64Data, { base64: true });
+                    }
                 }
+            } catch (error) {
+                console.error(`Failed to add file ${row.file.name} to zip:`, error);
             }
         }
 

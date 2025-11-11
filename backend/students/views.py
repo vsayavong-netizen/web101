@@ -21,7 +21,7 @@ from .serializers import (
 class StudentListView(generics.ListCreateAPIView):
     """List and create students."""
     
-    queryset = Student.objects.all()
+    queryset = Student.objects.select_related('user').all()
     permission_classes = [permissions.AllowAny]  # Temporarily allow anonymous access for testing
     
     def get_serializer_class(self):
@@ -32,7 +32,7 @@ class StudentListView(generics.ListCreateAPIView):
     def get_queryset(self):
         """Filter students based on user role and permissions."""
         user = self.request.user
-        queryset = Student.objects.all()
+        queryset = Student.objects.select_related('user').all()
         
         # If user is not authenticated, return all students (for testing)
         if not user.is_authenticated:
@@ -62,7 +62,7 @@ class StudentListView(generics.ListCreateAPIView):
 class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, or delete a student."""
     
-    queryset = Student.objects.all()
+    queryset = Student.objects.select_related('user').all()
     permission_classes = [permissions.AllowAny]  # Temporarily allow anonymous access for testing
     
     def get_serializer_class(self):
@@ -77,11 +77,11 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Try to get by ID first
         try:
             pk_int = int(pk)
-            return Student.objects.get(id=pk_int)
+            return Student.objects.select_related('user').get(id=pk_int)
         except (ValueError, Student.DoesNotExist):
             # If not found by ID, try to get by student_id
             try:
-                return Student.objects.get(student_id=pk)
+                return Student.objects.select_related('user').get(student_id=pk)
             except Student.DoesNotExist:
                 # Return 404
                 from rest_framework.exceptions import NotFound
@@ -93,10 +93,10 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
         
         # If user is not authenticated, return all students (for testing)
         if not user.is_authenticated:
-            return Student.objects.all()
+            return Student.objects.select_related('user').all()
         
         if hasattr(user, 'role') and user.role == 'Student':
-            return Student.objects.filter(user=user)
+            return Student.objects.select_related('user').filter(user=user)
         else:  # Admin, DepartmentAdmin, or Advisor
             return Student.objects.all()
 

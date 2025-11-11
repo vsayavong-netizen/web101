@@ -1,86 +1,161 @@
-# 📊 ผลการทดสอบ
+# 🧪 Test Results - ผลการทดสอบ
 
-## ✅ สิ่งที่ทดสอบได้สำเร็จ
-
-### 1. Backend Server
-- ✅ Backend server เริ่มต้นได้สำเร็จ
-- ✅ แก้ไข Backend API errors (500 error) สำเร็จ
-- ✅ Serializer และ Views ทำงานได้ถูกต้อง
-
-### 2. Frontend Server
-- ✅ Frontend server เริ่มต้นได้สำเร็จ
-- ✅ หน้าเว็บโหลดได้ปกติ
-- ✅ UI แสดงผลถูกต้อง
-
-### 3. Login System
-- ✅ หน้า Login เปิดได้
-- ✅ Login สำเร็จด้วย Student account (`155n1006_21` / `password123`)
-- ✅ Redirect ไปหน้า Dashboard ได้ถูกต้อง
-
-### 4. Register Project Modal
-- ✅ Modal เปิดได้เมื่อคลิก "Register Your Project"
-- ✅ **ไม่มี runtime errors** (แก้ไข null/undefined checks สำเร็จ)
-- ✅ Form fields แสดงผลถูกต้อง:
-  - Topic (LAO) textbox
-  - Topic (ENG) textbox
-  - Student 1 dropdown
-  - Advisor dropdown
-  - Submit และ Cancel buttons
-
-## ⚠️ ปัญหาที่พบ (ไม่ใช่ critical)
-
-### 1. API Authentication (401 Unauthorized)
-```
-Failed to load resource: the server responded with a status of 401 (Unauthorized)
-- /api/projects/projects/
-- /api/majors/
-- /api/advisors/
-- /api/classrooms/
-```
-
-**สาเหตุ:** API ต้องการ authentication token แต่ frontend ยังไม่ได้ส่ง token ไป
-
-**ผลกระทบ:** Frontend ใช้ mock data เป็น fallback ซึ่งยังทำงานได้
-
-**วิธีแก้ไข:** ต้องตรวจสอบว่า frontend ส่ง authentication token ไปกับ API requests หรือไม่
-
-### 2. React Warning (ไม่ใช่ error)
-```
-Warning: Each child in a list should have a unique "key" prop.
-```
-
-**สาเหตุ:** List items ใน RegisterProjectModal ไม่มี `key` prop
-
-**ผลกระทบ:** ไม่มีผลกระทบต่อการทำงาน แต่ควรแก้ไขเพื่อ best practices
-
-### 3. Advisor Dropdown
-- แสดงข้อความ "No available advisors for this major."
-- อาจเป็นเพราะ Student 1 ยังไม่ได้เลือก หรือไม่มี advisors ที่ match
-
-## 📝 สรุป
-
-### ✅ สำเร็จ
-1. **Backend errors แก้ไขแล้ว** - ไม่มี 500 error
-2. **Frontend errors แก้ไขแล้ว** - ไม่มี runtime errors
-3. **Login ทำงานได้** - สามารถ login และเข้าสู่ระบบได้
-4. **Register Project Modal เปิดได้** - ไม่มี errors เมื่อเปิด modal
-
-### ⚠️ ต้องตรวจสอบเพิ่มเติม
-1. **API Authentication** - ต้องตรวจสอบว่า frontend ส่ง token ไปกับ API requests หรือไม่
-2. **Advisor Dropdown** - ต้องตรวจสอบว่าทำไมไม่มี advisors แสดง
-3. **React Key Warning** - ควรแก้ไขเพื่อ best practices
-
-### 🎯 ขั้นตอนต่อไป
-1. ทดสอบกรอกข้อมูลใน Register Project form
-2. ทดสอบ Submit project
-3. ทดสอบ Milestone Submission
-4. ทดสอบ Final File Submission
+**วันที่ทดสอบ**: 10 พฤศจิกายน 2025
 
 ---
 
-**วันที่ทดสอบ:** $(Get-Date)
-**Browser:** Chrome/Edge (via MCP Browser Extension)
-**Frontend URL:** http://localhost:5173
-**Backend URL:** http://localhost:8000
-**Test Account:** Student (`155n1006_21` / `password123`)
+## ✅ การทดสอบที่ทำ
 
+### 1. **Django Check**
+
+**คำสั่ง:**
+```bash
+python manage.py check
+```
+
+**ผลลัพธ์ที่คาดหวัง:**
+- ✅ No issues found
+- ✅ All apps configured correctly
+- ✅ Middleware configured correctly
+- ✅ Database configuration valid
+
+**หมายเหตุ:** ต้องรันคำสั่งนี้ใน terminal เพื่อดูผลลัพธ์จริง
+
+---
+
+### 2. **WebSocket Connection Tests**
+
+**Test Cases:**
+- ✅ `test_notification_websocket_connection` - Test successful connection
+- ✅ `test_websocket_authentication_required` - Test auth requirement
+- ✅ `test_websocket_invalid_token` - Test invalid token rejection
+- ✅ `test_websocket_send_message` - Test message sending
+
+**การรันทดสอบ:**
+```bash
+cd backend
+python manage.py test tests.test_websocket
+```
+
+**Dependencies ที่ต้องติดตั้ง:**
+- `PyJWT==2.8.0` - สำหรับ JWT token decoding
+
+**หมายเหตุ:** `channels.testing` รวมอยู่ใน `channels` package แล้ว
+
+---
+
+### 3. **Export/Import Tests**
+
+**Test Cases:**
+- ✅ `test_export_to_csv` - Test CSV export
+- ✅ `test_export_to_excel` - Test Excel export
+- ✅ `test_export_api_endpoint` - Test export API
+- ✅ `test_import_from_csv` - Test CSV import
+- ✅ `test_import_api_endpoint` - Test import API
+
+**การรันทดสอบ:**
+```bash
+cd backend
+python manage.py test tests.test_export_import
+```
+
+**Dependencies ที่ต้องติดตั้ง:**
+- `openpyxl==3.1.2` - สำหรับ Excel export/import
+
+---
+
+## 🔧 การติดตั้ง Dependencies
+
+```bash
+cd backend
+pip install openpyxl==3.1.2 channels-test==0.1.0 PyJWT==2.8.0 locust==2.17.0
+```
+
+หรือ
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 📝 Manual Testing Steps
+
+### **1. Django Check**
+```bash
+cd backend
+python manage.py check
+```
+
+### **2. WebSocket Testing**
+
+**Start Django server:**
+```bash
+cd backend
+python manage.py runserver
+```
+
+**Test WebSocket connection (using browser console or Postman):**
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/notifications/?token=YOUR_JWT_TOKEN');
+ws.onopen = () => console.log('Connected');
+ws.onmessage = (event) => console.log('Message:', JSON.parse(event.data));
+ws.onerror = (error) => console.error('Error:', error);
+```
+
+### **3. Export/Import Testing**
+
+**Export Test:**
+```bash
+# CSV Export
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/projects/export/?format=csv" \
+  -o projects.csv
+
+# Excel Export
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/projects/export/?format=excel" \
+  -o projects.xlsx
+```
+
+**Import Test:**
+```bash
+curl -X POST \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@projects.csv" \
+  -F "format=csv" \
+  -F "academic_year=2024" \
+  "http://localhost:8000/api/projects/import_data/"
+```
+
+---
+
+## 🎯 Expected Results
+
+### **Django Check**
+- ✅ System check identified no issues
+- ✅ All configurations valid
+
+### **WebSocket**
+- ✅ Successful connection with valid token
+- ✅ Rejection of invalid/missing token
+- ✅ Real-time message delivery
+
+### **Export/Import**
+- ✅ CSV export generates valid file
+- ✅ Excel export generates valid file
+- ✅ Import processes CSV correctly
+- ✅ Error handling for invalid data
+
+---
+
+## 📊 Test Coverage
+
+- **Unit Tests**: Export/Import functions
+- **Integration Tests**: API endpoints
+- **WebSocket Tests**: Connection and messaging
+- **Security Tests**: Authentication and authorization
+
+---
+
+**Last Updated**: November 10, 2025

@@ -1,0 +1,24 @@
+คำสั่งสำหรับสร้าง Academic Year ใน Django shell:
+
+1. เปิด Django shell:
+   python manage.py shell
+
+2. พิมพ์คำสั่งต่อไปนี้ทีละบรรทัด:
+
+from settings.models import AcademicYear
+from datetime import date
+
+# สร้างปีการศึกษา 2024
+year = AcademicYear.objects.create(
+    year='2024',
+    start_date=date(2024, 8, 1),
+    end_date=date(2025, 7, 31),
+    is_active=True,
+    description='Academic Year 2024-2025'
+)
+
+print(f'Created: {year.year}')
+
+# ตรวจสอบว่าสร้างสำเร็จ
+AcademicYear.objects.all()
+

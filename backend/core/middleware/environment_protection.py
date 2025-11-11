@@ -134,7 +134,32 @@ class EnvironmentProtectionMiddleware(MiddlewareMixin):
         path = request.path.lower()
         client_ip = get_client_ip(request)
         
-        # Check if path contains any protected patterns
+        # Allow API endpoints even if they contain protected keywords
+        # This allows /api/monitoring/error-logs/ and /api/monitoring/request-logs/
+        if path.startswith('/api/'):
+            # For API endpoints, only block if it's a direct file access attempt
+            # Check for direct file access patterns (e.g., /api/../logs/file.log)
+            if self._is_path_traversal(path) or self._is_parent_directory_access(request.path):
+                self._log_and_block(client_ip, path, 'PATH_TRAVERSAL')
+                return JsonResponse({
+                    'error': 'Access denied',
+                    'code': 'PATH_TRAVERSAL',
+                    'message': 'Path traversal attempts are not allowed'
+                }, status=403)
+            # Allow API endpoints to proceed
+            return None
+        
+        # Allow frontend dev server paths (Vite dev server)
+        # These are TypeScript/TSX files that should be handled by Vite, not Django
+        # But if they reach Django, we should return 404 instead of blocking
+        frontend_paths = ['/hooks/', '/components/', '/utils/', '/context/', '/config/']
+        if any(path.startswith(fp) for fp in frontend_paths):
+            # These should be handled by Vite dev server, but if they reach Django,
+            # return 404 instead of blocking (Vite will handle them)
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound("Frontend file not found. This should be handled by Vite dev server.")
+        
+        # Check if path contains any protected patterns (for non-API paths)
         for protected in self.PROTECTED_PATHS:
             if protected.lower() in path:
                 self._log_and_block(client_ip, path, protected)

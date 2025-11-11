@@ -35,9 +35,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
     Project management viewset
     """
     queryset = Project.objects.select_related(
-        'advisor'
+        'advisor',
+        'advisor__user'  # Optimize advisor user access
     ).prefetch_related(
-        'milestones', 'log_entries'
+        'milestones',
+        'log_entries',
+        'project_students__student',
+        'project_students__student__user'  # Optimize student user access
     )
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]  # Temporarily simplified to debug 500 error
@@ -442,7 +446,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def search(self, request):
-        """Search projects with advanced filters"""
+        """Advanced search projects with comprehensive filters"""
         serializer = ProjectSearchSerializer(data=request.query_params)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -450,24 +454,59 @@ class ProjectViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
         queryset = self.get_queryset()
         
-        # Apply search filters
+        # Text search - search across multiple fields
         if data.get('query'):
+            query = data['query']
             queryset = queryset.filter(
-                Q(project_id__icontains=data['query']) |
-                Q(topic_lao__icontains=data['query']) |
-                Q(topic_eng__icontains=data['query']) |
-                Q(advisor_name__icontains=data['query'])
-            )
+                Q(project_id__icontains=query) |
+                Q(topic_lao__icontains=query) |
+                Q(topic_eng__icontains=query) |
+                Q(advisor_name__icontains=query) |
+                Q(projectgroup__students__student_id__icontains=query) |
+                Q(projectgroup__students__name__icontains=query) |
+                Q(projectgroup__students__surname__icontains=query)
+            ).distinct()
         
+        # Status filters
         if data.get('status'):
             queryset = queryset.filter(status=data['status'])
+        elif data.get('statuses'):
+            queryset = queryset.filter(status__in=data['statuses'])
         
+        # Advisor filters
         if data.get('advisor'):
             queryset = queryset.filter(advisor_name=data['advisor'])
+        elif data.get('advisor_ids'):
+            queryset = queryset.filter(advisor__id__in=data['advisor_ids'])
         
+        # Major filters
         if data.get('major'):
-            queryset = queryset.filter(projectgroup__students__major__name=data['major'])
+            queryset = queryset.filter(projectgroup__students__major__name=data['major']).distinct()
+        elif data.get('majors'):
+            queryset = queryset.filter(projectgroup__students__major__name__in=data['majors']).distinct()
         
+        # Student filters
+        if data.get('student_id'):
+            queryset = queryset.filter(projectgroup__students__student_id__icontains=data['student_id']).distinct()
+        if data.get('student_name'):
+            queryset = queryset.filter(
+                Q(projectgroup__students__name__icontains=data['student_name']) |
+                Q(projectgroup__students__surname__icontains=data['student_name'])
+            ).distinct()
+        if data.get('gender'):
+            queryset = queryset.filter(projectgroup__students__gender=data['gender']).distinct()
+        
+        # Date filters
+        if data.get('created_after'):
+            queryset = queryset.filter(created_at__gte=data['created_after'])
+        if data.get('created_before'):
+            queryset = queryset.filter(created_at__lte=data['created_before'])
+        if data.get('defense_after'):
+            queryset = queryset.filter(defense_date__gte=data['defense_after'])
+        if data.get('defense_before'):
+            queryset = queryset.filter(defense_date__lte=data['defense_before'])
+        
+        # Defense filters
         if data.get('scheduled') is not None:
             if data['scheduled']:
                 queryset = queryset.filter(
@@ -481,13 +520,76 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     Q(defense_time__isnull=True) |
                     Q(defense_room__isnull=True)
                 )
+        if data.get('has_defense_date') is not None:
+            if data['has_defense_date']:
+                queryset = queryset.filter(defense_date__isnull=False)
+            else:
+                queryset = queryset.filter(defense_date__isnull=True)
+        if data.get('defense_room'):
+            queryset = queryset.filter(defense_room__icontains=data['defense_room'])
         
+        # Score filters
+        if data.get('min_score') is not None:
+            queryset = queryset.filter(final_score__gte=data['min_score'])
+        if data.get('max_score') is not None:
+            queryset = queryset.filter(final_score__lte=data['max_score'])
+        if data.get('has_grade') is not None:
+            if data['has_grade']:
+                queryset = queryset.filter(final_grade__isnull=False)
+            else:
+                queryset = queryset.filter(final_grade__isnull=True)
+        
+        # Milestone filters
+        if data.get('has_pending_milestones') is not None:
+            if data['has_pending_milestones']:
+                queryset = queryset.filter(milestones__status='Pending').distinct()
+        if data.get('milestone_count_min') is not None:
+            queryset = queryset.annotate(
+                milestone_count=Count('milestones')
+            ).filter(milestone_count__gte=data['milestone_count_min'])
+        if data.get('milestone_count_max') is not None:
+            if 'milestone_count' not in [f.name for f in queryset.model._meta.get_fields()]:
+                queryset = queryset.annotate(milestone_count=Count('milestones'))
+            queryset = queryset.filter(milestone_count__lte=data['milestone_count_max'])
+        
+        # Committee filters
+        if data.get('has_committee') is not None:
+            if data['has_committee']:
+                queryset = queryset.filter(
+                    Q(main_committee__isnull=False) |
+                    Q(second_committee__isnull=False) |
+                    Q(third_committee__isnull=False)
+                )
+            else:
+                queryset = queryset.filter(
+                    main_committee__isnull=True,
+                    second_committee__isnull=True,
+                    third_committee__isnull=True
+                )
+        if data.get('committee_member'):
+            queryset = queryset.filter(
+                Q(main_committee__name__icontains=data['committee_member']) |
+                Q(second_committee__name__icontains=data['committee_member']) |
+                Q(third_committee__name__icontains=data['committee_member'])
+            )
+        
+        # Academic year
         if data.get('academic_year'):
-            queryset = queryset.filter(academic_year=data['academic_year'])
+            queryset = queryset.filter(project_id__startswith=data['academic_year'])
+        
+        # Similarity filter (placeholder - would need actual similarity detection)
+        if data.get('has_similarity_issues') is not None:
+            # This would require actual similarity detection implementation
+            pass
         
         # Apply ordering
         if data.get('ordering'):
             queryset = queryset.order_by(data['ordering'])
+        else:
+            queryset = queryset.order_by('-created_at')
+        
+        # Get total count before pagination
+        total_count = queryset.count()
         
         # Apply pagination
         page = data.get('page', 1)
@@ -496,15 +598,203 @@ class ProjectViewSet(viewsets.ModelViewSet):
         end = start + page_size
         
         projects = queryset[start:end]
-        total_count = queryset.count()
         
         return Response({
             'results': ProjectSerializer(projects, many=True).data,
             'count': total_count,
             'page': page,
             'page_size': page_size,
-            'total_pages': (total_count + page_size - 1) // page_size
+            'total_pages': (total_count + page_size - 1) // page_size if total_count > 0 else 0
         })
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """Export projects to CSV or Excel"""
+        format_type = request.query_params.get('format', 'csv').lower()
+        queryset = self.get_queryset()
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Export endpoint called: format={format_type}, queryset_count={queryset.count()}")
+        
+        # Apply filters from query params (same as search)
+        # We'll reuse the search method's filtering logic
+        search_serializer = ProjectSearchSerializer(data=request.query_params)
+        if search_serializer.is_valid():
+            data = search_serializer.validated_data
+            
+            # Apply text search - search in Project and ProjectGroup
+            if data.get('query'):
+                query = data['query']
+                queryset = queryset.filter(
+                    Q(project_id__icontains=query) |
+                    Q(title__icontains=query) |
+                    Q(projectgroup__topic_lao__icontains=query) |
+                    Q(projectgroup__topic_eng__icontains=query) |
+                    Q(projectgroup__advisor_name__icontains=query) |
+                    Q(projectgroup__students__student__student_id__icontains=query) |
+                    Q(projectgroup__students__student__name__icontains=query) |
+                    Q(projectgroup__students__student__surname__icontains=query)
+                ).distinct()
+            
+            # Apply status filter
+            if data.get('status'):
+                queryset = queryset.filter(
+                    Q(status=data['status']) |
+                    Q(projectgroup__status=data['status'])
+                ).distinct()
+            elif data.get('statuses'):
+                queryset = queryset.filter(
+                    Q(status__in=data['statuses']) |
+                    Q(projectgroup__status__in=data['statuses'])
+                ).distinct()
+            
+            # Apply advisor filter
+            if data.get('advisor'):
+                queryset = queryset.filter(projectgroup__advisor_name__icontains=data['advisor']).distinct()
+            
+            # Apply major filter
+            if data.get('major'):
+                queryset = queryset.filter(projectgroup__students__student__major__name=data['major']).distinct()
+            
+            # Apply academic year filter
+            if data.get('academic_year'):
+                queryset = queryset.filter(project_id__startswith=data['academic_year'])
+        
+        try:
+            if format_type == 'excel':
+                from .export_import import export_projects_to_excel
+                return export_projects_to_excel(queryset)
+            else:
+                from .export_import import export_projects_to_csv
+                return export_projects_to_csv(queryset)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Export error: {str(e)}")
+            return Response(
+                {'error': f'Export failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# Function-based views for export/import (to avoid router issues)
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_projects_view(request):
+    """Export projects to CSV or Excel - function-based view"""
+    format_type = request.query_params.get('format', 'csv').lower()
+    
+    # Get queryset using ProjectViewSet logic
+    viewset = ProjectViewSet()
+    viewset.request = request
+    viewset.format_kwarg = None
+    queryset = viewset.get_queryset()
+    
+    # Apply filters from query params (same as search)
+    search_serializer = ProjectSearchSerializer(data=request.query_params)
+    if search_serializer.is_valid():
+        data = search_serializer.validated_data
+        
+        # Apply text search
+        if data.get('query'):
+            query = data['query']
+            queryset = queryset.filter(
+                Q(project_id__icontains=query) |
+                Q(title__icontains=query) |
+                Q(projectgroup__topic_lao__icontains=query) |
+                Q(projectgroup__topic_eng__icontains=query) |
+                Q(projectgroup__advisor_name__icontains=query) |
+                Q(projectgroup__students__student__student_id__icontains=query) |
+                Q(projectgroup__students__student__name__icontains=query) |
+                Q(projectgroup__students__student__surname__icontains=query)
+            ).distinct()
+        
+        # Apply status filter
+        if data.get('status'):
+            queryset = queryset.filter(
+                Q(status=data['status']) |
+                Q(projectgroup__status=data['status'])
+            ).distinct()
+        elif data.get('statuses'):
+            queryset = queryset.filter(
+                Q(status__in=data['statuses']) |
+                Q(projectgroup__status__in=data['statuses'])
+            ).distinct()
+        
+        # Apply advisor filter
+        if data.get('advisor'):
+            queryset = queryset.filter(projectgroup__advisor_name__icontains=data['advisor']).distinct()
+        
+        # Apply major filter
+        if data.get('major'):
+            queryset = queryset.filter(projectgroup__students__student__major__name=data['major']).distinct()
+        
+        # Apply academic year filter
+        if data.get('academic_year'):
+            queryset = queryset.filter(project_id__startswith=data['academic_year'])
+    
+    try:
+        if format_type == 'excel':
+            from .export_import import export_projects_to_excel
+            return export_projects_to_excel(queryset)
+        else:
+            from .export_import import export_projects_to_csv
+            return export_projects_to_csv(queryset)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Export error: {str(e)}")
+        return Response(
+            {'error': f'Export failed: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def import_projects_view(request):
+    """Import projects from CSV or Excel file - function-based view"""
+    if 'file' not in request.FILES:
+        return Response(
+            {'error': 'No file provided'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    file = request.FILES['file']
+    academic_year = request.data.get('academic_year')
+    format_type = request.data.get('format', 'csv').lower()
+    
+    try:
+        if format_type == 'csv':
+            from .export_import import import_projects_from_csv
+            success_count, error_count, errors = import_projects_from_csv(
+                file, academic_year, request.user
+            )
+        else:
+            return Response(
+                {'error': f'Unsupported format: {format_type}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response({
+            'success_count': success_count,
+            'error_count': error_count,
+            'errors': errors[:10],  # Limit errors to first 10
+            'message': f'Import completed: {success_count} successful, {error_count} errors'
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Import error: {str(e)}")
+        return Response(
+            {'error': f'Import failed: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     def _create_milestones_from_template(self, project, template):
         """Create milestones from template"""

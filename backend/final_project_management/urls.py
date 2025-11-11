@@ -351,6 +351,7 @@ urlpatterns = [
     path('api/analytics/', include('analytics.urls')),
     path('api/settings/', include('settings.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/monitoring/', include('system_monitoring.urls')),
     
     # New API endpoints
     path('api/files/', include('file_management.urls')),

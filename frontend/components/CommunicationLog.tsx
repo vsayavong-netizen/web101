@@ -1,11 +1,13 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { getFile } from '../utils/fileStorage';
 import {
   Box, Paper, Typography, TextField, Button, IconButton, Stack, Divider, Chip, MenuList, MenuItem, ListItemText
 } from '@mui/material';
 import {
   Send as PaperAirplaneIcon, AttachFile as PaperClipIcon, Close as XMarkIcon,
   AutoAwesome as SparklesIcon, SwapHoriz as ArrowsRightLeftIcon, Schedule as ClockIcon,
-  Upload as DocumentArrowUpIcon, Edit as PencilIcon, Info as InformationCircleIcon
+  Upload as DocumentArrowUpIcon, Edit as PencilIcon, Info as InformationCircleIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { ProjectGroup, User, Advisor, LogEntry, FileUploadPayload } from '../types';
 import { useToast } from '../hooks/useToast';
@@ -20,13 +22,86 @@ interface CommunicationLogProps {
     onAnalyze: () => void;
 }
 
+// Helper function with sync fallback for immediate use
 const getFileDataUrl = (fileId: string): string => {
+    // Try localStorage first for immediate access
+    const cached = localStorage.getItem(`file_${fileId}`);
+    if (cached) return cached;
+    
+    // Return empty string, will be loaded async
+    return '';
+};
+
+// Async function to load file from API
+const loadFileAsync = async (fileId: string): Promise<string> => {
     try {
-        return localStorage.getItem(`file_${fileId}`) || '';
+        const fileData = await getFile(fileId);
+        if (fileData) {
+            // Cache in localStorage for future use
+            if (!fileData.startsWith('http')) {
+                localStorage.setItem(`file_${fileId}`, fileData);
+            }
+            return fileData;
+        }
     } catch (error) {
-        console.error('Error reading file from localStorage:', error);
-        return '';
+        console.error('Error reading file:', error);
     }
+    
+    // Fallback to localStorage
+    return localStorage.getItem(`file_${fileId}`) || '';
+};
+
+// FileDownloadButton component
+interface FileDownloadButtonProps {
+    fileId: string;
+    fileName: string;
+    isCurrentUser: boolean;
+}
+
+const FileDownloadButton: React.FC<FileDownloadButtonProps> = ({ fileId, fileName, isCurrentUser }) => {
+    const [isDownloading, setIsDownloading] = useState(false);
+    const addToast = useToast();
+    const t = useTranslations();
+
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const dataUrl = await loadFileAsync(fileId);
+            if (dataUrl) {
+                const link = document.createElement('a');
+                link.href = dataUrl.startsWith('http') ? dataUrl : dataUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                addToast({ type: 'error', message: t('couldNotRetrieveFile') || 'Could not retrieve file' });
+            }
+        } catch (error) {
+            console.error('Failed to download file:', error);
+            addToast({ type: 'error', message: t('couldNotRetrieveFile') || 'Could not retrieve file' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    return (
+        <Button
+            size="small"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownload}
+            disabled={isDownloading}
+            sx={{
+                textTransform: 'none',
+                color: isCurrentUser ? 'inherit' : 'primary.main',
+                '&:hover': {
+                    bgcolor: isCurrentUser ? 'rgba(255,255,255,0.1)' : 'action.hover'
+                }
+            }}
+        >
+            {isDownloading ? 'Downloading...' : fileName}
+        </Button>
+    );
 };
 
 const CommunicationLog: React.FC<CommunicationLogProps> = ({ projectGroup, user, advisors, onAddEntry, onAnalyze }) => {
@@ -272,19 +347,11 @@ const CommunicationLog: React.FC<CommunicationLogProps> = ({ projectGroup, user,
                                     {entry.file && (
                                         <>
                                             <Divider sx={{ my: 1, borderColor: isCurrentUser ? 'rgba(255,255,255,0.2)' : 'divider' }} />
-                                            <Button
-                                                component="a"
-                                                href={getFileDataUrl(entry.file.fileId)}
-                                                download={entry.file.name}
-                                                startIcon={<PaperClipIcon />}
-                                                size="small"
-                                                sx={{
-                                                    textTransform: 'none',
-                                                    color: isCurrentUser ? 'inherit' : 'primary.main'
-                                                }}
-                                            >
-                                                {entry.file.name}
-                                            </Button>
+                                            <FileDownloadButton 
+                                                fileId={entry.file.fileId}
+                                                fileName={entry.file.name}
+                                                isCurrentUser={isCurrentUser}
+                                            />
                                         </>
                                     )}
                                 </Paper>

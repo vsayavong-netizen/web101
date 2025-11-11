@@ -140,16 +140,36 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = (props) => {
         }
     };
     
-    const downloadFile = (file: {fileId: string, name: string}) => {
-        const dataUrl = localStorage.getItem(`file_${file.fileId}`);
-        if(dataUrl){
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else { addToast({type: 'error', message: t('fileNotFoundError')}) }
+    const downloadFile = async (file: {fileId: string, name: string}) => {
+        try {
+            const { getFile } = await import('../utils/fileStorage');
+            const fileData = await getFile(file.fileId);
+            
+            if (fileData) {
+                const link = document.createElement('a');
+                link.href = fileData.startsWith('http') ? fileData : fileData;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                addToast({type: 'error', message: t('fileNotFoundError')});
+            }
+        } catch (error) {
+            console.error('Failed to download file:', error);
+            // Fallback to localStorage
+            const dataUrl = localStorage.getItem(`file_${file.fileId}`);
+            if (dataUrl) {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                addToast({type: 'error', message: t('fileNotFoundError')});
+            }
+        }
     };
 
     return (

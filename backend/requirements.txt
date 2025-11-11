@@ -28,6 +28,9 @@ gunicorn==21.2.0
 # WebSocket support
 channels==4.0.0
 channels-redis==4.1.0
+daphne==4.1.0  # ASGI server for WebSocket testing
+PyJWT==2.8.0  # JWT token decoding
+# Note: channels.testing is included with channels package, no separate install needed
 
 # API documentation
 drf-spectacular==0.27.0
@@ -37,6 +40,7 @@ pytest==7.4.4
 pytest-django==4.7.0
 pytest-cov==4.1.0
 factory-boy==3.3.0
+locust==2.17.0  # Performance testing
 
 # Performance monitoring
 psutil==5.9.6
@@ -44,6 +48,9 @@ websocket-client==1.6.4
 
 # Security and validation
 bleach==6.2.0  # HTML sanitization
+
+# Export/Import
+openpyxl==3.1.2  # Excel file support
 
 # Additional packages for better compatibility
 asgiref==3.10.0
