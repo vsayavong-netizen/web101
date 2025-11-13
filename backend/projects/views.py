@@ -461,11 +461,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             {
                 'id': str(entry.id),
                 'type': entry.type,
-                'author_name': entry.author_name,
-                'author_role': entry.author_role,
-                'message': entry.message,
-                'file_name': entry.file_name,
-                'created_at': entry.created_at
+                'author_id': entry.author_id,
+                'content': entry.content,
+                'metadata': entry.metadata or {},
+                'created_at': entry.created_at.isoformat() if entry.created_at else None
             }
             for entry in log_entries
         ])
