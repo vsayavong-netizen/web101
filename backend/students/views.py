@@ -10,6 +10,8 @@ from .models import (
     Student, StudentAcademicRecord, StudentSkill, StudentAchievement,
     StudentAttendance, StudentNote
 )
+from projects.models import ProjectGroup, ProjectStudent
+from advisors.models import Advisor
 from .serializers import (
     StudentSerializer, StudentCreateSerializer, StudentUpdateSerializer,
     StudentAcademicRecordSerializer, StudentSkillSerializer, StudentAchievementSerializer,
@@ -44,13 +46,33 @@ class StudentListView(generics.ListCreateAPIView):
         
         # Advisors can see students in their projects
         elif hasattr(user, 'role') and user.role == 'Advisor':
-            # TODO: Add logic to filter students based on advisor's projects
-            pass
+            try:
+                # Get advisor instance
+                advisor = Advisor.objects.get(user=user)
+                # Get all project groups where this advisor is the advisor
+                project_groups = ProjectGroup.objects.filter(advisor_name__icontains=user.get_full_name() or user.username)
+                # Get all students in these project groups
+                project_students = ProjectStudent.objects.filter(project_group__in=project_groups)
+                student_ids = [ps.student.id for ps in project_students]
+                queryset = queryset.filter(id__in=student_ids)
+            except Advisor.DoesNotExist:
+                # If advisor doesn't exist, return empty queryset
+                queryset = queryset.none()
         
         # Department admins can see students in their department
         elif hasattr(user, 'role') and user.role == 'DepartmentAdmin':
-            # TODO: Add department filtering logic
-            pass
+            try:
+                # Get advisor instance (DepartmentAdmin is also an Advisor)
+                advisor = Advisor.objects.get(user=user)
+                # Filter students by advisor's specialized majors if available
+                if hasattr(advisor, 'specialized_major_ids') and advisor.specialized_major_ids:
+                    # If advisor has specialized majors, filter by those
+                    queryset = queryset.filter(major_id__in=advisor.specialized_major_ids)
+                # If no specialized majors, DepartmentAdmin can see all students
+                # (This can be customized based on business requirements)
+            except Advisor.DoesNotExist:
+                # If advisor doesn't exist, return all students for DepartmentAdmin
+                pass
         
         # Admins can see all students
         elif hasattr(user, 'role') and user.role == 'Admin':
@@ -805,13 +827,33 @@ class StudentViewSet(viewsets.ModelViewSet):
         
         # Advisors can see students in their projects
         elif hasattr(user, 'role') and user.role == 'Advisor':
-            # TODO: Add logic to filter students based on advisor's projects
-            pass
+            try:
+                # Get advisor instance
+                advisor = Advisor.objects.get(user=user)
+                # Get all project groups where this advisor is the advisor
+                project_groups = ProjectGroup.objects.filter(advisor_name__icontains=user.get_full_name() or user.username)
+                # Get all students in these project groups
+                project_students = ProjectStudent.objects.filter(project_group__in=project_groups)
+                student_ids = [ps.student.id for ps in project_students]
+                queryset = queryset.filter(id__in=student_ids)
+            except Advisor.DoesNotExist:
+                # If advisor doesn't exist, return empty queryset
+                queryset = queryset.none()
         
         # Department admins can see students in their department
         elif hasattr(user, 'role') and user.role == 'DepartmentAdmin':
-            # TODO: Add logic to filter students based on department
-            pass
+            try:
+                # Get advisor instance (DepartmentAdmin is also an Advisor)
+                advisor = Advisor.objects.get(user=user)
+                # Filter students by advisor's specialized majors if available
+                if hasattr(advisor, 'specialized_major_ids') and advisor.specialized_major_ids:
+                    # If advisor has specialized majors, filter by those
+                    queryset = queryset.filter(major_id__in=advisor.specialized_major_ids)
+                # If no specialized majors, DepartmentAdmin can see all students
+                # (This can be customized based on business requirements)
+            except Advisor.DoesNotExist:
+                # If advisor doesn't exist, return all students for DepartmentAdmin
+                pass
         
         # Admins can see all students
         elif hasattr(user, 'role') and user.role == 'Admin':

@@ -9,6 +9,21 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Validate environment variables on startup
+try:
+    from .env_validation import validate_all
+    validate_all()
+except ImportError:
+    # If validation module doesn't exist, skip validation
+    pass
+except Exception as e:
+    # In production, raise the error
+    if not config('DEBUG', default=True, cast=bool):
+        raise
+    # In development, just warn
+    import warnings
+    warnings.warn(f"Environment validation warning: {e}", UserWarning)
+
 # API Base URL for internal service communication
 API_BASE_URL = config('API_BASE_URL', default='http://localhost:8000')
 
