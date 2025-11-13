@@ -24,12 +24,36 @@ class StudentListView(generics.ListCreateAPIView):
     """List and create students."""
     
     queryset = Student.objects.select_related('user').all()
-    permission_classes = [permissions.AllowAny]  # Temporarily allow anonymous access for testing
+    permission_classes = [permissions.IsAuthenticated]  # Changed from AllowAny for security
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return StudentCreateSerializer
         return StudentSerializer
+    
+    def perform_create(self, serializer):
+        """Handle student creation"""
+        try:
+            # Create user if provided
+            user_data = serializer.validated_data.pop('user', None)
+            if user_data:
+                from accounts.models import User
+                user = User.objects.create_user(
+                    username=user_data.get('username'),
+                    email=user_data.get('email'),
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', ''),
+                    role='Student',
+                    password=user_data.get('password', 'student123')
+                )
+                serializer.save(user=user)
+            else:
+                serializer.save()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error creating student: {str(e)}")
+            raise
     
     def get_queryset(self):
         """Filter students based on user role and permissions."""
@@ -85,7 +109,7 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, or delete a student."""
     
     queryset = Student.objects.select_related('user').all()
-    permission_classes = [permissions.AllowAny]  # Temporarily allow anonymous access for testing
+    permission_classes = [permissions.IsAuthenticated]  # Changed from AllowAny for security
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -99,11 +123,59 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Try to get by ID first
         try:
             pk_int = int(pk)
-            return Student.objects.select_related('user').get(id=pk_int)
+            student = Student.objects.select_related('user').get(id=pk_int)
+            
+            # Check permissions
+            user = self.request.user
+            if user.is_admin():
+                return student
+            elif user.is_student() and student.user == user:
+                return student
+            elif user.is_advisor() or user.is_department_admin():
+                # Advisors can see students in their projects
+                try:
+                    advisor = Advisor.objects.get(user=user)
+                    project_groups = ProjectGroup.objects.filter(advisor_name__icontains=user.get_full_name() or user.username)
+                    project_students = ProjectStudent.objects.filter(project_group__in=project_groups)
+                    # ProjectStudent.student is User, need to get Student model
+                    student_user_ids = {ps.student.id for ps in project_students}
+                    if student.user.id in student_user_ids:
+                        return student
+                except Advisor.DoesNotExist:
+                    pass
+            
+            # Permission denied
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You don't have permission to access this student.")
+            
         except (ValueError, Student.DoesNotExist):
             # If not found by ID, try to get by student_id
             try:
-                return Student.objects.select_related('user').get(student_id=pk)
+                student = Student.objects.select_related('user').get(student_id=pk)
+                
+                # Check permissions for student_id lookup too
+                user = self.request.user
+                if user.is_admin():
+                    return student
+                elif user.is_student() and student.user == user:
+                    return student
+                elif user.is_advisor() or user.is_department_admin():
+                    # Advisors can see students in their projects
+                    try:
+                        advisor = Advisor.objects.get(user=user)
+                        project_groups = ProjectGroup.objects.filter(advisor_name__icontains=user.get_full_name() or user.username)
+                        project_students = ProjectStudent.objects.filter(project_group__in=project_groups)
+                        # ProjectStudent.student is User, need to get Student model
+                        student_user_ids = {ps.student.id for ps in project_students}
+                        if student.user.id in student_user_ids:
+                            return student
+                    except Advisor.DoesNotExist:
+                        pass
+                
+                # Permission denied
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You don't have permission to access this student.")
+                
             except Student.DoesNotExist:
                 # Return 404
                 from rest_framework.exceptions import NotFound

@@ -27,6 +27,30 @@ class AdvisorListView(generics.ListCreateAPIView):
             return AdvisorCreateSerializer
         return AdvisorSerializer
     
+    def perform_create(self, serializer):
+        """Handle advisor creation"""
+        try:
+            # Create user if provided
+            user_data = serializer.validated_data.pop('user', None)
+            if user_data:
+                from accounts.models import User
+                user = User.objects.create_user(
+                    username=user_data.get('username'),
+                    email=user_data.get('email'),
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', ''),
+                    role='Advisor',
+                    password=user_data.get('password', 'advisor123')
+                )
+                serializer.save(user=user)
+            else:
+                serializer.save()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error creating advisor: {str(e)}")
+            raise
+    
     def get_queryset(self):
         """Filter advisors based on user role and permissions."""
         user = self.request.user
@@ -62,6 +86,27 @@ class AdvisorDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PUT', 'PATCH']:
             return AdvisorUpdateSerializer
         return AdvisorSerializer
+    
+    def perform_destroy(self, instance):
+        """Handle advisor deletion"""
+        try:
+            # Check if advisor has projects
+            from projects.models import Project, ProjectGroup
+            projects = Project.objects.filter(advisor=instance)
+            project_groups = ProjectGroup.objects.filter(advisor_name__icontains=instance.user.get_full_name() or instance.user.username)
+            
+            if projects.exists() or project_groups.exists():
+                # Don't delete if advisor has projects
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("Cannot delete advisor with existing projects. Please reassign projects first.")
+            
+            # Delete advisor
+            instance.delete()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error deleting advisor: {str(e)}")
+            raise
 
 
 class AdvisorSpecializationListView(generics.ListCreateAPIView):

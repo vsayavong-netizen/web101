@@ -50,6 +50,34 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ['project_id', 'topic_eng', 'created_at', 'defense_date']
     ordering = ['-created_at']
     
+    def perform_destroy(self, instance):
+        """Handle project deletion"""
+        try:
+            # Get ProjectGroup for cleanup
+            try:
+                project_group = ProjectGroup.objects.get(project_id=instance.project_id)
+                
+                # Delete related objects
+                # Delete ProjectStudents
+                ProjectStudent.objects.filter(project_group=project_group).delete()
+                
+                # Delete related LogEntries
+                LogEntry.objects.filter(project=project_group).delete()
+                
+                # Delete ProjectGroup
+                project_group.delete()
+            except ProjectGroup.DoesNotExist:
+                pass
+            
+            # Delete the project
+            instance.delete()
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error deleting project: {str(e)}")
+            raise
+    
     def _get_or_create_project_group(self, project):
         """Helper method to get or create ProjectGroup for a Project"""
         try:
@@ -85,6 +113,88 @@ class ProjectViewSet(viewsets.ModelViewSet):
         elif self.action in ['update', 'partial_update']:
             return ProjectUpdateSerializer
         return ProjectSerializer
+    
+    def perform_update(self, serializer):
+        """Handle project update"""
+        try:
+            project = serializer.save()
+            
+            # Update ProjectGroup if exists
+            try:
+                project_group = ProjectGroup.objects.get(project_id=project.project_id)
+                
+                # Update ProjectGroup fields from serializer
+                project_data = serializer.validated_data
+                
+                if 'topic_eng' in project_data:
+                    project_group.topic_eng = project_data['topic_eng']
+                if 'topic_lao' in project_data:
+                    project_group.topic_lao = project_data['topic_lao']
+                if 'advisor_name' in project_data:
+                    project_group.advisor_name = project_data['advisor_name']
+                if 'comment' in project_data:
+                    project_group.comment = project_data['comment']
+                if 'status' in project_data:
+                    project_group.status = project_data['status']
+                
+                # Update advisor name from advisor relationship if changed
+                if 'advisor' in project_data and project.advisor:
+                    if hasattr(project.advisor, 'user'):
+                        project_group.advisor_name = project.advisor.user.get_full_name() or project.advisor.user.username
+                
+                project_group.save()
+            except ProjectGroup.DoesNotExist:
+                # Create ProjectGroup if it doesn't exist
+                self._get_or_create_project_group(project)
+            
+            # Update students if provided
+            if 'student_ids' in serializer.validated_data:
+                student_ids = serializer.validated_data['student_ids']
+                try:
+                    project_group = ProjectGroup.objects.get(project_id=project.project_id)
+                    from students.models import Student
+                    students = Student.objects.filter(student_id__in=student_ids)
+                    
+                    # Remove existing students not in new list
+                    existing_students = ProjectStudent.objects.filter(project_group=project_group)
+                    # Get student IDs from ProjectStudent (student is User, need to get Student model)
+                    existing_student_ids = set()
+                    for ps in existing_students:
+                        try:
+                            from students.models import Student
+                            student_obj = Student.objects.get(user=ps.student)
+                            existing_student_ids.add(student_obj.student_id)
+                        except Student.DoesNotExist:
+                            pass
+                    
+                    new_student_ids = set(student_ids)
+                    
+                    # Remove students not in new list
+                    for ps in existing_students:
+                        try:
+                            from students.models import Student
+                            student_obj = Student.objects.get(user=ps.student)
+                            if student_obj.student_id not in new_student_ids:
+                                ps.delete()
+                        except Student.DoesNotExist:
+                            ps.delete()  # Delete if student doesn't exist
+                    
+                    # Add new students
+                    for idx, student in enumerate(students):
+                        ProjectStudent.objects.get_or_create(
+                            project_group=project_group,
+                            student=student.user,
+                            defaults={'is_primary': idx == 0}
+                        )
+                except ProjectGroup.DoesNotExist:
+                    pass
+            
+            return project
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating project: {str(e)}")
+            raise
 
     def get_queryset(self):
         """Filter queryset based on user permissions"""
@@ -109,8 +219,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                         return queryset
                 
                 # Filter by ProjectStudent relationship
+                # ProjectStudent.student is User, not Student model
                 from projects.models import ProjectStudent
-                project_students = ProjectStudent.objects.filter(student__user=user)
+                project_students = ProjectStudent.objects.filter(student=user)
                 project_group_ids = [ps.project_group.id for ps in project_students]
                 project_groups = ProjectGroup.objects.filter(id__in=project_group_ids)
                 project_ids = [pg.project_id for pg in project_groups]
@@ -212,8 +323,101 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set academic year and create project group"""
-        academic_year = self.request.data.get('academic_year') or getattr(self.request.user, 'current_academic_year', '2024-2025')
-        serializer.save(academic_year=academic_year)
+        try:
+            academic_year = self.request.data.get('academic_year') or getattr(self.request.user, 'current_academic_year', '2024-2025')
+            
+            # Save project
+            project = serializer.save(academic_year=academic_year)
+            
+            # Create or update ProjectGroup
+            project_data = serializer.validated_data
+            project_id = project.project_id
+            
+            # Get advisor name
+            advisor_name = ''
+            if project.advisor and hasattr(project.advisor, 'user'):
+                advisor_name = project.advisor.user.get_full_name() or project.advisor.user.username
+            
+            # Create or update ProjectGroup
+            project_group, created = ProjectGroup.objects.get_or_create(
+                project_id=project_id,
+                defaults={
+                    'topic_eng': project_data.get('topic_eng') or project.title or '',
+                    'topic_lao': project_data.get('topic_lao') or '',
+                    'advisor_name': project_data.get('advisor_name') or advisor_name,
+                    'comment': project_data.get('comment') or '',
+                    'status': project.status
+                }
+            )
+            
+            # Update if exists
+            if not created:
+                project_group.topic_eng = project_data.get('topic_eng') or project.title or project_group.topic_eng
+                project_group.topic_lao = project_data.get('topic_lao') or project_group.topic_lao
+                project_group.advisor_name = project_data.get('advisor_name') or advisor_name or project_group.advisor_name
+                project_group.comment = project_data.get('comment') or project_group.comment
+                project_group.status = project.status
+                project_group.save()
+            
+            # Add students if provided
+            student_ids = project_data.get('student_ids', [])
+            if student_ids:
+                from students.models import Student
+                students = Student.objects.filter(student_id__in=student_ids)
+                for idx, student in enumerate(students):
+                    # ProjectStudent uses student.user, not student directly
+                    ProjectStudent.objects.get_or_create(
+                        project_group=project_group,
+                        student=student.user,
+                        defaults={'is_primary': idx == 0}
+                    )
+            
+            # Apply milestone template if provided
+            template_id = project_data.get('template_id')
+            if template_id:
+                try:
+                    from milestones.models import MilestoneTemplate
+                    template = MilestoneTemplate.objects.get(id=template_id)
+                    self._create_milestones_from_template(project, template)
+                except MilestoneTemplate.DoesNotExist:
+                    pass
+            
+            return project
+        except Exception as e:
+            # Log error and re-raise
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error creating project: {str(e)}")
+            raise
+    
+    def _create_milestones_from_template(self, project, template):
+        """Create milestones from template"""
+        try:
+            from milestones.models import Milestone
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            # Get template milestones
+            template_milestones = template.milestones.all() if hasattr(template, 'milestones') else []
+            
+            # Get ProjectGroup
+            project_group = self._get_or_create_project_group(project)
+            
+            # Create milestones
+            for template_milestone in template_milestones:
+                Milestone.objects.create(
+                    project=project,
+                    project_group=project_group,
+                    name=template_milestone.name,
+                    description=template_milestone.description,
+                    due_date=timezone.now().date() + timedelta(days=template_milestone.days_offset or 30),
+                    status='Pending'
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Error creating milestones from template: {str(e)}")
+            # Don't fail project creation if milestone creation fails
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
@@ -254,6 +458,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     self._create_milestones_from_template(project, template)
                 except MilestoneTemplate.DoesNotExist:
                     pass
+                except Exception as e:
+                    # Log error but don't fail the status update
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Error applying milestone template: {str(e)}")
             
             return Response({
                 'message': f'Project status updated to {new_status}'
